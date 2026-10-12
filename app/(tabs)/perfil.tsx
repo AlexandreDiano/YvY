@@ -1,13 +1,14 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ensureNotificationPermission } from '../../src/lib/reminders';
+import { ensureNotificationPermission } from '@/lib/reminders';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
-import { FLAG } from '../../src/api/flags';
-import { decideInvitee, pendingInvitees } from '../../src/api/invites';
-import { canManageRoles } from '../../src/api/members';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import { env } from '../../src/lib/env';
-import { camarada, formatCep, formatPhone, longDate } from '../../src/lib/format';
+import { FLAG } from '@/api/flags';
+import { decideInvitee, pendingInvitees } from '@/api/invites';
+import { canManageRoles } from '@/api/members';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useBiometricLock } from '@/features/auth/BiometricLock';
+import { env } from '@/lib/env';
+import { camarada, formatCep, formatPhone, longDate } from '@/lib/format';
 import {
   Button,
   Card,
@@ -19,12 +20,11 @@ import {
   Section,
   Toggle,
   Txt,
-  color,
   saveThemePref,
   space,
   themePref,
   type ThemePref,
-} from '../../src/ui';
+} from '@/ui';
 
 const ROLE_LABEL: Record<string, string> = {
   visitor: 'Sem acesso à base',
@@ -64,6 +64,7 @@ export default function Perfil() {
 
   const [rolesPower, setRolesPower] = useState(false);
   const [theme, setTheme] = useState<ThemePref>(themePref);
+  const bio = useBiometricLock();
   // Recarrega a cada foco: o convidado pode ter entrado com a tela já aberta.
   useFocusEffect(
     useCallback(() => {
@@ -263,6 +264,20 @@ export default function Perfil() {
         </>
       ) : null}
 
+      {bio.available ? (
+        <>
+          <Section title="Segurança" />
+          <Card>
+            <Toggle
+              label="Entrar com digital"
+              detail="Ao abrir o app e ao voltar depois de 1 minuto fora, pede a digital (ou a senha do celular). Quem pegar seu celular desbloqueado não abre o YvY."
+              value={bio.enabled}
+              onChange={(v) => void bio.setEnabled(v)}
+            />
+          </Card>
+        </>
+      ) : null}
+
       <Section title="Aparência" />
       <Card>
         <Options
@@ -307,17 +322,24 @@ export default function Perfil() {
         title="Sair"
         kind="outline"
         onPress={() =>
-          Alert.alert('Sair da conta?', 'Você precisará entrar de novo com seu telefone.', [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Sair',
-              style: 'destructive',
-              onPress: async () => {
-                await signOut();
-                router.replace('/welcome');
+          Alert.alert(
+            'Sair da conta?',
+            bio.enabled
+              ? 'Trancar: o YvY fecha e volta com a digital. Sair de vez: precisa de e-mail e senha para entrar de novo.'
+              : 'Você precisará entrar de novo com e-mail e senha.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              ...(bio.enabled ? [{ text: 'Trancar', onPress: () => bio.lockNow() }] : []),
+              {
+                text: bio.enabled ? 'Sair de vez' : 'Sair',
+                style: 'destructive' as const,
+                onPress: async () => {
+                  await signOut();
+                  router.replace('/welcome');
+                },
               },
-            },
-          ])
+            ],
+          )
         }
       />
       <Txt variant="small" muted center>

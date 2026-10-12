@@ -18,6 +18,11 @@ Versão escura (de assets/yvy-logo-dark.png: letras creme, broto verde, terra
 cor de barro, fundo verde-noite #13251A):
   icon-dark.png                1024, glifo transparente — ícone escuro do iOS 18
   splash-icon-dark.png         1024, glifo transparente — splash com o celular no escuro
+
+PWA (servidos pelo site, em public/icons/ — ver public/manifest.json):
+  icon-192.png, icon-512.png   fundo creme — ícone "any" do manifest
+  maskable-512.png             glifo a 60% sobre creme — o Android recorta em círculo
+  apple-touch-icon.png          180, fundo creme — "Adicionar à Tela de Início" do iOS
 """
 
 from pathlib import Path
@@ -102,5 +107,16 @@ dark_glyph = trim(cut_background(dark_src, DARK_BG))
 # iOS 18 desenha o fundo escuro do ícone ele mesmo: glifo sem fundo, mesmo enquadramento do claro.
 centered(dark_glyph, 1024, 0.78).save(ASSETS / "icon-dark.png")
 centered(dark_glyph, 1024, 0.78).save(ASSETS / "splash-icon-dark.png")
+
+PWA = ROOT / "public" / "icons"
+PWA.mkdir(parents=True, exist_ok=True)
+flatten(src, 192).save(PWA / "icon-192.png")
+flatten(src, 512).save(PWA / "icon-512.png")
+flatten(src, 180).save(PWA / "apple-touch-icon.png")
+# Maskable: zona segura é o círculo de 80% do lado; 0.60 deixa folga.
+maskable = Image.new("RGB", (512, 512), CREAM)
+m = centered(glyph, 512, 0.60)
+maskable.paste(m, (0, 0), m)
+maskable.save(PWA / "maskable-512.png")
 
 print("ícones gerados a partir de assets/yvy-logo.png e assets/yvy-logo-dark.png")

@@ -96,6 +96,12 @@
         {
           "color": "#2D5A27"
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O YvY usa o Face ID só para destrancar o app, se você ligar essa opção em Perfil."
+        }
       ]
     ],
     "experiments": {

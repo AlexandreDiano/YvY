@@ -1,0 +1,19 @@
+{
+  "name": "YvY",
+  "short_name": "YvY",
+  "description": "Organização de base: propostas, checagem de fatos e ação no seu bairro.",
+  "lang": "pt-BR",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF3DF",
+  "theme_color": "#FAF8F5",
+  "categories": ["social", "news"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
