@@ -7,16 +7,35 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "environment": "development"
+      "android": {
+        "buildType": "apk"
+      },
+      "environment": "development",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "environment": "preview"
+      "android": {
+        "buildType": "apk"
+      },
+      "environment": "preview",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_SITE_URL": "https://www.useyvy.app",
+        "EXPO_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFUzu7klTD4zyMkp",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://6689f719bbaaa0d02e29c9854463eb2d@o4512244334002176.ingest.us.sentry.io/4512244336164864"
+      }
     },
     "production": {
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_SITE_URL": "https://www.useyvy.app",
+        "EXPO_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFUzu7klTD4zyMkp",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://6689f719bbaaa0d02e29c9854463eb2d@o4512244334002176.ingest.us.sentry.io/4512244336164864"
+      }
     }
   }
 }
