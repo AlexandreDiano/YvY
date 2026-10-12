@@ -4,33 +4,18 @@ import { StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { env } from '@/lib/env';
 import { notify } from '@/lib/notify';
-import { BANKS, canOpenBank, openBank, pixPayload } from '@/lib/pix';
-import { Button, Card, Chip, Txt, radius, space } from '@/ui';
+import { pixPayload } from '@/lib/pix';
+import { Button, Card, Txt, radius, space } from '@/ui';
 
 /**
  * Apoio por Pix, sem valor sugerido: quem quiser manda quanto quiser.
  * Só para membro confirmado (quem chama decide) e só com EXPO_PUBLIC_PIX_KEY.
  */
 export function SupportCard() {
-  const [banks, setBanks] = useState(false);
   const [more, setMore] = useState(false);
   if (!env.pixKey) return null;
 
   const code = pixPayload(env.pixKey, env.pixName, env.pixCity);
-
-  /**
-   * Um botão só: copia o copia e cola e, no Android, mostra os bancos para
-   * abrir. Nenhum banco aceita abrir já na tela de Pix com chave preenchida
-   * vindo de fora, então o último passo (colar) é da pessoa.
-   */
-  async function sendPix() {
-    await Clipboard.setStringAsync(code);
-    if (canOpenBank()) {
-      setBanks(true);
-      return;
-    }
-    notify('Código Pix copiado', 'Abra o app do seu banco, escolha Pix › Copia e Cola e defina o valor.');
-  }
 
   return (
     <Card style={s.gap}>
@@ -39,23 +24,13 @@ export function SupportCard() {
         manter isso no ar? Mande um Pix de qualquer valor.
       </Txt>
 
-      <Button title="Mandar Pix" onPress={() => void sendPix()} />
-
-      {banks ? (
-        <>
-          <Txt variant="small" muted>
-            Código copiado. Toque no seu banco e, lá dentro, escolha Pix › Copia e Cola.
-          </Txt>
-          <View style={s.banks}>
-            {BANKS.map((b) => (
-              <Chip key={b.pkg} label={b.name} onPress={() => void openBank(b.pkg)} />
-            ))}
-          </View>
-          <Txt variant="small" muted>
-            Seu banco não está aqui? Abra ele normalmente: o código já está copiado.
-          </Txt>
-        </>
-      ) : null}
+      <Button
+        title="Copiar código Pix"
+        onPress={async () => {
+          await Clipboard.setStringAsync(code);
+          notify('Código Pix copiado', 'No app do seu banco, escolha Pix › Copia e Cola e defina o valor.');
+        }}
+      />
 
       <Button
         title={more ? 'Esconder outras formas' : 'Outras formas (QRCode e chave)'}
@@ -82,7 +57,6 @@ export function SupportCard() {
 
 const s = StyleSheet.create({
   gap: { gap: space.sm },
-  banks: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   qr: {
     alignSelf: 'center',
     padding: space.md,

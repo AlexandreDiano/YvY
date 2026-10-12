@@ -1,5 +1,3 @@
-import { Linking, Platform } from 'react-native';
-
 /**
  * Pix "copia e cola" estático (BR Code do Banco Central), sem valor: quem
  * paga digita quanto quiser no app do banco. Mesmo texto vira o QRCode Pix.
@@ -46,45 +44,4 @@ export function pixPayload(key: string, name: string, city: string): string {
     field('62', field('05', '***')) +
     '6304';
   return body + crc16(body);
-}
-
-/**
- * Apps de banco no Android (pacote da Play Store). Não existe link universal
- * para "abrir o banco": cada app é aberto pelo pacote, e no iPhone a Apple não
- * deixa abrir app de terceiro sem ele declarar um link próprio — lá a pessoa
- * abre o banco sozinha e usa o copia e cola.
- */
-export const BANKS: { name: string; pkg: string }[] = [
-  { name: 'Nubank', pkg: 'com.nu.production' },
-  { name: 'Itaú', pkg: 'com.itau' },
-  { name: 'Bradesco', pkg: 'com.bradesco' },
-  { name: 'Banco do Brasil', pkg: 'br.com.bb.android' },
-  { name: 'Caixa', pkg: 'br.com.gabba.Caixa' },
-  { name: 'Santander', pkg: 'com.santander.app' },
-  { name: 'Inter', pkg: 'br.com.intermedium' },
-  { name: 'C6', pkg: 'com.c6bank.app' },
-  { name: 'PicPay', pkg: 'com.picpay' },
-  { name: 'Mercado Pago', pkg: 'com.mercadopago.wallet' },
-];
-
-/** Só Android sabe abrir um app pelo pacote. */
-export function canOpenBank(): boolean {
-  if (Platform.OS === 'android') return true;
-  return Platform.OS === 'web' && typeof navigator !== 'undefined' && /Android/.test(navigator.userAgent);
-}
-
-/**
- * Site no Chrome do Android: link `intent:` abre o app direto (ou a Play
- * Store, se não estiver instalado). APK: React Native não abre `intent:`, então
- * vai pela página do app na Play Store, que tem o botão "Abrir".
- */
-export async function openBank(pkg: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    const store = encodeURIComponent(`https://play.google.com/store/apps/details?id=${pkg}`);
-    window.location.href = `intent://#Intent;package=${pkg};S.browser_fallback_url=${store};end`;
-    return;
-  }
-  await Linking.openURL(`market://details?id=${pkg}`).catch(() =>
-    Linking.openURL(`https://play.google.com/store/apps/details?id=${pkg}`),
-  );
 }
