@@ -1,6 +1,7 @@
 import type { Profile, PullRoute, Voter } from '@/lib/db.types';
 import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { enqueueVote, flushVotes, loadRouteCopy, pendingVotes, saveRouteCopy } from '@/features/pull/offline';
 
 /**
  * Puxada de voto (fluxo 4.5 / tela 7.5).
@@ -10,7 +11,9 @@ import { supabase } from '@/lib/supabase';
  * que o codigo tem de respeitar:
  *  - quem le uma linha e so o puxador daquela rota (ou admin). Garantido por
  *    RLS em supabase/migrations/0005_rls.sql;
- *  - nada disto vai para cache em disco (ver lib/cache.ts);
+ *  - nada disto vai para o cache genérico (lib/cache.ts). Única exceção: a
+ *    cópia MÍNIMA da rota para a puxada sem internet (features/pull/offline.ts:
+ *    nome curto, zona, seção, local; some no fim do dia da eleição);
  *  - cadastro feito por militante grava `consent_source = 'militant'` e exige
  *    confirmacao de que a pessoa autorizou;
  *  - apos 25/10 a tabela e expurgada (ver supabase/migrations/0007_retention.sql).
@@ -64,10 +67,45 @@ export async function registerVoter(
   if (res.error) throw res.error;
 }
 
-export type RouteWithVoters = { route: PullRoute; voters: Voter[] };
+export type RouteWithVoters = {
+  route: PullRoute;
+  voters: Voter[];
+  /** Veio da cópia do aparelho (sem internet); `savedAt` = quando foi guardada. */
+  offline?: boolean;
+  savedAt?: string;
+};
 
-/** Rota do puxador logado. Nunca cacheada em disco. */
+/** Votos marcados que ainda estão na fila aparecem como marcados na tela. */
+async function withQueued(userId: string, data: RouteWithVoters): Promise<RouteWithVoters> {
+  const queued = new Map((await pendingVotes(userId)).map((q) => [q.voterId, q]));
+  if (!queued.size) return data;
+  return {
+    ...data,
+    voters: data.voters.map((v) => {
+      const q = queued.get(v.id);
+      return q ? { ...v, has_voted: q.voted, voted_at: q.voted ? q.at : null } : v;
+    }),
+  };
+}
+
+/**
+ * Rota do puxador logado. Com internet: do servidor, e guarda a cópia mínima
+ * no aparelho. Sem internet: a cópia (YVY-51).
+ */
 export async function myRoute(userId: string): Promise<RouteWithVoters | null> {
+  if (!supabase) return myRouteOnline(userId);
+  try {
+    const fresh = await myRouteOnline(userId);
+    if (fresh) await saveRouteCopy(userId, fresh.route, fresh.voters);
+    return fresh ? withQueued(userId, fresh) : null;
+  } catch (err) {
+    const copy = await loadRouteCopy(userId);
+    if (!copy) throw err;
+    return withQueued(userId, { route: copy.route, voters: copy.voters, offline: true, savedAt: copy.savedAt });
+  }
+}
+
+async function myRouteOnline(userId: string): Promise<RouteWithVoters | null> {
   if (!supabase) {
     const routes = (await all<PullRoute>(COL_ROUTES)).filter((r) => r.puller_id === userId);
     if (!routes.length) return null;
@@ -95,14 +133,19 @@ export async function myRoute(userId: string): Promise<RouteWithVoters | null> {
   return { route, voters: votersRes.data as Voter[] };
 }
 
-export async function markVoted(voterId: string, voted: boolean): Promise<void> {
-  const changes = { has_voted: voted, voted_at: voted ? new Date().toISOString() : null };
+/**
+ * Marca (ou desmarca) o voto. Primeiro vai para a fila do aparelho — nunca se
+ * perde por falta de rede —, depois tenta enviar. Devolve quantos ainda
+ * esperam envio.
+ */
+export async function markVoted(userId: string, voterId: string, voted: boolean): Promise<number> {
   if (!supabase) {
-    await patch<Voter>(COL_VOTERS, voterId, changes);
-    return;
+    await patch<Voter>(COL_VOTERS, voterId, { has_voted: voted, voted_at: voted ? new Date().toISOString() : null });
+    return 0;
   }
-  const res = await supabase.from('voters').update(changes).eq('id', voterId);
-  if (res.error) throw res.error;
+  await enqueueVote(userId, voterId, voted);
+  const r = await flushVotes(userId).catch(() => null);
+  return r?.pending ?? (await pendingVotes(userId)).length;
 }
 
 export type CoordinatorStats = {
