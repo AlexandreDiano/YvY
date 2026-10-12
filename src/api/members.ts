@@ -5,6 +5,9 @@ import type { UserRole } from '@/lib/db.types';
  * Papéis pelo app (migration 0032). Admin e quem tem a permissão de "mudar
  * papéis" alternam membro ↔ moderador; só admin dá ou tira essa permissão.
  * Tudo por RPC: `role` não tem UPDATE para o cliente.
+ *
+ * Convite (0036): por padrão só moderador/admin convida. Admin, quem muda
+ * papéis e o moderador do bairro liberam membro por membro.
  */
 export type Member = {
   id: string;
@@ -14,6 +17,8 @@ export type Member = {
   state: string | null;
   role: UserRole;
   is_role_manager: boolean;
+  /** Pode gerar convite: moderador/admin, ou membro liberado (0036). */
+  can_invite: boolean;
 };
 
 export async function canManageRoles(): Promise<boolean> {
@@ -38,5 +43,18 @@ export async function setMemberRole(userId: string, role: 'militant' | 'moderato
 export async function setRoleManager(userId: string, enabled: boolean): Promise<void> {
   if (!supabase) throw new Error('Disponível só com o servidor configurado.');
   const { error } = await supabase.rpc('set_role_manager' as never, { p_user: userId, p_enabled: enabled } as never);
+  if (error) throw error;
+}
+
+/** Quem está logado pode gerar convite? Modo local: todo membro (para testar). */
+export async function canInvite(isBaseMember: boolean): Promise<boolean> {
+  if (!supabase) return isBaseMember;
+  const { data, error } = await supabase.rpc('can_invite' as never);
+  return !error && data === true;
+}
+
+export async function setInvitePermission(userId: string, enabled: boolean): Promise<void> {
+  if (!supabase) throw new Error('Disponível só com o servidor configurado.');
+  const { error } = await supabase.rpc('set_invite_permission' as never, { p_user: userId, p_enabled: enabled } as never);
   if (error) throw error;
 }

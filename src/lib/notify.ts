@@ -12,3 +12,24 @@ export function notify(title: string, message?: string): void {
   }
   Alert.alert(title, message);
 }
+
+/**
+ * Pergunta "tem certeza?" com Cancelar + uma ação, também no site/PWA
+ * (`window.confirm`; o Alert com botões do react-native-web não abre nada).
+ */
+export function confirmAction(
+  title: string,
+  message: string,
+  confirmLabel: string,
+  onConfirm: () => void,
+  destructive = false,
+): void {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) onConfirm();
+    return;
+  }
+  Alert.alert(title, message, [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: confirmLabel, style: destructive ? 'destructive' : 'default', onPress: onConfirm },
+  ]);
+}

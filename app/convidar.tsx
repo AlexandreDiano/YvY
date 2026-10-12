@@ -18,6 +18,7 @@ import {
   type GeneratedInvite,
   type Invitee,
 } from '@/api/invites';
+import { canInvite } from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { camarada } from '@/lib/format';
 import { useNoScreenshots } from '@/lib/privacy';
@@ -26,6 +27,7 @@ import {
   Button,
   Card,
   Field,
+  Loading,
   Options,
   Row,
   Screen,
@@ -56,11 +58,13 @@ export default function Convidar() {
   const [big, setBig] = useState(false);
   const prevBrightness = useRef<number | null>(null);
   const [invitees, setInvitees] = useState<Invitee[]>([]);
+  const [inviter, setInviter] = useState<boolean | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void myInvitees().then(setInvitees, () => setInvitees([]));
-    }, []),
+      void canInvite(isBaseMember).then(setInviter);
+    }, [isBaseMember]),
   );
 
   async function decide(i: Invitee, decision: 'active' | 'rejected') {
@@ -143,13 +147,18 @@ export default function Convidar() {
       });
   }, [invite, kind, focused, now]);
 
-  if (!isBaseMember) {
+  if (inviter === null) return <Loading />;
+  if (!inviter) {
     return (
       <Screen>
         <Banner
           tone="warning"
-          title="Só membro confirmado convida"
-          detail="Quem ainda está pendente de confirmação não pode gerar convite."
+          title="Convite não liberado"
+          detail={
+            isBaseMember
+              ? 'Convidar é liberado pela moderação. Fale com o moderador do seu bairro.'
+              : 'Quem ainda está pendente de confirmação não pode gerar convite.'
+          }
         />
       </Screen>
     );

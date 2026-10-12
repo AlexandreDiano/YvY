@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { FLAG } from '@/api/flags';
 import { decideInvitee, pendingInvitees } from '@/api/invites';
-import { canManageRoles } from '@/api/members';
+import { canInvite, canManageRoles } from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useBiometricLock } from '@/features/auth/BiometricLock';
 import { InstallCard } from '@/features/pwa/InstallCard';
@@ -66,6 +66,7 @@ export default function Perfil() {
   const [pending, setPending] = useState<Awaited<ReturnType<typeof pendingInvitees>>>([]);
 
   const [rolesPower, setRolesPower] = useState(false);
+  const [inviter, setInviter] = useState(false);
   const [theme, setTheme] = useState<ThemePref>(themePref);
   const bio = useBiometricLock();
   const install = useInstall();
@@ -75,7 +76,8 @@ export default function Perfil() {
       if (!profile) return;
       void pendingInvitees(profile).then(setPending).catch(() => setPending([]));
       void canManageRoles().then(setRolesPower);
-    }, [profile]),
+      void canInvite(isBaseMember).then(setInviter);
+    }, [profile, isBaseMember]),
   );
 
   async function decide(id: string, decision: 'active' | 'rejected') {
@@ -181,11 +183,20 @@ export default function Perfil() {
         <>
           <Section title="Convidar" />
           <Card>
-            <Txt variant="body">
-              O QRCode vale 1 uso e expira em 2 minutos. Mostre na tela para o
-              camarada escanear — presencialmente.
-            </Txt>
-            <Button title="Gerar QRCode de convite" onPress={() => router.push('/convidar')} />
+            {inviter ? (
+              <>
+                <Txt variant="body">
+                  O QRCode vale 1 uso e expira em 2 minutos. Mostre na tela para o
+                  camarada escanear — presencialmente.
+                </Txt>
+                <Button title="Gerar QRCode de convite" onPress={() => router.push('/convidar')} />
+              </>
+            ) : (
+              <Txt variant="body" muted>
+                Convidar é liberado pela moderação. Quer trazer alguém? Fale com o
+                moderador do seu bairro.
+              </Txt>
+            )}
           </Card>
         </>
       ) : null}
@@ -261,10 +272,14 @@ export default function Perfil() {
         </>
       ) : null}
 
-      {rolesPower ? (
+      {rolesPower || isModerator ? (
         <>
           <Section title="Membros e papéis" />
-          <Button title="Escolher moderadores" kind="outline" onPress={() => router.push('/membros')} />
+          <Button
+            title={rolesPower ? 'Moderadores e convites' : 'Liberar convite no meu bairro'}
+            kind="outline"
+            onPress={() => router.push('/membros')}
+          />
         </>
       ) : null}
 

@@ -1,9 +1,16 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
-import { canManageRoles, listMembers, setMemberRole, setRoleManager, type Member } from '@/api/members';
+import {
+  canManageRoles,
+  listMembers,
+  setInvitePermission,
+  setMemberRole,
+  setRoleManager,
+  type Member,
+} from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { camarada } from '@/lib/format';
+import { confirmAction, notify } from '@/lib/notify';
 import { Badge, Button, Card, EmptyState, Field, Loading, Row, Screen, Txt, color } from '@/ui';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -19,12 +26,15 @@ const ROLE_COLOR: Record<string, string> = {
 
 /**
  * Membros e papéis. Admin e quem tem a permissão promovem a moderador e tiram;
- * só admin dá a permissão de mudar papéis. O banco confere tudo de novo
- * (RPCs da 0032) — esconder botão aqui é só conforto.
+ * só admin dá a permissão de mudar papéis. Convite (0036): admin, quem muda
+ * papéis e o moderador do bairro liberam membro por membro — moderador só vê
+ * os bairros que modera. O banco confere tudo de novo (RPCs da 0032/0036) —
+ * esconder botão aqui é só conforto.
  */
 export default function Membros() {
-  const { profile, isAdmin } = useAuth();
+  const { profile, isAdmin, isModerator } = useAuth();
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [rolesPower, setRolesPower] = useState(false);
   const [q, setQ] = useState('');
   const [list, setList] = useState<Member[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -33,17 +43,19 @@ export default function Membros() {
     try {
       setList(await listMembers(query));
     } catch (err) {
-      Alert.alert('Erro', err instanceof Error ? err.message : 'Não foi possível carregar.');
+      notify('Erro', err instanceof Error ? err.message : 'Não foi possível carregar.');
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void canManageRoles().then((ok) => {
+      void canManageRoles().then((roles) => {
+        setRolesPower(roles);
+        const ok = roles || isModerator;
         setAllowed(ok);
         if (ok) void load('');
       });
-    }, [load]),
+    }, [load, isModerator]),
   );
 
   async function run(id: string, fn: () => Promise<void>) {
@@ -52,7 +64,7 @@ export default function Membros() {
       await fn();
       await load(q);
     } catch (err) {
-      Alert.alert('Erro', err instanceof Error ? err.message : 'Não foi possível salvar.');
+      notify('Erro', err instanceof Error ? err.message : 'Não foi possível salvar.');
     } finally {
       setBusy(null);
     }
@@ -64,23 +76,30 @@ export default function Membros() {
       role === 'moderator'
         ? [`Tornar ${who} moderador?`, `Vai moderar posts do bairro ${m.neighborhood ?? '—'}, ver ideias e problemas e gerar convite à distância.`]
         : [`Tirar a moderação de ${who}?`, 'A pessoa volta a ser membro. Dá para promover de novo depois.'];
-    Alert.alert(title, detail, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => void run(m.id, () => setMemberRole(m.id, role)) },
-    ]);
+    confirmAction(title, detail, 'Confirmar', () => void run(m.id, () => setMemberRole(m.id, role)));
+  }
+
+  function confirmInvite(m: Member, enabled: boolean) {
+    const who = camarada(m.display_name);
+    confirmAction(
+      enabled ? `Liberar convite para ${who}?` : `Tirar o convite de ${who}?`,
+      enabled
+        ? 'A pessoa poderá gerar QRCode de convite presencial. Você continua vendo quem ela convida pela confirmação.'
+        : 'A pessoa deixa de gerar convites. Quem ela já convidou continua.',
+      'Confirmar',
+      () => void run(m.id, () => setInvitePermission(m.id, enabled)),
+    );
   }
 
   function confirmManager(m: Member, enabled: boolean) {
     const who = camarada(m.display_name);
-    Alert.alert(
+    confirmAction(
       enabled ? `Deixar ${who} mudar papéis?` : `Tirar de ${who} a permissão de mudar papéis?`,
       enabled
         ? 'A pessoa poderá tornar membros moderadores e tirar moderadores. Não poderá dar esta permissão a ninguém nem mexer em admin.'
         : 'A pessoa deixa de poder promover ou tirar moderadores.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: () => void run(m.id, () => setRoleManager(m.id, enabled)) },
-      ],
+      'Confirmar',
+      () => void run(m.id, () => setRoleManager(m.id, enabled)),
     );
   }
 
@@ -88,7 +107,10 @@ export default function Membros() {
   if (!allowed) {
     return (
       <Screen>
-        <EmptyState title="Sem permissão" detail="Só admin e quem recebeu a permissão mudam papéis." />
+        <EmptyState
+          title="Sem permissão"
+          detail="Só admin, moderador e quem recebeu a permissão de mudar papéis veem esta lista."
+        />
       </Screen>
     );
   }
@@ -96,8 +118,10 @@ export default function Membros() {
   return (
     <Screen>
       <Txt variant="small" muted>
-        Moderador modera os posts do bairro do cadastro dele, vê ideias e problemas e gera convite à distância. A pessoa
-        recebe um aviso quando o papel muda.
+        {rolesPower
+          ? 'Moderador modera os posts do bairro do cadastro dele, vê ideias e problemas e gera convite à distância. '
+          : 'Aqui aparecem os membros dos bairros que você modera. '}
+        Membro comum só convida se for liberado. A pessoa recebe um aviso quando algo muda.
       </Txt>
       <Field
         label="Buscar por apelido, bairro ou cidade"
@@ -122,11 +146,22 @@ export default function Membros() {
               <Txt variant="small" muted>
                 {[m.neighborhood, m.city, m.state].filter(Boolean).join(' · ')}
                 {m.is_role_manager ? ' · pode mudar papéis' : ''}
+                {m.role === 'militant' && m.can_invite ? ' · pode convidar' : ''}
                 {self ? ' · você' : ''}
               </Txt>
               {editable ? (
                 <Row style={{ flexWrap: 'wrap' }}>
-                  {m.role === 'moderator' ? (
+                  {m.role === 'militant' ? (
+                    <Button
+                      title={m.can_invite ? 'Tirar convite' : 'Liberar convite'}
+                      kind={m.can_invite ? 'ghost' : 'outline'}
+                      small
+                      block={false}
+                      disabled={busy === m.id}
+                      onPress={() => confirmInvite(m, !m.can_invite)}
+                    />
+                  ) : null}
+                  {!rolesPower ? null : m.role === 'moderator' ? (
                     <Button
                       title="Tirar moderação"
                       kind="ghost"
