@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { shrinkImage } from '@/lib/shrinkImage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Image, RefreshControl, View } from 'react-native';
@@ -97,7 +98,11 @@ export default function Base() {
         ? await ImagePicker.launchCameraAsync(opts)
         : await ImagePicker.launchImageLibraryAsync({ ...opts, allowsMultipleSelection: false });
     const asset = picked.canceled ? null : picked.assets[0];
-    if (asset) setImage({ uri: asset.uri, base64: asset.base64, mimeType: asset.mimeType });
+    if (!asset) return;
+    // No site: diminui e tira o EXIF (GPS) antes de subir. No celular o
+    // seletor já fez isso.
+    const img = await shrinkImage(asset, { maxSide: 1280, quality: 0.7 });
+    if (img) setImage(img);
   }
 
   function chooseImage() {

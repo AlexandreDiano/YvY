@@ -14,6 +14,7 @@ import {
 } from '@/api/claims';
 import { useAuth } from '@/features/auth/AuthProvider';
 import * as ImagePicker from 'expo-image-picker';
+import { shrinkImage } from '@/lib/shrinkImage';
 import { checkFact, listChecks, type CheckOutcome } from '@/api/content';
 import { CHECK_LABEL } from '@/data/factChecks';
 import type { CheckResult, FactCheck } from '@/lib/db.types';
@@ -66,11 +67,17 @@ export default function Checar() {
     const picked =
       source === 'camera' ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     const asset = picked.canceled ? null : picked.assets[0];
-    if (!asset?.base64) return;
+    if (!asset) return;
     setReading(true);
     setError(null);
     try {
-      const r = await readTextFromImage(asset.base64, asset.mimeType ?? 'image/jpeg');
+      // Texto pequeno de print precisa de resolução: lado maior até 2000 px.
+      const img = await shrinkImage(asset, { maxSide: 2000, quality: 0.8 });
+      if (!img) {
+        setError('Não deu para abrir essa imagem. Tente outra.');
+        return;
+      }
+      const r = await readTextFromImage(img.base64, img.mimeType);
       if (r.text) setInput(r.text);
       else setError(r.error ?? 'Não achei texto na imagem.');
     } finally {
