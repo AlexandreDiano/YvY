@@ -15,7 +15,8 @@ import { supabase } from '@/lib/supabase';
  * quando chega uma rota nova do servidor.
  *
  * A fila de votos marcados guarda só IDs e horário — não é dado pessoal — e
- * fica até ser enviada (ou até o fim do dia seguinte à eleição).
+ * fica até ser enviada (ou até o fim do dia da eleição: à 00:00 de 26/10 o
+ * banco apaga a puxada sozinho, migration 0038).
  */
 
 const ROUTE_KEY = 'yvy:pull-route:v1';
@@ -28,8 +29,8 @@ function routeDeadline(): number {
   return d.getTime() + 16 * 3600_000;
 }
 
-/** Fila pode esperar um dia a mais: o voto marcado no fim do dia ainda sobe. */
-const queueDeadline = () => routeDeadline() + 24 * 3600_000;
+/** Fila vale até o fim do dia da eleição: à 00:00 de 26/10 o banco apaga a puxada (0038). */
+const queueDeadline = () => routeDeadline();
 
 /** "Maria Aparecida Souza" → "Maria S." */
 export function shortName(full: string): string {
