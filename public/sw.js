@@ -4,22 +4,41 @@
  * Só guarda arquivo do próprio site (HTML, JS, ícones). Nada que vem do
  * Supabase, da Câmara/Senado ou dos tiles do mapa passa por aqui: pedido de
  * outra origem segue direto para a rede. Assim nenhum dado de pessoa entra no
- * cache do navegador (regra 5 do anonimato).
+ * cache do navegador (regra 5 do anonimato). Conteúdo público (cards,
+ * checagem) já tem cache próprio no app (src/lib/cache.ts) + seed embutido.
  *
+ * - Instalação: baixa tudo de /precache.json (gerado na build por
+ *   scripts/precache.mjs) — o app abre sem internet já na visita seguinte.
  * - /_expo/static e /assets: nome tem hash, nunca muda → cache primeiro.
- * - Páginas: rede primeiro; sem rede, a última versão guardada.
+ * - Páginas: rede primeiro; sem rede, a última versão guardada ou o início.
  * - Resto (ícones, manifest): devolve o guardado e atualiza por trás.
  *
- * Mudou a estratégia? Trocar VERSION, e o cache antigo é apagado.
+ * VERSION é trocada a cada build pelo scripts/precache.mjs: arquivo novo =
+ * service worker novo = cache velho apagado no activate.
  */
-const VERSION = 'yvy-v1';
+const VERSION = 'yvy-__PRECACHE_VERSION__';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(VERSION)
-      .then((c) => c.addAll(['/', '/manifest.json', '/icons/icon-192.png']))
-      .then(() => self.skipWaiting()),
+    (async () => {
+      const cache = await caches.open(VERSION);
+      let files = ['/', '/manifest.json', '/icons/icon-192.png'];
+      try {
+        const res = await fetch('/precache.json', { cache: 'no-store' });
+        if (res.ok) files = (await res.json()).files;
+      } catch {
+        // sem lista (dev local): fica o mínimo
+      }
+      // Um arquivo que falhe não derruba a instalação inteira.
+      await Promise.all(
+        files.map((f) =>
+          fetch(f, { cache: 'reload' })
+            .then((r) => (r.ok ? cache.put(f, r) : undefined))
+            .catch(() => undefined),
+        ),
+      );
+      await self.skipWaiting();
+    })(),
   );
 });
 
@@ -39,7 +58,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (req.mode === 'navigate') {
-    event.respondWith(networkFirst(req));
+    event.respondWith(networkFirst(req, url));
   } else if (url.pathname.startsWith('/_expo/static/') || url.pathname.startsWith('/assets/')) {
     event.respondWith(cacheFirst(req));
   } else {
@@ -47,14 +66,16 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-async function networkFirst(req) {
+async function networkFirst(req, url) {
   const cache = await caches.open(VERSION);
   try {
     const res = await fetch(req);
-    if (res.ok) cache.put(req, res.clone());
+    if (res.ok) cache.put(url.pathname, res.clone());
     return res;
   } catch {
-    return (await cache.match(req)) || (await cache.match('/')) || Response.error();
+    // Sem rede: a página guardada; senão o início, e o roteador do app
+    // desenha a rota certa a partir da URL.
+    return (await cache.match(url.pathname)) || (await cache.match('/')) || Response.error();
   }
 }
 

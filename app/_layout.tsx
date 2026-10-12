@@ -16,6 +16,7 @@ import {
 import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
 import { BiometricLockProvider } from "@/features/auth/BiometricLock";
 import { Txt, color, isDark, space, type } from "@/ui";
+import { OfflineBanner } from "@/ui/OfflineBanner";
 
 /** Tema da navegação com as cores do Yvy (claro ou escuro, ver src/ui/theme.ts). */
 const NAV_THEME = {
@@ -37,6 +38,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <StatusBar style={isDark ? "light" : "dark"} />
+          <OfflineBanner />
           <BiometricLockProvider>
           <VisitorViewFrame>
             <Stack

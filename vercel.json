@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "bun install",
-  "buildCommand": "bunx expo export -p web",
+  "buildCommand": "bunx expo export -p web && node scripts/precache.mjs dist",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
@@ -12,6 +12,10 @@
     { "source": "/plano/:sq", "destination": "/plano/[sq]" }
   ],
   "headers": [
+    {
+      "source": "/precache.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
     {
       "source": "/sw.js",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
