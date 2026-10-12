@@ -96,3 +96,10 @@ export function sendTestError(): boolean {
 }
 
 export const monitoringEnabled = () => wanted;
+
+/** Problema esperado mas que a equipe precisa ver (sem dado pessoal). */
+export function reportIssue(message: string, tags: Record<string, string> = {}): void {
+  if (!wanted) return;
+  if (sdk) sdk.captureMessage(message, { level: 'warning', tags });
+  else queue.push(new Error(`${message} ${JSON.stringify(tags)}`));
+}

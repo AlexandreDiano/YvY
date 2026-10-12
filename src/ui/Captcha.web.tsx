@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { env } from '@/lib/env';
+import { reportIssue } from '@/lib/monitoring';
 import { Txt } from '@/ui/Text';
 import { isDark } from '@/ui/theme';
 
@@ -17,6 +18,12 @@ declare global {
   interface Window {
     turnstile?: Turnstile;
   }
+}
+
+/** Aberto como app instalado (PWA), não como aba do navegador. */
+function isStandalone(): boolean {
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return Boolean(window.matchMedia?.('(display-mode: standalone)').matches || nav.standalone);
 }
 
 const SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -40,7 +47,9 @@ function loadTurnstile(): Promise<Turnstile> {
 
 export function Captcha({ onToken }: { onToken: (token: string | null) => void }) {
   const box = useRef<View>(null);
-  const [failed, setFailed] = useState(false);
+  // Motivo da falha, mostrado na tela e mandado ao Sentry: 'script' = o
+  // arquivo da Cloudflare não carregou; número = código de erro do Turnstile.
+  const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
     let id: string | null = null;
@@ -53,15 +62,26 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
           sitekey: env.turnstileSiteKey,
           theme: isDark ? 'dark' : 'light',
           language: 'pt-br',
-          callback: (token: string) => onToken(token),
+          // Erro passageiro: o próprio Turnstile tenta de novo; token vencido
+          // é renovado sozinho.
+          retry: 'auto',
+          'refresh-expired': 'auto',
+          callback: (token: string) => {
+            setFailed(null);
+            onToken(token);
+          },
           'expired-callback': () => onToken(null),
-          'error-callback': () => {
+          'error-callback': (code: string) => {
             onToken(null);
-            setFailed(true);
+            setFailed(String(code || 'desconhecido'));
+            reportIssue('Turnstile falhou', { code: String(code || ''), standalone: String(isStandalone()) });
           },
         });
       },
-      () => setFailed(true),
+      () => {
+        setFailed('script');
+        reportIssue('Turnstile: script não carregou', { standalone: String(isStandalone()) });
+      },
     );
     return () => {
       gone = true;
@@ -76,7 +96,9 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
       <View ref={box} style={{ minHeight: 65, alignItems: 'center' }} />
       {failed ? (
         <Txt variant="small" tone="danger">
-          Não deu para carregar a verificação. Confira a internet e tente de novo.
+          {failed === 'script'
+            ? 'Não deu para carregar a verificação da Cloudflare. Confira a internet ou se há bloqueador de anúncios.'
+            : `A verificação falhou (código ${failed}). Tente de novo em alguns segundos.`}
         </Txt>
       ) : null}
     </View>

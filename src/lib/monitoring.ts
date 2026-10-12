@@ -72,3 +72,9 @@ export function sendTestError(): boolean {
 }
 
 export const monitoringEnabled = () => enabled;
+
+/** Problema esperado mas que a equipe precisa ver (sem dado pessoal). */
+export function reportIssue(message: string, tags: Record<string, string> = {}): void {
+  if (!enabled) return;
+  Sentry.captureMessage(message, { level: 'warning', tags });
+}
