@@ -16,6 +16,7 @@ import {
   space,
 } from '@/ui';
 import type { SignUpInput } from '@/features/auth/AuthProvider';
+import { useCaptcha } from '@/features/auth/useCaptcha';
 
 /**
  * Cadastro de membro (fluxo 4.2, passo 7).
@@ -59,6 +60,7 @@ export function SignupForm({
   const [cepBusy, setCepBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captcha = useCaptcha();
 
   async function resolveCep(value: string) {
     setCep(formatCep(value));
@@ -124,11 +126,14 @@ export function SignupForm({
         state: place.state,
         locationPrecision: Number(precision),
         acceptedTerms: true,
+        captchaToken: captcha.token,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível concluir o cadastro.');
     } finally {
       setBusy(false);
+      // Token do captcha vale uma vez: gera outro para a próxima tentativa.
+      captcha.reset();
     }
   }
 
@@ -233,7 +238,9 @@ export function SignupForm({
       ) : null}
 
       <View style={{ height: space.sm }} />
-      <Button title="Criar conta" onPress={submit} loading={busy} />
+      {/* Logo acima do botão: o token vence em ~5 min, e o formulário é longo. */}
+      {captcha.widget}
+      <Button title="Criar conta" onPress={submit} loading={busy} disabled={!captcha.ready} />
     </Screen>
   );
 }

@@ -42,6 +42,8 @@ export type SignUpInput = {
   state: string;
   locationPrecision?: number;
   acceptedTerms: boolean;
+  /** Token do captcha (Turnstile), se o captcha estiver ligado. Vale uma vez. */
+  captchaToken?: string;
 };
 
 type Ctx = {
@@ -67,9 +69,9 @@ type Ctx = {
   /** Cria a conta e resgata o convite. Devolve a situação resultante. */
   /** 'email_pending': conta criada, falta confirmar o e-mail (o convite é usado no 1º login). */
   signUpWithInvite: (claim: string, input: SignUpInput) => Promise<MembershipStatus | 'email_pending'>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<void>;
   /** Manda o código de recuperação para o e-mail (template "Reset Password" com {{ .Token }}). */
-  requestPasswordReset: (email: string) => Promise<void>;
+  requestPasswordReset: (email: string, captchaToken?: string) => Promise<void>;
   /** Confere o código do e-mail, entra e troca a senha. */
   resetPassword: (email: string, code: string, password: string) => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
@@ -87,6 +89,16 @@ const AuthContext = createContext<Ctx | null>(null);
  */
 const PENDING_KEY = 'yvy:pending-signup';
 type PendingSignup = { email: string; claim: string; input: Omit<SignUpInput, 'password'> };
+
+/** Erro do captcha (Turnstile) vindo do Supabase Auth. */
+function isCaptchaError(e: { code?: string; message?: string }): boolean {
+  return e.code === 'captcha_failed' || /captcha/i.test(e.message ?? '');
+}
+
+/** Troca o erro de captcha por uma frase em português; os outros passam iguais. */
+function captchaError<E extends { code?: string; message?: string }>(e: E): E | Error {
+  return isCaptchaError(e) ? new Error('A verificação "não sou robô" falhou ou venceu. Faça de novo e tente outra vez.') : e;
+}
 
 async function redeem(client: NonNullable<typeof supabase>, claim: string, input: Omit<SignUpInput, 'password'>) {
   const { data, error } = await client.rpc('redeem_invite', {
@@ -207,9 +219,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const signUp = await client.auth.signUp({
         email: input.email.trim().toLowerCase(),
         password: input.password,
+        options: { captchaToken: input.captchaToken },
       });
-      if (signUp.error) throw signUp.error;
-      const { password: _omit, ...keep } = input;
+      if (signUp.error) throw captchaError(signUp.error);
+      // Senha e token do captcha nunca vão para o cadastro guardado no aparelho.
+      const { password: _omit, captchaToken: _token, ...keep } = input;
       if (!signUp.data.session) {
         // "Confirm email" ligado: guarda o cadastro e usa o convite no 1º login.
         const pending: PendingSignup = { email: input.email.trim().toLowerCase(), claim, input: keep };
@@ -232,9 +246,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const requestPasswordReset = useCallback(
-    async (email: string) => {
+    async (email: string, captchaToken?: string) => {
       if (mode === 'local') throw new Error('Recuperar senha exige backend configurado.');
-      const { error } = await supabase!.auth.resetPasswordForEmail(email.trim().toLowerCase());
+      const { error } = await supabase!.auth.resetPasswordForEmail(email.trim().toLowerCase(), { captchaToken });
+      if (error && isCaptchaError(error)) throw captchaError(error);
       // Limite de envio é o único erro que vale mostrar; "e-mail não existe" não
       // é dito por quem chama (a tela responde igual nos dois casos).
       if (error && error.status === 429) throw new Error('Muitos pedidos agora. Tente de novo em alguns minutos.');
@@ -266,13 +281,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, captchaToken?: string) => {
       if (mode === 'local') throw new Error('Entrar com e-mail exige backend configurado.');
       const { error } = await supabase!.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
+        options: { captchaToken },
       });
-      if (error) throw error;
+      if (error) throw captchaError(error);
       await refresh();
     },
     [mode, refresh],

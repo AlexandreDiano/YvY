@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useCaptcha } from '@/features/auth/useCaptcha';
 import { Banner, Button, Field, Screen, Section, Txt } from '@/ui';
 
 /** Login de quem já tem conta (e-mail + senha). */
@@ -11,17 +12,20 @@ export default function Entrar() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captcha = useCaptcha();
 
   async function submit() {
     setError(null);
     setBusy(true);
     try {
-      await signIn(email, password);
+      await signIn(email, password, captcha.token);
       router.replace('/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha não conferem.');
     } finally {
       setBusy(false);
+      // Token do captcha vale uma vez: gera outro para a próxima tentativa.
+      captcha.reset();
     }
   }
 
@@ -50,7 +54,8 @@ export default function Entrar() {
           {error}
         </Txt>
       ) : null}
-      <Button title="Entrar" loading={busy} onPress={submit} />
+      {captcha.widget}
+      <Button title="Entrar" loading={busy} disabled={!captcha.ready} onPress={submit} />
 
       <Button
         title="Esqueci a senha"

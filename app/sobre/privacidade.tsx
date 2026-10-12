@@ -98,6 +98,17 @@ export default function Privacidade() {
           seu IP) — nunca seu nome ou perfil. Não registramos o que você
           consulta.
         </Txt>
+        <Txt variant="body">
+          Para barrar robôs, as telas de criar conta, entrar e recuperar senha
+          usam a verificação "não sou robô" da Cloudflare (Turnstile). Ela
+          analisa sinais técnicos do aparelho e do navegador naquele momento;
+          não recebe seu e-mail, senha nem dado do perfil.
+        </Txt>
+        <Txt variant="body">
+          Quando o app dá erro, um relatório técnico vai para o Sentry, para a
+          equipe consertar. Ele não leva seu nome, e-mail, telefone, CEP, IP
+          nem imagem da tela — esses dados são retirados antes do envio.
+        </Txt>
       </Card>
 
       <Section title="Seus direitos (LGPD)" />

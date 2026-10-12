@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex">
+<title>Verificação</title>
+<!--
+  Captcha (Cloudflare Turnstile) do APK: a WebView abre esta página pelo
+  endereço do site, porque a chave do Turnstile só vale nos domínios
+  cadastrados — HTML solto na WebView não tem domínio. O token volta ao app
+  por postMessage. No site/PWA o widget é desenhado direto na tela
+  (src/ui/Captcha.web.tsx), sem passar por aqui.
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { display: flex; justify-content: center; }
+</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer onload="start()"></script>
+</head>
+<body>
+<div id="w"></div>
+<script>
+  function send(m) {
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
+  }
+  function start() {
+    var q = new URLSearchParams(location.search);
+    turnstile.render('#w', {
+      sitekey: q.get('k') || '',
+      theme: q.get('t') === 'dark' ? 'dark' : 'light',
+      language: 'pt-br',
+      callback: function (t) { send('token:' + t); },
+      'expired-callback': function () { send('expired'); },
+      'error-callback': function () { send('error'); }
+    });
+  }
+</script>
+</body>
+</html>

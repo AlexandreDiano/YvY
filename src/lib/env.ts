@@ -16,6 +16,11 @@ export const env = {
   /** Nome e cidade do recebedor no código Pix (sem acento; o banco mostra). */
   pixName: process.env.EXPO_PUBLIC_PIX_NAME ?? 'YvY',
   pixCity: process.env.EXPO_PUBLIC_PIX_CITY ?? 'BRASIL',
+  /**
+   * Cloudflare Turnstile (captcha de cadastro/login/recuperar senha). Chave
+   * de site é pública. Vazia = sem captcha. Ver src/features/auth/useCaptcha.tsx.
+   */
+  turnstileSiteKey: process.env.EXPO_PUBLIC_TURNSTILE_SITE_KEY ?? '',
   /** Sentry (relatório de erros, src/lib/monitoring.ts). DSN é público por natureza. */
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
   /** Instagram de contato no rodapé do Perfil (sem @). */

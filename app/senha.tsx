@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useCaptcha } from '@/features/auth/useCaptcha';
+import { notify } from '@/lib/notify';
 import { Button, Field, Screen, Section, Txt } from '@/ui';
 
 /**
@@ -15,6 +16,7 @@ export default function Senha() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { requestPasswordReset, resetPassword } = useAuth();
+  const captcha = useCaptcha();
   const [email, setEmail] = useState(params.email ?? '');
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
@@ -27,12 +29,13 @@ export default function Senha() {
     setError(null);
     setBusy(true);
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(email, captcha.token);
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível enviar.');
     } finally {
       setBusy(false);
+      captcha.reset();
     }
   }
 
@@ -43,7 +46,7 @@ export default function Senha() {
     setBusy(true);
     try {
       await resetPassword(email, code, password);
-      Alert.alert('Senha trocada', 'Você já está dentro.');
+      notify('Senha trocada', 'Você já está dentro.');
       router.replace('/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível trocar a senha.');
@@ -69,7 +72,15 @@ export default function Senha() {
         placeholder="voce@exemplo.com"
       />
       {!sent ? (
-        <Button title="Enviar código" loading={busy} disabled={!email.includes('@')} onPress={() => void send()} />
+        <>
+          {captcha.widget}
+          <Button
+            title="Enviar código"
+            loading={busy}
+            disabled={!email.includes('@') || !captcha.ready}
+            onPress={() => void send()}
+          />
+        </>
       ) : (
         <>
           {/* Mesma resposta exista ou não a conta: a tela não revela quem tem cadastro. */}
@@ -93,7 +104,13 @@ export default function Senha() {
             disabled={digits.length < 6 || !password}
             onPress={() => void save()}
           />
-          <Button title="Mandar outro código" kind="ghost" disabled={busy} onPress={() => void send()} />
+          {captcha.widget}
+          <Button
+            title="Mandar outro código"
+            kind="ghost"
+            disabled={busy || !captcha.ready}
+            onPress={() => void send()}
+          />
         </>
       )}
       {error ? (
