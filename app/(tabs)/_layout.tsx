@@ -64,6 +64,10 @@ export default function TabsLayout() {
         name="votar"
         options={{
           title: 'Votar',
+          // Puxada desligada até liberação do advogado eleitoral (revisão de
+          // 12/10): sem a flag, a aba nem aparece — e o banco recusa cadastro
+          // de eleitor (0039).
+          href: flags[FLAG.puxada] ? undefined : null,
           tabBarIcon: ({ color: c, size }) => <IconBallot size={size} color={c} />,
         }}
       />

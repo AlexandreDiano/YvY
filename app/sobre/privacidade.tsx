@@ -1,3 +1,4 @@
+import { RESPONSAVEL } from '@/data/responsavel';
 import { Banner, Card, Screen, Section, Txt } from '@/ui';
 
 /**
@@ -14,6 +15,24 @@ export default function Privacidade() {
         title="Rascunho técnico"
         detail="Este texto descreve o comportamento real do app e ainda precisa de revisão jurídica antes do lançamento."
       />
+
+      <Section title="Quem cuida dos dados" />
+      <Card>
+        <Txt variant="body">
+          Controlador: {RESPONSAVEL.nome}. Pedidos sobre dados pessoais — acesso, correção, exclusão, retirada de
+          consentimento — vão para {RESPONSAVEL.email}. Vale também para quem foi cadastrado por um membro e não
+          tem conta no app.
+        </Txt>
+      </Card>
+
+      <Section title="Dado sensível: participação política" />
+      <Card>
+        <Txt variant="body">
+          Fazer parte da base revela opinião política, que a LGPD trata como dado sensível. Por isso o cadastro
+          pede um consentimento separado e explícito só para isso, além do aceite dos termos. Ele pode ser
+          retirado a qualquer momento pelo e-mail acima, e a conta é apagada.
+        </Txt>
+      </Card>
 
       <Section title="Sem conta, sem dado" />
       <Card>
@@ -61,13 +80,20 @@ export default function Privacidade() {
         </Txt>
         <Txt variant="body">
           Regras: o membro só pode cadastrar quem autorizou; quem lê esse
-          registro é apenas o puxador daquela rota e a administração; nada disso
-          fica salvo no aparelho; e os registros de puxada são apagados depois de
-          25/10/2026.
+          registro é apenas o puxador daquela rota e a administração. Para
+          funcionar sem internet no dia, o celular do puxador guarda só uma cópia
+          mínima da rota (primeiro nome e inicial, zona, seção e local de
+          votação — nunca nome completo nem referência de endereço), apagada no
+          fim de 25/10. No banco, todos os registros de puxada são apagados
+          automaticamente à 00:00 de 26/10/2026.
+        </Txt>
+        <Txt variant="body">
+          Este módulo está desligado no momento e não aceita cadastros.
         </Txt>
         <Txt variant="body">
           Qualquer pessoa cadastrada pode pedir a exclusão imediata dos dados
-          dela a qualquer momento, inclusive antes da eleição.
+          dela a qualquer momento, inclusive antes da eleição, pelo e-mail{' '}
+          {RESPONSAVEL.email} — mesmo sem ter conta no app.
         </Txt>
       </Card>
 

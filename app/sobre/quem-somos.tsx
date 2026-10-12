@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import { RESPONSAVEL } from '@/data/responsavel';
 import { env } from '@/lib/env';
 import { Button, Card, Screen, Section, Txt } from '@/ui';
 
@@ -13,9 +14,9 @@ export default function QuemSomos() {
       <Section title="O que é" />
       <Txt variant="body">
         Ferramenta de organização de base. Serve para quem participa encontrar
-        outras pessoas do próprio bairro, marcar ação, conversar com quem está do lado
-        e levar gente para votar. Fora disso, traz o que os candidatos disseram,
-        com fonte, e uma base de checagem de boato.
+        outras pessoas do próprio bairro, marcar ação e conversar com quem está do
+        lado. Fora disso, traz o que os candidatos disseram, com fonte, e uma base
+        de checagem de boato.
       </Txt>
 
       <Section title="Como se entra" />
@@ -27,7 +28,7 @@ export default function QuemSomos() {
         <Txt variant="body">
           Com convite: um membro mostra o QRCode dele presencialmente, você
           escaneia e só então cria sua conta, com seu e-mail e sua senha. Quem
-          convidou confirma a entrada em até 24h.
+          convidou confirma a sua entrada.
         </Txt>
         <Txt variant="body">
           A conta é sempre sua, e você aceita os termos no seu próprio cadastro.
@@ -41,6 +42,17 @@ export default function QuemSomos() {
         pessoas no mesmo lugar, vale um uso e expira em 2 minutos. A base cresce pelo
         encontro, não pela timeline.
       </Txt>
+
+      <Section title="Quem responde pelo YvY" />
+      <Card>
+        <Txt variant="body">
+          Responsável: {RESPONSAVEL.nome}. Contato, inclusive para pedidos sobre seus dados (acesso, correção,
+          exclusão): {RESPONSAVEL.email}.
+        </Txt>
+        <Txt variant="body">
+          O YvY é independente: não é de partido nem de campanha, e ninguém é pago para divulgá-lo.
+        </Txt>
+      </Card>
 
       <Section title="Código aberto" />
       <Txt variant="body">

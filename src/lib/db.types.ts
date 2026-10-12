@@ -53,6 +53,8 @@ export type Profile = {
   notify_feed: boolean;
   notify_pull: boolean;
   terms_accepted_at: string | null;
+  /** Consentimento para dado de participação política (LGPD art. 11, 0039). */
+  sensitive_consent_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -301,6 +303,7 @@ export type Database = {
           p_city: string;
           p_state: string;
           p_location_precision: number;
+          p_sensitive_consent: boolean;
         };
         Returns: { profile_id: string; membership_status: MembershipStatus }[];
       };

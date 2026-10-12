@@ -18,6 +18,7 @@ import {
   Txt,
   color,
   space,
+  EmptyState,
 } from '@/ui';
 
 /** Fluxo 4.7 — lista de cards de proposta por área. */
@@ -72,17 +73,26 @@ export default function Propostas() {
         </>
       ) : null}
 
-      <Txt variant="small" muted>
-        Cada card traz a citação com fonte e data, a tradução do que significa e
-        quem é afetado. Nada aqui é opinião do app.
-      </Txt>
+      {cards.length === 0 ? (
+        <EmptyState
+          title="Propostas comentadas em revisão"
+          detail="Cada card só volta ao ar com link para a fonte original. Enquanto isso, veja os planos de governo oficiais acima."
+        />
+      ) : (
+        <Txt variant="small" muted>
+          Cada card traz a citação com fonte e data, a tradução do que significa e
+          quem é afetado. Nada aqui é opinião do app.
+        </Txt>
+      )}
 
-      <Row style={{ flexWrap: 'wrap' }} gap={space.sm}>
-        <Chip label="Todas" active={area === 'all'} onPress={() => setArea('all')} />
-        {AREAS.map((a) => (
-          <Chip key={a.key} label={a.label} active={area === a.key} onPress={() => setArea(a.key)} />
-        ))}
-      </Row>
+      {cards.length > 0 ? (
+        <Row style={{ flexWrap: 'wrap' }} gap={space.sm}>
+          <Chip label="Todas" active={area === 'all'} onPress={() => setArea('all')} />
+          {AREAS.map((a) => (
+            <Chip key={a.key} label={a.label} active={area === a.key} onPress={() => setArea(a.key)} />
+          ))}
+        </Row>
+      ) : null}
 
       {(area === 'all' ? AREAS.map((a) => a.key) : [area]).map((key) => {
         const group = visible

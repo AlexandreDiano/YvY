@@ -8,6 +8,7 @@ import {
   listUnassignedRoutes,
   type CoordinatorStats,
 } from '@/api/voters';
+import { FLAG } from '@/api/flags';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { PullRoute } from '@/lib/db.types';
 import {
@@ -24,7 +25,7 @@ import {
 /** Fluxo 4.5, fase 2 — formar e atribuir rotas de puxada. */
 export default function Rotas() {
   useNoScreenshots('rotas');
-  const { profile, isModerator } = useAuth();
+  const { profile, isModerator, flags } = useAuth();
   const [stats, setStats] = useState<CoordinatorStats | null>(null);
   const [routes, setRoutes] = useState<PullRoute[]>([]);
   const [busy, setBusy] = useState(false);
@@ -43,6 +44,14 @@ export default function Rotas() {
     return (
       <Screen>
         <Banner tone="warning" title="Painel do coordenador" detail="Só moderador do bairro ou admin." />
+      </Screen>
+    );
+  }
+
+  if (!flags[FLAG.puxada]) {
+    return (
+      <Screen>
+        <Banner tone="warning" title="Puxada de voto desligada" detail="Rotas ficam fechadas enquanto o módulo estiver desligado." />
       </Screen>
     );
   }

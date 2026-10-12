@@ -113,7 +113,7 @@ export default function Home() {
         <Banner
           tone="warning"
           title="Cadastro aguardando confirmação"
-          detail="O camarada que te convidou tem 24h para confirmar. Até lá, só conteúdo público."
+          detail="Falta o camarada que te convidou confirmar sua entrada. Até lá, só conteúdo público."
         />
       ) : null}
 
@@ -217,7 +217,7 @@ export default function Home() {
         <Banner
           tone="warning"
           title="Base liberada após a confirmação"
-          detail="Quem te convidou tem 24h para confirmar sua entrada. Assim que confirmar, as abas Ações e Base aparecem aqui."
+          detail="Falta quem te convidou confirmar sua entrada. Assim que confirmar, as abas Ações e Base aparecem aqui."
           action={
             <Button
               title="Como funciona?"

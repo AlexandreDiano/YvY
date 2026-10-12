@@ -129,7 +129,7 @@ separa conteúdo público de estrutura de mobilização são as policies de
   `feature_flags`.
 - O que circula entre militantes é apelido e bairro. Nome completo, telefone,
   e-mail e CEP ficam só com a pessoa (e com a administração).
-- Endereço para no CEP; rua nunca é guardada.
+- Endereço do cadastro para no CEP (bairro/cidade/UF; a rua da ViaCEP é descartada). Exceção: na puxada, o campo opcional `address_hint` guarda uma referência livre ("prédio azul em frente à padaria") digitada por quem cadastra.
 - A tabela `voters` (puxada de voto) guarda nome e local de votação de pessoas
   que podem não usar o app. Ela é lida apenas pelo puxador da rota e pela
   administração, não vai para cache em disco, e é expurgada depois da votação:

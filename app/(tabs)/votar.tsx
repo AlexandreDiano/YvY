@@ -146,6 +146,19 @@ export default function Votar() {
     }
   }
 
+  // Aberta pelo endereço com o módulo desligado: só o aviso, nada de cadastro.
+  if (!flags[FLAG.puxada]) {
+    return (
+      <Screen safeTop>
+        <Banner
+          tone="warning"
+          title="Puxada de voto desligada"
+          detail="Este módulo está desligado pela coordenação. Nenhum cadastro de eleitor é aceito enquanto isso."
+        />
+      </Screen>
+    );
+  }
+
   const dias = daysToElection();
   const voted = route?.voters.filter((v) => v.has_voted).length ?? 0;
 
@@ -160,13 +173,6 @@ export default function Votar() {
         </Txt>
       </Card>
 
-      {!flags[FLAG.puxada] ? (
-        <Banner
-          tone="warning"
-          title="Módulo de puxada ainda desligado"
-          detail="A puxada de voto é ativada pela coordenação na véspera (24/10). O cadastro abaixo já funciona."
-        />
-      ) : null}
 
       <Section title="Cadastrar eleitor" />
       <Card>

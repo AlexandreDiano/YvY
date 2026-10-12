@@ -43,6 +43,8 @@ export type SignUpInput = {
   state: string;
   locationPrecision?: number;
   acceptedTerms: boolean;
+  /** Consentimento separado para dado de participação política (LGPD art. 11). */
+  sensitiveConsent: boolean;
   /** Token do captcha (Turnstile), se o captcha estiver ligado. Vale uma vez. */
   captchaToken?: string;
 };
@@ -112,6 +114,7 @@ async function redeem(client: NonNullable<typeof supabase>, claim: string, input
     p_city: input.city,
     p_state: input.state,
     p_location_precision: input.locationPrecision ?? 3,
+    p_sensitive_consent: input.sensitiveConsent === true,
   });
   if (error) throw error;
   return (data?.[0]?.membership_status ?? 'pending') as MembershipStatus;
@@ -140,6 +143,7 @@ function localProfile(input: SignUpInput, membership: MembershipStatus): Profile
     notify_feed: false,
     notify_pull: true,
     terms_accepted_at: input.acceptedTerms ? now : null,
+    sensitive_consent_at: input.sensitiveConsent ? now : null,
     created_at: now,
     updated_at: now,
   };

@@ -28,7 +28,20 @@ const localChecks: FactCheck[] = SEED_CHECKS.map((c, i) => ({
   created_at: new Date(0).toISOString(),
 }));
 
+/**
+ * Card só vai ao ar com link para a fonte (decisão de 12/10, revisão
+ * jurídica): "o que ele disse" sem link é a parte mais fácil de contestar
+ * (direito de resposta, Lei 9.504 art. 58). Card sem `source_url` fica
+ * guardado, mas não aparece, até a equipe editorial colocar o link.
+ */
+const publishable = (c: ProposalCard) => Boolean(c.source_url?.trim());
+
 export async function listCards(): Promise<{ cards: ProposalCard[]; stale: boolean }> {
+  const r = await listAllCards();
+  return { ...r, cards: r.cards.filter(publishable) };
+}
+
+async function listAllCards(): Promise<{ cards: ProposalCard[]; stale: boolean }> {
   if (!supabase) return { cards: localCards, stale: false };
   try {
     const { data, stale } = await withCache('cards', async () => {

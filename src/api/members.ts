@@ -58,3 +58,10 @@ export async function setInvitePermission(userId: string, enabled: boolean): Pro
   const { error } = await supabase.rpc('set_invite_permission' as never, { p_user: userId, p_enabled: enabled } as never);
   if (error) throw error;
 }
+
+/** Consentimento para dado de participação política, para quem entrou antes da 0039. */
+export async function giveSensitiveConsent(): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.rpc('give_sensitive_consent' as never);
+  if (error) throw error;
+}

@@ -4,7 +4,8 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { FLAG } from '@/api/flags';
 import { decideInvitee, pendingInvitees } from '@/api/invites';
-import { canInvite, canManageRoles } from '@/api/members';
+import { canInvite, canManageRoles, giveSensitiveConsent } from '@/api/members';
+import { RESPONSAVEL } from '@/data/responsavel';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useBiometricLock } from '@/features/auth/BiometricLock';
 import { InstallCard } from '@/features/pwa/InstallCard';
@@ -29,6 +30,7 @@ import {
   space,
   themePref,
   type ThemePref,
+  color,
 } from '@/ui';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -59,6 +61,8 @@ export default function Perfil() {
     signOut,
     canPreviewVisitor,
     setVisitorView,
+    mode,
+    refresh,
   } = useAuth();
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
@@ -120,6 +124,29 @@ export default function Perfil() {
         {membership === 'pending' ? ' · aguardando confirmação' : ''} · desde{' '}
         {longDate(profile.created_at)}
       </Txt>
+
+      {mode === 'backend' && !profile.sensitive_consent_at ? (
+        <Card stripe={color.accent}>
+          <Txt variant="label">Falta um consentimento seu</Txt>
+          <Txt variant="small">
+            Participar da base revela opinião política, que a LGPD trata como dado sensível. Precisamos do seu
+            consentimento separado para tratar esse dado (só para o app funcionar: sua conta, seu bairro, as
+            ações). Se não quiser, peça a exclusão da conta em {RESPONSAVEL.email}.
+          </Txt>
+          <Button
+            title="Consinto"
+            small
+            onPress={async () => {
+              try {
+                await giveSensitiveConsent();
+                await refresh();
+              } catch (err) {
+                notify('Erro', err instanceof Error ? err.message : 'Não foi possível salvar.');
+              }
+            }}
+          />
+        </Card>
+      ) : null}
 
       {pending.length > 0 ? (
         <>
@@ -345,7 +372,9 @@ export default function Perfil() {
         onPress={() => router.push('/feedback')}
       />
 
-      {isBaseMember && env.pixKey ? (
+      {/* Pix só depois da eleição (revisão jurídica de 12/10: arrecadar num
+          app com conteúdo contra candidato pode virar gasto eleitoral). */}
+      {isBaseMember && env.pixKey && Date.now() >= env.electionDate.getTime() + 16 * 3600_000 ? (
         <>
           <Section title="Apoie o YvY" />
           <SupportCard />

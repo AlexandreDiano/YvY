@@ -57,6 +57,7 @@ export function SignupForm({
   const [place, setPlace] = useState<CepInfo | null>(null);
   const [precision, setPrecision] = useState<'1' | '2' | '3' | '4'>('3');
   const [terms, setTerms] = useState(false);
+  const [sensitive, setSensitive] = useState(false);
   const [cepBusy, setCepBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +108,10 @@ export function SignupForm({
       setError('Informe um CEP válido para descobrir seu bairro.');
       return;
     }
+    if (!sensitive) {
+      setError('Sem o consentimento para o dado de participação política não dá para entrar na base.');
+      return;
+    }
     if (!terms) {
       setError('É preciso aceitar os termos e a política de privacidade.');
       return;
@@ -126,6 +131,7 @@ export function SignupForm({
         state: place.state,
         locationPrecision: Number(precision),
         acceptedTerms: true,
+        sensitiveConsent: true,
         captchaToken: captcha.token,
       });
     } catch (err) {
@@ -214,6 +220,14 @@ export function SignupForm({
       />
 
       <Section title="Termos" />
+      {/* Separado dos termos, de propósito: dado sensível (LGPD, art. 11)
+          exige consentimento específico e destacado, não um aceite genérico. */}
+      <Toggle
+        value={sensitive}
+        onChange={setSensitive}
+        label="Consinto que o YvY trate o dado de que participo de um grupo de organização política"
+        detail="Participar da base revela opinião política, que a lei trata como dado sensível. O uso é só para o funcionamento do app (sua conta, seu bairro, as ações). Você pode retirar este consentimento e apagar a conta quando quiser, pelo e-mail na Política de Privacidade."
+      />
       <Toggle
         value={terms}
         onChange={setTerms}
