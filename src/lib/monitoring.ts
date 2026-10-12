@@ -62,7 +62,12 @@ export function withMonitoring<P extends object>(Root: ComponentType<P>): Compon
 /** Erro de teste, para conferir o painel (Perfil › Admin). */
 export function sendTestError(): boolean {
   if (!enabled) return false;
-  Sentry.captureException(new Error('Erro de teste do YvY (Perfil › Admin)'));
+  // Cada teste único: erro igual ao anterior é descartado pela deduplicação
+  // e, no painel, entraria no mesmo issue (só o contador sobe).
+  const stamp = new Date().toLocaleString('pt-BR');
+  Sentry.captureException(new Error(`Erro de teste do YvY (Perfil › Admin) — ${stamp}`), {
+    fingerprint: ['yvy-test', stamp],
+  });
   return true;
 }
 

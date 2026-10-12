@@ -86,8 +86,11 @@ export function withMonitoring<P extends object>(Root: ComponentType<P>): Compon
 
 export function sendTestError(): boolean {
   if (!wanted) return false;
-  const err = new Error('Erro de teste do YvY (Perfil › Admin)');
-  if (sdk) sdk.captureException(err);
+  // Cada teste único: erro igual ao anterior é descartado pela deduplicação
+  // e, no painel, entraria no mesmo issue (só o contador sobe).
+  const stamp = new Date().toLocaleString('pt-BR');
+  const err = new Error(`Erro de teste do YvY (Perfil › Admin) — ${stamp}`);
+  if (sdk) sdk.captureException(err, { fingerprint: ['yvy-test', stamp] });
   else queue.push(err);
   return true;
 }
