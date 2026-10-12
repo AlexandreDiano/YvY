@@ -30,6 +30,10 @@ async function load() {
   const S = await import('@sentry/browser');
   S.init({
     dsn: env.sentryDsn,
+    // Bloqueador de anúncio/rastreador barra *.sentry.io: o relatório vai para
+    // o próprio site (/monitoring) e a Vercel repassa ao Sentry (vercel.json).
+    // Em localhost não há esse repasse.
+    tunnel: /^(localhost|127\.)/.test(location.hostname) ? undefined : '/monitoring',
     environment: __DEV__ ? 'development' : 'production',
     sendDefaultPii: false,
     defaultIntegrations: false,

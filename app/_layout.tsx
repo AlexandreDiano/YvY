@@ -18,9 +18,12 @@ import { BiometricLockProvider } from "@/features/auth/BiometricLock";
 import { Txt, color, isDark, space, type } from "@/ui";
 import { OfflineBanner } from "@/ui/OfflineBanner";
 import { initMonitoring, withMonitoring } from "@/lib/monitoring";
+import { installWebAlert } from "@/lib/webAlert";
 
 // Antes de qualquer tela: erro no carregamento também precisa chegar.
 initMonitoring();
+// No site, Alert.alert vira caixa do navegador (senão "Sair" etc. ficam mudos).
+installWebAlert();
 
 /** Tema da navegação com as cores do Yvy (claro ou escuro, ver src/ui/theme.ts). */
 const NAV_THEME = {

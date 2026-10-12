@@ -9,7 +9,11 @@
     { "source": "/acoes/:id", "destination": "/acoes/[id]" },
     { "source": "/propostas/:id", "destination": "/propostas/[id]" },
     { "source": "/votacao/:id", "destination": "/votacao/[id]" },
-    { "source": "/plano/:sq", "destination": "/plano/[sq]" }
+    { "source": "/plano/:sq", "destination": "/plano/[sq]" },
+    {
+      "source": "/monitoring",
+      "destination": "https://o4512244334002176.ingest.us.sentry.io/api/4512244336164864/envelope/"
+    }
   ],
   "headers": [
     {
