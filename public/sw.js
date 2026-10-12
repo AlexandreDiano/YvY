@@ -30,9 +30,12 @@ self.addEventListener('install', (event) => {
         // sem lista (dev local): fica o mínimo
       }
       // Um arquivo que falhe não derruba a instalação inteira.
+      // Arquivo com hash (_expo/static) nunca muda: pode vir do cache HTTP —
+      // a página acabou de baixar o JS principal, baixar de novo dobraria o
+      // custo da primeira visita no 3G. Página e manifest vêm frescos.
       await Promise.all(
         files.map((f) =>
-          fetch(f, { cache: 'reload' })
+          fetch(f, { cache: f.startsWith('/_expo/static/') ? 'default' : 'reload' })
             .then((r) => (r.ok ? cache.put(f, r) : undefined))
             .catch(() => undefined),
         ),

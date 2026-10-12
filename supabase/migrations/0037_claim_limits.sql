@@ -4,7 +4,8 @@
 -- mas quem tiver uma foto do QRCode de mesa (5 min) pode reservar as 20 vagas
 -- por script e travar o evento. Aqui:
 --
--- 1. Por rede: no máximo 5 reservas pendentes do mesmo IP no mesmo convite.
+-- 1. Por rede: no máximo 5 reservas pendentes do mesmo IP no mesmo convite
+--    (IP do cabeçalho cf-connecting-ip; ver request_ip).
 --    5, não 1: num evento com Wi-Fi do local, várias pessoas saem pelo mesmo
 --    IP. Reserva que vira cadastro deixa de contar.
 --    O IP NÃO é guardado: só md5(convite + IP), que serve para comparar
@@ -22,13 +23,19 @@
 alter table invite_claims add column if not exists net_bucket text;
 create index if not exists idx_invite_claims_bucket on invite_claims (invite_id, net_bucket);
 
-/** IP de quem chamou a API (cabeçalhos do PostgREST), ou null. */
+/**
+ * IP de quem chamou a API, ou null. Só `cf-connecting-ip`: a Cloudflare
+ * preenche e o cliente não forja. `x-forwarded-for` NÃO serve — o primeiro
+ * item vem de quem chama, e um script mandaria um IP falso por pedido e
+ * nunca bateria no limite. Sem o cabeçalho, o limite por rede fica desligado
+ * (melhor que enganado); a rajada e "Liberar vagas presas" continuam valendo.
+ * Conferir em produção quais cabeçalhos chegam (ver YVY-53).
+ */
 create or replace function public.request_ip() returns text
 language sql stable set search_path = public as $$
-  select nullif(btrim(coalesce(
-    current_setting('request.headers', true)::json ->> 'cf-connecting-ip',
-    split_part(current_setting('request.headers', true)::json ->> 'x-forwarded-for', ',', 1)
-  )), '');
+  select nullif(btrim(
+    nullif(current_setting('request.headers', true), '')::json ->> 'cf-connecting-ip'
+  ), '');
 $$;
 revoke execute on function public.request_ip() from public, anon, authenticated;
 
