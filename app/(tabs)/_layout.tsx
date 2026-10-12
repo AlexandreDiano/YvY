@@ -1,7 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FLAG } from '@/api/flags';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { color, type } from '@/ui';
+import { color, space, type } from '@/ui';
 import { IconBallot, IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
 
 /**
@@ -11,6 +12,7 @@ import { IconBallot, IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
  */
 export default function TabsLayout() {
   const { isBaseMember, flags, profile, ready } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Sem conta (ou admin na visão de visitante) não há abas: perfil vazio e
   // área interna não aparecem. Vai para a área pública.
@@ -22,7 +24,16 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: color.primary,
         tabBarInactiveTintColor: color.textMuted,
-        tabBarStyle: { backgroundColor: color.surface, borderTopColor: color.border },
+        // A altura padrão (49, do iOS) conta com rótulo de 10px; o nosso `label`
+        // tem 12/16 e era cortado embaixo. Altura definida aqui substitui a da
+        // biblioteca, então a margem do gesto/home indicator entra na conta.
+        tabBarStyle: {
+          backgroundColor: color.surface,
+          borderTopColor: color.border,
+          height: 60 + insets.bottom,
+          paddingTop: space.xs,
+          paddingBottom: space.xs + insets.bottom,
+        },
         tabBarLabelStyle: { ...type.label, fontWeight: '600' },
       }}
     >
