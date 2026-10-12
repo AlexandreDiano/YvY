@@ -1,8 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
-import { FLAG } from '../../src/api/flags';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import { color, type } from '../../src/ui';
-import { IconBallot, IconChat, IconHome, IconPin, IconUser } from '../../src/ui/icons';
+import { FLAG } from '@/api/flags';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { color, type } from '@/ui';
+import { IconBallot, IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
 
 /**
  * Bottom tabs (tela 7.1). "Aberto por fora, fechado por dentro": Ações e Base

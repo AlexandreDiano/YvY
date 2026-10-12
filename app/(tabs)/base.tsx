@@ -11,13 +11,13 @@ import {
   listFeed,
   scopeLabel,
   type FeedScope,
-} from '../../src/api/feed';
-import { unreadCount } from '../../src/api/notifications';
-import { uploadPostImage, type PickedImage } from '../../src/api/storage';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import { useNoScreenshots } from '../../src/lib/privacy';
-import type { PostListed } from '../../src/lib/db.types';
-import { camarada, dayBucket, relativeTime } from '../../src/lib/format';
+} from '@/api/feed';
+import { unreadCount } from '@/api/notifications';
+import { uploadPostImage, type PickedImage } from '@/api/storage';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useNoScreenshots } from '@/lib/privacy';
+import type { PostListed } from '@/lib/db.types';
+import { camarada, dayBucket, relativeTime } from '@/lib/format';
 import {
   Button,
   Card,
@@ -32,8 +32,8 @@ import {
   color,
   radius,
   space,
-} from '../../src/ui';
-import { IconCamera, IconFlag } from '../../src/ui/icons';
+} from '@/ui';
+import { IconCamera, IconFlag } from '@/ui/icons';
 
 const SCOPES: FeedScope[] = ['bairro', 'estado', 'regiao', 'brasil'];
 

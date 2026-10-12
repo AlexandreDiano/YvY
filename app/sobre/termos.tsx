@@ -1,4 +1,4 @@
-import { Banner, Card, Screen, Section, Txt } from '../../src/ui';
+import { Banner, Card, Screen, Section, Txt } from '@/ui';
 
 /** Termos de uso — RASCUNHO TECNICO, pendente de revisao juridica. */
 export default function Termos() {

@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
-import { useNoScreenshots } from '../../src/lib/privacy';
+import { useNoScreenshots } from '@/lib/privacy';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { FLAG } from '../../src/api/flags';
+import { FLAG } from '@/api/flags';
 import {
   coordinatorStats,
   markVoted,
@@ -10,9 +10,9 @@ import {
   registerVoter,
   type CoordinatorStats,
   type RouteWithVoters,
-} from '../../src/api/voters';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import { daysToElection, electionLabel, formatCep } from '../../src/lib/format';
+} from '@/api/voters';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { daysToElection, electionLabel, formatCep } from '@/lib/format';
 import {
   Banner,
   Button,
@@ -26,8 +26,8 @@ import {
   Txt,
   color,
   space,
-} from '../../src/ui';
-import { IconCheck } from '../../src/ui/icons';
+} from '@/ui';
+import { IconCheck } from '@/ui/icons';
 
 /** Tela 7.5 — Votar (puxada de voto). */
 export default function Votar() {

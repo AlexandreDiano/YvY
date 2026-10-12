@@ -1,6 +1,6 @@
 import { Linking } from 'react-native';
-import { env } from '../../src/lib/env';
-import { Button, Card, Screen, Section, Txt } from '../../src/ui';
+import { env } from '@/lib/env';
+import { Button, Card, Screen, Section, Txt } from '@/ui';
 
 export default function QuemSomos() {
   return (

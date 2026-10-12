@@ -1,10 +1,10 @@
 import { Linking } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { getCard } from '../../src/api/content';
-import { areaLabel } from '../../src/data/areas';
-import type { ProposalCard } from '../../src/lib/db.types';
-import { shareCard } from '../../src/lib/share';
+import { getCard } from '@/api/content';
+import { areaLabel } from '@/data/areas';
+import type { ProposalCard } from '@/lib/db.types';
+import { shareCard } from '@/lib/share';
 import {
   Button,
   Card,
@@ -16,8 +16,8 @@ import {
   SeverityBadge,
   Txt,
   color,
-} from '../../src/ui';
-import { IconShare } from '../../src/ui/icons';
+} from '@/ui';
+import { IconShare } from '@/ui/icons';
 
 /** Tela 7.7 — detalhe do card de proposta. */
 export default function DetalheProposta() {

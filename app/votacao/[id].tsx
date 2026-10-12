@@ -1,9 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
-import { getVote, listBallots, type Ballot, type Vote } from '../../src/api/officials';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import { brDate } from '../../src/lib/format';
+import { getVote, listBallots, type Ballot, type Vote } from '@/api/officials';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { brDate } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -19,9 +19,9 @@ import {
   Txt,
   color,
   space,
-} from '../../src/ui';
+} from '@/ui';
 
-const GROUP_COLOR: Record<string, string> = { Sim: color.primary, Não: color.accent };
+const GROUP_COLOR: Record<string, string> = { 'Sim': color.primary, 'Não': color.accent };
 
 /**
  * Uma votação e como cada parlamentar votou. Lista e placar vêm da fonte
@@ -166,5 +166,5 @@ export default function Votacao() {
 }
 
 function rank(vote: string): number {
-  return { Sim: 0, Não: 1, Abstenção: 2, Obstrução: 3 }[vote] ?? 9;
+  return { 'Sim': 0, 'Não': 1, 'Abstenção': 2, 'Obstrução': 3 }[vote] ?? 9;
 }

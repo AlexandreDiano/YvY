@@ -1,4 +1,4 @@
-import { Banner, Card, Screen, Section, Txt } from '../../src/ui';
+import { Banner, Card, Screen, Section, Txt } from '@/ui';
 
 /**
  * Politica de privacidade — RASCUNHO TECNICO.

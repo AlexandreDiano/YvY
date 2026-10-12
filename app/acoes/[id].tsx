@@ -9,11 +9,11 @@ import {
   getAction,
   myConfirmations,
   setStatus,
-} from '../../src/api/actions';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import type { ActionListed } from '../../src/lib/db.types';
-import { longDate, shortDateTime } from '../../src/lib/format';
-import { addActionToCalendar, scheduleActionReminder } from '../../src/lib/reminders';
+} from '@/api/actions';
+import { useAuth } from '@/features/auth/AuthProvider';
+import type { ActionListed } from '@/lib/db.types';
+import { longDate, shortDateTime } from '@/lib/format';
+import { addActionToCalendar, scheduleActionReminder } from '@/lib/reminders';
 import {
   Badge,
   Banner,
@@ -27,7 +27,7 @@ import {
   Txt,
   color,
   openPoint,
-} from '../../src/ui';
+} from '@/ui';
 
 /** Detalhe da ação: confirmar presença, check-in no dia, cancelar (criador). */
 export default function DetalheAcao() {

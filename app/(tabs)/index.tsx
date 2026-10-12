@@ -1,14 +1,14 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
-import { listActions, myConfirmations, confirmPresence } from '../../src/api/actions';
-import { myClaimChecks } from '../../src/api/claims';
-import { pendingInvitees } from '../../src/api/invites';
-import { FLAG } from '../../src/api/flags';
-import { PlanCompare } from '../../src/features/plans/PlanCompare';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import type { ActionListed } from '../../src/lib/db.types';
-import { daysToElection, electionLabel, shortDateTime } from '../../src/lib/format';
+import { listActions, myConfirmations, confirmPresence } from '@/api/actions';
+import { myClaimChecks } from '@/api/claims';
+import { pendingInvitees } from '@/api/invites';
+import { FLAG } from '@/api/flags';
+import { PlanCompare } from '@/features/plans/PlanCompare';
+import { useAuth } from '@/features/auth/AuthProvider';
+import type { ActionListed } from '@/lib/db.types';
+import { daysToElection, electionLabel, shortDateTime } from '@/lib/format';
 import {
   Banner,
   Button,
@@ -19,9 +19,8 @@ import {
   Txt,
   YvyMark,
   color,
-  space,
-} from '../../src/ui';
-import { IconBallot, IconFlag, IconSearch } from '../../src/ui/icons';
+} from '@/ui';
+import { IconBallot, IconFlag, IconSearch } from '@/ui/icons';
 
 /** Tela 7.2 — Início. */
 export default function Home() {

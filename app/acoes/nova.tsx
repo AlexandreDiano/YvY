@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { ACTION_TYPES, createAction } from '../../src/api/actions';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import type { ActionType } from '../../src/lib/db.types';
+import { ACTION_TYPES, createAction } from '@/api/actions';
+import { useAuth } from '@/features/auth/AuthProvider';
+import type { ActionType } from '@/lib/db.types';
 import {
   Button,
   DateTimeField,
@@ -15,7 +15,7 @@ import {
   Txt,
   space,
   type Point,
-} from '../../src/ui';
+} from '@/ui';
 
 const HOUR = 60 * 60 * 1000;
 

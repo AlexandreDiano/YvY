@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { parseInviteLink, peekInvite } from '../../src/api/invites';
+import { parseInviteLink, peekInvite } from '@/api/invites';
 import {
   Banner,
   Button,
@@ -13,7 +13,7 @@ import {
   color,
   radius,
   space,
-} from '../../src/ui';
+} from '@/ui';
 
 /**
  * Fluxo 4.2, passos 4–6: ler o QRCode do convite.

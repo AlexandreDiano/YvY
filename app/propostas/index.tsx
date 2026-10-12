@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { listCards } from '../../src/api/content';
-import { presidentialCandidates, type Elected } from '../../src/api/elected';
-import { AREAS, areaLabel } from '../../src/data/areas';
-import type { ProposalCard } from '../../src/lib/db.types';
+import { listCards } from '@/api/content';
+import { presidentialCandidates, type Elected } from '@/api/elected';
+import { AREAS, areaLabel } from '@/data/areas';
+import type { ProposalCard } from '@/lib/db.types';
 import {
   Banner,
   Button,
@@ -18,7 +18,7 @@ import {
   Txt,
   color,
   space,
-} from '../../src/ui';
+} from '@/ui';
 
 /** Fluxo 4.7 — lista de cards de proposta por área. */
 export default function Propostas() {

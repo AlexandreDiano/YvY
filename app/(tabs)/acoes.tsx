@@ -8,11 +8,11 @@ import {
   confirmPresence,
   listActions,
   myConfirmations,
-} from '../../src/api/actions';
-import { ActionsMap } from '../../src/features/actions/ActionsMap';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import type { ActionListed, ActionType } from '../../src/lib/db.types';
-import { shortDateTime } from '../../src/lib/format';
+} from '@/api/actions';
+import { ActionsMap } from '@/features/actions/ActionsMap';
+import { useAuth } from '@/features/auth/AuthProvider';
+import type { ActionListed, ActionType } from '@/lib/db.types';
+import { shortDateTime } from '@/lib/format';
 import {
   Button,
   Card,
@@ -23,7 +23,7 @@ import {
   Section,
   Txt,
   space,
-} from '../../src/ui';
+} from '@/ui';
 
 /** Tela 7.3 — Ações (mapa + lista + filtro). */
 export default function Acoes() {

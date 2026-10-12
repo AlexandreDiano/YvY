@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
-import { getGovernmentPlan, planPageUrl, type GovernmentPlan, type PlanItem } from '../../src/api/elected';
-import { Button, Card, EmptyState, Field, Loading, Screen, Section, Txt, space } from '../../src/ui';
+import { getGovernmentPlan, planPageUrl, type GovernmentPlan, type PlanItem } from '@/api/elected';
+import { Button, Card, EmptyState, Field, Loading, Screen, Section, Txt, space } from '@/ui';
 
 /**
  * Plano de governo oficial (registrado no TSE), dentro do app.

@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert } from 'react-native';
-import { useAuth } from '../../src/features/auth/AuthProvider';
-import { SignupForm } from '../../src/features/signup/SignupForm';
-import { Banner, Button, Screen } from '../../src/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { SignupForm } from '@/features/signup/SignupForm';
+import { Banner, Button, Screen } from '@/ui';
 
 /** Fluxo 4.2, passo 7: cadastro depois do QRCode validado. */
 export default function CadastroMilitante() {
