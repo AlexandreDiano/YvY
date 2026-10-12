@@ -183,6 +183,32 @@ export function parseInviteLink(scanned: string): string | null {
   return m ? m[1]! : null;
 }
 
+/** Mesa: quantos já se cadastraram e quantas reservas estão pendentes (0037). */
+export async function inviteClaimStats(inviteId: string): Promise<{ redeemed: number; pending: number }> {
+  if (!supabase) {
+    const row = (await all<Invite>(COL_INVITES)).find((i) => i.id === inviteId);
+    return { redeemed: 0, pending: row?.use_count ?? 0 };
+  }
+  const { data, error } = await supabase.rpc('invite_claim_stats' as never, { p_invite: inviteId } as never);
+  if (error) throw error;
+  const row = (data as unknown as { redeemed: number; pending: number }[])[0];
+  return row ?? { redeemed: 0, pending: 0 };
+}
+
+/**
+ * Apaga as reservas pendentes do convite (vagas presas por foto do QRCode ou
+ * por gente que desistiu). Quem estava no meio do cadastro escaneia de novo.
+ */
+export async function releaseInviteClaims(inviteId: string): Promise<number> {
+  if (!supabase) {
+    await patch<Invite>(COL_INVITES, inviteId, { use_count: 0 });
+    return 0;
+  }
+  const { data, error } = await supabase.rpc('release_invite_claims' as never, { p_invite: inviteId } as never);
+  if (error) throw error;
+  return (data as unknown as number) ?? 0;
+}
+
 /** Reserva guardada no aparelho entre o scan e o fim do cadastro. */
 export type InviteClaim = { claim: string; expiresAt: string };
 

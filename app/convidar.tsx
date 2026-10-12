@@ -12,8 +12,10 @@ import {
   TABLE_TTL_H,
   decideInvitee,
   generateInvite,
+  inviteClaimStats,
   inviteDeepLink,
   myInvitees,
+  releaseInviteClaims,
   rotateTableInvite,
   type GeneratedInvite,
   type Invitee,
@@ -21,6 +23,7 @@ import {
 import { canInvite } from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { camarada } from '@/lib/format';
+import { confirmAction, notify } from '@/lib/notify';
 import { useNoScreenshots } from '@/lib/privacy';
 import {
   Banner,
@@ -116,6 +119,35 @@ export default function Convidar() {
       return () => setFocused(false);
     }, []),
   );
+
+  // Mesa: cadastros x reservas pendentes, a cada 15 s com a tela aberta (0037).
+  const [stats, setStats] = useState<{ redeemed: number; pending: number } | null>(null);
+  const tableId = invite && kind === 'table' ? invite.id : null;
+  useEffect(() => {
+    if (!tableId || !focused) return;
+    const load = () => void inviteClaimStats(tableId).then(setStats, () => undefined);
+    load();
+    const t = setInterval(load, 15_000);
+    return () => clearInterval(t);
+  }, [tableId, focused]);
+
+  function releaseStuck() {
+    if (!invite) return;
+    confirmAction(
+      'Liberar vagas presas?',
+      'Apaga as reservas de quem escaneou e ainda não terminou o cadastro. Quem estiver no meio do cadastro vai precisar escanear de novo.',
+      'Liberar',
+      () =>
+        void releaseInviteClaims(invite.id).then(
+          (n) => {
+            notify('Vagas liberadas', `${n} ${n === 1 ? 'reserva apagada' : 'reservas apagadas'}.`);
+            void inviteClaimStats(invite.id).then(setStats, () => undefined);
+          },
+          (err: unknown) => notify('Erro', err instanceof Error ? err.message : 'Não foi possível liberar.'),
+        ),
+      true,
+    );
+  }
 
   // Relógio da contagem: só com QRCode na tela.
   const showingQr = Boolean(invite) && kind !== 'remote';
@@ -317,6 +349,17 @@ export default function Convidar() {
                 ? `Escaneie para entrar no YvY · até ${invite.maxUses} pessoas · QRCode novo em ${mmss(scanLeft)} · evento até ${new Date(invite.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
                 : `Escaneie para entrar no YvY · 1 uso · expira em ${mmss(scanLeft)}`}
             </Txt>
+            {kind === 'table' && stats ? (
+              <>
+                <Txt variant="small" center>
+                  {stats.redeemed} {stats.redeemed === 1 ? 'cadastro' : 'cadastros'} · {stats.pending}{' '}
+                  {stats.pending === 1 ? 'reserva pendente' : 'reservas pendentes'} · {Math.max(0, invite.maxUses - stats.redeemed - stats.pending)} vagas livres
+                </Txt>
+                {stats.pending > 0 ? (
+                  <Button title="Liberar vagas presas" kind="ghost" small onPress={releaseStuck} />
+                ) : null}
+              </>
+            ) : null}
           </Card>
         </>
       ) : null}
