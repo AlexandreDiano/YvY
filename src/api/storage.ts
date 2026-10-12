@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Imagens de post. Bucket PRIVADO `post-images` (criar no painel do Supabase).

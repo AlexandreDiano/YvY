@@ -1,6 +1,6 @@
-import type { ActionListed, ActionParticipant, ActionStatus, ActionType, Profile } from '../lib/db.types';
-import { all, insert, localId, patch } from '../lib/localStore';
-import { supabase } from '../lib/supabase';
+import type { ActionListed, ActionParticipant, ActionStatus, ActionType, Profile } from '@/lib/db.types';
+import { all, insert, localId, patch } from '@/lib/localStore';
+import { supabase } from '@/lib/supabase';
 
 /** Acoes de mobilizacao (fluxo 4.3 / tela 7.3). */
 

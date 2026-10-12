@@ -1,5 +1,5 @@
-import { withCache } from '../lib/cache';
-import { supabase } from '../lib/supabase';
+import { withCache } from '@/lib/cache';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Eleitos em 2026 (e quem foi ao 2º turno), da tabela `elected_2026`

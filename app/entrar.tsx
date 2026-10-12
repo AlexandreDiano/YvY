@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { Banner, Button, Field, Screen, Section, Txt } from '../src/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { Banner, Button, Field, Screen, Section, Txt } from '@/ui';
 
 /** Login de quem já tem conta (e-mail + senha). */
 export default function Entrar() {

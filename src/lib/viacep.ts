@@ -1,4 +1,4 @@
-import { onlyDigits } from './format';
+import { onlyDigits } from '@/lib/format';
 
 export type CepInfo = {
   cep: string;

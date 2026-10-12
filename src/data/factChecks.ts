@@ -1,4 +1,4 @@
-import type { CheckResult, FactCheck } from '../lib/db.types';
+import type { CheckResult, FactCheck } from '@/lib/db.types';
 
 /**
  * Base de checagem inicial — secao 6.2 de docs/CONTEXT.md.

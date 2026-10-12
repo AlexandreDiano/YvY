@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import type { UserRole } from '../lib/db.types';
+import { supabase } from '@/lib/supabase';
+import type { UserRole } from '@/lib/db.types';
 
 /**
  * Papéis pelo app (migration 0032). Admin e quem tem a permissão de "mudar

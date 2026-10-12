@@ -1,4 +1,4 @@
-import type { ProposalCard, Severity } from '../lib/db.types';
+import type { ProposalCard, Severity } from '@/lib/db.types';
 
 /**
  * Cards de propostas — conteudo inicial, secao 6.1 de docs/CONTEXT.md.

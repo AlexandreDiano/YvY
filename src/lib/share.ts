@@ -1,8 +1,8 @@
 import { Share } from 'react-native';
-import type { FactCheck, ProposalCard } from './db.types';
-import { CHECK_LABEL } from '../data/factChecks';
-import { SEVERITY } from '../ui/Badge';
-import { brDate } from './format';
+import type { FactCheck, ProposalCard } from '@/lib/db.types';
+import { CHECK_LABEL } from '@/data/factChecks';
+import { SEVERITY } from '@/ui/Badge';
+import { brDate } from '@/lib/format';
 
 /**
  * Compartilhamento por texto (WhatsApp e o canal principal, secao 10.2).

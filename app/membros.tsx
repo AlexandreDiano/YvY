@@ -1,10 +1,10 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
-import { canManageRoles, listMembers, setMemberRole, setRoleManager, type Member } from '../src/api/members';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { camarada } from '../src/lib/format';
-import { Badge, Button, Card, EmptyState, Field, Loading, Row, Screen, Txt, color } from '../src/ui';
+import { canManageRoles, listMembers, setMemberRole, setRoleManager, type Member } from '@/api/members';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { camarada } from '@/lib/format';
+import { Badge, Button, Card, EmptyState, Field, Loading, Row, Screen, Txt, color } from '@/ui';
 
 const ROLE_LABEL: Record<string, string> = {
   militant: 'Membro',

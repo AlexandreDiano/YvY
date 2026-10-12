@@ -10,10 +10,10 @@ import {
   type Feedback,
   type FeedbackKind,
   type FeedbackStatus,
-} from '../src/api/feedback';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { camarada, relativeTime } from '../src/lib/format';
-import { Badge, Button, Card, Chip, Field, Row, Screen, Section, Txt, color } from '../src/ui';
+} from '@/api/feedback';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { camarada, relativeTime } from '@/lib/format';
+import { Badge, Button, Card, Chip, Field, Row, Screen, Section, Txt, color } from '@/ui';
 
 const KINDS: { key: FeedbackKind; label: string }[] = [
   { key: 'ideia', label: 'Ideia / melhoria' },

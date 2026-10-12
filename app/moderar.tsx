@@ -1,11 +1,11 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Image, View } from 'react-native';
-import { listForModeration, moderate, scopeLabel } from '../src/api/feed';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import type { PostListed } from '../src/lib/db.types';
-import { useNoScreenshots } from '../src/lib/privacy';
-import { camarada, relativeTime } from '../src/lib/format';
+import { listForModeration, moderate, scopeLabel } from '@/api/feed';
+import { useAuth } from '@/features/auth/AuthProvider';
+import type { PostListed } from '@/lib/db.types';
+import { useNoScreenshots } from '@/lib/privacy';
+import { camarada, relativeTime } from '@/lib/format';
 import {
   Badge,
   Banner,
@@ -20,7 +20,7 @@ import {
   Txt,
   color,
   radius,
-} from '../src/ui';
+} from '@/ui';
 
 const QUICK_REASONS = [
   'Rosto de pessoa sem autorização',

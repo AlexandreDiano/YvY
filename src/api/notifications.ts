@@ -1,5 +1,5 @@
-import type { AppNotification } from '../lib/db.types';
-import { supabase } from '../lib/supabase';
+import type { AppNotification } from '@/lib/db.types';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Avisos dentro do app (tabela `notifications`, migration 0021): post

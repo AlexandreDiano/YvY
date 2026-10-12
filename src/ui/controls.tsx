@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Txt } from './Text';
-import { IconCheck } from './icons';
-import { TOUCH, color, radius, space } from './tokens';
+import { Txt } from '@/ui/Text';
+import { IconCheck } from '@/ui/icons';
+import { TOUCH, color, radius, space } from '@/ui/tokens';
 
 /** Caixa de marcar: aceite de termos, "confirmou voto", notificacoes. */
 export function Toggle({

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
-import { CARGO_ORDER, listElected, type Elected } from '../src/api/elected';
+import { CARGO_ORDER, listElected, type Elected } from '@/api/elected';
 import { useRouter } from 'expo-router';
 import {
   ASSEMBLEIA,
@@ -18,10 +18,10 @@ import {
   type CityGazettes,
   type Official,
   type Presence,
-} from '../src/api/officials';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { brDate } from '../src/lib/format';
-import { Badge, Button, Card, Chip, Field, Loading, Row, Screen, Section, Txt, color, space } from '../src/ui';
+} from '@/api/officials';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { brDate } from '@/lib/format';
+import { Badge, Button, Card, Chip, Field, Loading, Row, Screen, Section, Txt, color, space } from '@/ui';
 
 /**
  * Quem foi eleito e o que está fazendo — do país à cidade da pessoa.

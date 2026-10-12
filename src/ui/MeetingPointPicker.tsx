@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { Button } from './Button';
-import { Txt } from './Text';
-import { color, radius, space } from './tokens';
+import { Button } from '@/ui/Button';
+import { Txt } from '@/ui/Text';
+import { color, radius, space } from '@/ui/tokens';
 
 export type Point = { lat: number; lng: number };
 

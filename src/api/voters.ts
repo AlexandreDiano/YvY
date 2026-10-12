@@ -1,6 +1,6 @@
-import type { Profile, PullRoute, Voter } from '../lib/db.types';
-import { all, insert, localId, patch } from '../lib/localStore';
-import { supabase } from '../lib/supabase';
+import type { Profile, PullRoute, Voter } from '@/lib/db.types';
+import { all, insert, localId, patch } from '@/lib/localStore';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Puxada de voto (fluxo 4.5 / tela 7.5).

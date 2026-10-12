@@ -7,6 +7,9 @@ import { decideInvitee, pendingInvitees } from '@/api/invites';
 import { canManageRoles } from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useBiometricLock } from '@/features/auth/BiometricLock';
+import { InstallCard } from '@/features/pwa/InstallCard';
+import { useInstall } from '@/features/pwa/install';
+import { SupportCard } from '@/features/support/SupportCard';
 import { env } from '@/lib/env';
 import { camarada, formatCep, formatPhone, longDate } from '@/lib/format';
 import {
@@ -65,6 +68,7 @@ export default function Perfil() {
   const [rolesPower, setRolesPower] = useState(false);
   const [theme, setTheme] = useState<ThemePref>(themePref);
   const bio = useBiometricLock();
+  const install = useInstall();
   // Recarrega a cada foco: o convidado pode ter entrado com a tela já aberta.
   useFocusEffect(
     useCallback(() => {
@@ -178,8 +182,8 @@ export default function Perfil() {
           <Section title="Convidar" />
           <Card>
             <Txt variant="body">
-              O QRCode vale 1 uso e expira em 24h. Mostre na tela para o camarada
-              escanear — presencialmente.
+              O QRCode vale 1 uso e expira em 2 minutos. Mostre na tela para o
+              camarada escanear — presencialmente.
             </Txt>
             <Button title="Gerar QRCode de convite" onPress={() => router.push('/convidar')} />
           </Card>
@@ -278,6 +282,13 @@ export default function Perfil() {
         </>
       ) : null}
 
+      {install.kind !== 'none' ? (
+        <>
+          <Section title="Instalar o app" />
+          <InstallCard compact />
+        </>
+      ) : null}
+
       <Section title="Aparência" />
       <Card>
         <Options
@@ -305,6 +316,13 @@ export default function Perfil() {
         kind="outline"
         onPress={() => router.push('/feedback')}
       />
+
+      {isBaseMember && env.pixKey ? (
+        <>
+          <Section title="Apoie o YvY" />
+          <SupportCard />
+        </>
+      ) : null}
 
       <Section title="Sobre" />
       <Card>
@@ -345,6 +363,17 @@ export default function Perfil() {
       <Txt variant="small" muted center>
         YvY · a terra é de quem a organiza.
       </Txt>
+      {env.instagram ? (
+        <Txt
+          variant="small"
+          tone="primary"
+          center
+          accessibilityRole="link"
+          onPress={() => void Linking.openURL(`https://instagram.com/${env.instagram}`)}
+        >
+          Fale com quem fez o app: @{env.instagram}
+        </Txt>
+      ) : null}
     </Screen>
   );
 }

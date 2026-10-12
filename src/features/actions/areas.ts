@@ -1,5 +1,5 @@
-import { readCache, writeCache } from '../../lib/cache';
-import { supabase } from '../../lib/supabase';
+import { readCache, writeCache } from '@/lib/cache';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Bairros com membros, para colorir o mapa das ações (RPC members_by_area,

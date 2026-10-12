@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { formatCep, formatPhone, suggestDisplayName } from '../../lib/format';
-import { lookupCep, type CepInfo } from '../../lib/viacep';
+import { formatCep, formatPhone, suggestDisplayName } from '@/lib/format';
+import { lookupCep, type CepInfo } from '@/lib/viacep';
 import {
   Banner,
   Button,
@@ -14,8 +14,8 @@ import {
   Toggle,
   Txt,
   space,
-} from '../../ui';
-import type { SignUpInput } from '../auth/AuthProvider';
+} from '@/ui';
+import type { SignUpInput } from '@/features/auth/AuthProvider';
 
 /**
  * Cadastro de membro (fluxo 4.2, passo 7).

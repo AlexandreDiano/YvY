@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { simplified } from '../api/plain';
-import { Txt } from './Text';
-import { space } from './tokens';
+import { simplified } from '@/api/plain';
+import { Txt } from '@/ui/Text';
+import { space } from '@/ui/tokens';
 
 /**
  * Texto oficial mostrado, por padrão, na versão simplificada (gerada por IA

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { Button, Txt, YvyLogo, color, space } from '@/ui';
-import { useAuth } from './AuthProvider';
+import { useAuth } from '@/features/auth/AuthProvider';
 
 /**
  * Entrar com a digital (ou com a senha/padrão do celular).

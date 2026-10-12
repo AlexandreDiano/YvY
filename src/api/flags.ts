@@ -1,6 +1,6 @@
-import type { FeatureFlag } from '../lib/db.types';
-import { withCache } from '../lib/cache';
-import { supabase } from '../lib/supabase';
+import type { FeatureFlag } from '@/lib/db.types';
+import { withCache } from '@/lib/cache';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Feature flags (secao 2.1 / risco "bug critico no dia 25"): permitem

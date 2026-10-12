@@ -1,6 +1,6 @@
 import type { ColorValue } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { isDark } from './theme';
+import { isDark } from '@/ui/theme';
 
 /**
  * Marca do Yvy, vinda de assets/yvy-logo.svg.

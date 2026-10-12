@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { CheckResult } from '../lib/db.types';
-import { supabase } from '../lib/supabase';
+import type { CheckResult } from '@/lib/db.types';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Checagem automática em fila (supabase/migrations/0012_claim_checks.sql).

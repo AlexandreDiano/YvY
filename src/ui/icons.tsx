@@ -1,6 +1,6 @@
 import type { ColorValue } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { color } from './tokens';
+import { color } from '@/ui/tokens';
 
 /**
  * Icones desenhados em SVG em vez de @expo/vector-icons: evita baixar ~1 MB

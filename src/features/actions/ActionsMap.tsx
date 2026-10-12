@@ -2,13 +2,13 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import type { ActionListed } from '../../lib/db.types';
-import { shortDateTime } from '../../lib/format';
-import { Txt, color, radius, space } from '../../ui';
-import { locate, type Point } from '../../ui/MeetingPointPicker';
-import { IconPin } from '../../ui/icons';
-import { actionTypeLabel } from '../../api/actions';
-import { areaShape, membersByArea, type AreaCount, type AreaShape } from './areas';
+import type { ActionListed } from '@/lib/db.types';
+import { shortDateTime } from '@/lib/format';
+import { Txt, color, radius, space } from '@/ui';
+import { locate, type Point } from '@/ui/MeetingPointPicker';
+import { IconPin } from '@/ui/icons';
+import { actionTypeLabel } from '@/api/actions';
+import { areaShape, membersByArea, type AreaCount, type AreaShape } from '@/features/actions/areas';
 
 type Area = { cep?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null };
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { Txt } from './Text';
-import { TOUCH, color, radius, space } from './tokens';
+import { Txt } from '@/ui/Text';
+import { TOUCH, color, radius, space } from '@/ui/tokens';
 
 type Kind = 'primary' | 'accent' | 'outline' | 'ghost';
 

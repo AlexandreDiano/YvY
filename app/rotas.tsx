@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNoScreenshots } from '../src/lib/privacy';
+import { useNoScreenshots } from '@/lib/privacy';
 import { Alert } from 'react-native';
 import {
   buildRoutes,
@@ -7,9 +7,9 @@ import {
   coordinatorStats,
   listUnassignedRoutes,
   type CoordinatorStats,
-} from '../src/api/voters';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import type { PullRoute } from '../src/lib/db.types';
+} from '@/api/voters';
+import { useAuth } from '@/features/auth/AuthProvider';
+import type { PullRoute } from '@/lib/db.types';
 import {
   Banner,
   Button,
@@ -19,7 +19,7 @@ import {
   Screen,
   Section,
   Txt,
-} from '../src/ui';
+} from '@/ui';
 
 /** Fluxo 4.5, fase 2 — formar e atribuir rotas de puxada. */
 export default function Rotas() {

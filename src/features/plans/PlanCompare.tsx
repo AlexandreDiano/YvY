@@ -7,8 +7,8 @@ import {
   planPageUrl,
   presidentialPlans,
   type GovernmentPlan,
-} from '../../api/elected';
-import { Button, Card, Chip, Row, Section, Txt, space } from '../../ui';
+} from '@/api/elected';
+import { Button, Card, Chip, Row, Section, Txt, space } from '@/ui';
 
 /**
  * Comparação por tema entre os planos de governo dos candidatos a presidente.

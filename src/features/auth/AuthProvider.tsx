@@ -8,11 +8,11 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { DEFAULT_FLAGS, loadFlags } from '../../api/flags';
-import type { MembershipStatus, Profile, UserRole } from '../../lib/db.types';
-import { isBackendConfigured } from '../../lib/env';
-import { suggestDisplayName } from '../../lib/format';
-import { supabase } from '../../lib/supabase';
+import { DEFAULT_FLAGS, loadFlags } from '@/api/flags';
+import type { MembershipStatus, Profile, UserRole } from '@/lib/db.types';
+import { isBackendConfigured } from '@/lib/env';
+import { suggestDisplayName } from '@/lib/format';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Sessão do app.
@@ -66,7 +66,7 @@ type Ctx = {
   setVisitorView: (on: boolean) => void;
   /** Cria a conta e resgata o convite. Devolve a situação resultante. */
   /** 'email_pending': conta criada, falta confirmar o e-mail (o convite é usado no 1º login). */
-  signUpWithInvite: (token: string, input: SignUpInput) => Promise<MembershipStatus | 'email_pending'>;
+  signUpWithInvite: (claim: string, input: SignUpInput) => Promise<MembershipStatus | 'email_pending'>;
   signIn: (email: string, password: string) => Promise<void>;
   /** Manda o código de recuperação para o e-mail (template "Reset Password" com {{ .Token }}). */
   requestPasswordReset: (email: string) => Promise<void>;
@@ -81,16 +81,16 @@ const AuthContext = createContext<Ctx | null>(null);
 
 /**
  * Cadastro esperando confirmação de e-mail. Fica só neste aparelho, sem senha:
- * o convite é resgatado no primeiro login depois da confirmação (o convite
- * vale 24h). Sem isso, com "Confirm email" ligado no Supabase, o cadastro não
+ * o convite é resgatado no primeiro login depois da confirmação (a reserva
+ * feita no scan vale 24h — ver claimInvite em src/api/invites.ts). Sem isso, com "Confirm email" ligado no Supabase, o cadastro não
  * teria sessão para usar o convite.
  */
 const PENDING_KEY = 'yvy:pending-signup';
-type PendingSignup = { email: string; token: string; input: Omit<SignUpInput, 'password'> };
+type PendingSignup = { email: string; claim: string; input: Omit<SignUpInput, 'password'> };
 
-async function redeem(client: NonNullable<typeof supabase>, token: string, input: Omit<SignUpInput, 'password'>) {
+async function redeem(client: NonNullable<typeof supabase>, claim: string, input: Omit<SignUpInput, 'password'>) {
   const { data, error } = await client.rpc('redeem_invite', {
-    p_token: token,
+    p_claim: claim,
     p_full_name: input.fullName.trim(),
     p_display_name: input.displayName?.trim() || suggestDisplayName(input.fullName) || 'Camarada',
     p_phone: input.phone ?? null,
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const pending = raw ? (JSON.parse(raw) as PendingSignup) : null;
       if (pending && pending.email === sess.session?.user.email?.toLowerCase()) {
         try {
-          await redeem(client, pending.token, pending.input);
+          await redeem(client, pending.claim, pending.input);
         } finally {
           await AsyncStorage.removeItem(PENDING_KEY);
         }
@@ -189,9 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [mode, refresh]);
 
   const signUpWithInvite = useCallback(
-    async (token: string, input: SignUpInput): Promise<MembershipStatus | 'email_pending'> => {
+    async (claim: string, input: SignUpInput): Promise<MembershipStatus | 'email_pending'> => {
       if (!input.acceptedTerms) throw new Error('É preciso aceitar os termos para continuar.');
-      if (!token) throw new Error('Sem convite não é possível criar conta.');
+      if (!claim) throw new Error('Sem convite não é possível criar conta.');
 
       if (mode === 'local') {
         // Sem backend não há convite para validar nem convidador para
@@ -212,14 +212,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { password: _omit, ...keep } = input;
       if (!signUp.data.session) {
         // "Confirm email" ligado: guarda o cadastro e usa o convite no 1º login.
-        const pending: PendingSignup = { email: input.email.trim().toLowerCase(), token, input: keep };
+        const pending: PendingSignup = { email: input.email.trim().toLowerCase(), claim, input: keep };
         await AsyncStorage.setItem(PENDING_KEY, JSON.stringify(pending));
         return 'email_pending';
       }
 
       let status: MembershipStatus;
       try {
-        status = await redeem(client, token, keep);
+        status = await redeem(client, claim, keep);
       } catch (error) {
         // Conta criada mas convite recusado: não deixa usuário órfão logado.
         await client.auth.signOut();

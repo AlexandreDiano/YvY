@@ -54,7 +54,15 @@ body { background-color: #FAF8F5; }
 @media (prefers-color-scheme: dark) { body { background-color: #141513; } }
 `;
 
+// O Chrome dispara beforeinstallprompt cedo, às vezes antes do React montar:
+// guardamos aqui para o botão "Instalar o YvY" (src/features/pwa/install.ts).
 const REGISTER_SW = `
+window.__yvyInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  window.__yvyInstall = e;
+  window.dispatchEvent(new Event('yvy-installable'));
+});
 if ('serviceWorker' in navigator && !/^(localhost|127\\.|192\\.168\\.)/.test(location.hostname)) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('/sw.js').catch(function () {});

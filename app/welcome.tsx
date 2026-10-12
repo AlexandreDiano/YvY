@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { daysToElection, electionLabel } from '../src/lib/format';
-import { Button, Screen, Spacer, Txt, YvyLogo, space } from '../src/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { InstallCard } from '@/features/pwa/InstallCard';
+import { daysToElection, electionLabel } from '@/lib/format';
+import { Button, Screen, Spacer, Txt, YvyLogo, space } from '@/ui';
 
 export default function Welcome() {
   const router = useRouter();
@@ -37,6 +38,8 @@ export default function Welcome() {
         <Button title="Entrar" kind="outline" onPress={() => router.push('/entrar')} />
         <Button title="Tenho um convite" kind="ghost" onPress={() => router.push('/cadastro/convite')} />
       </View>
+
+      <InstallCard compact />
 
       {mode === 'local' ? (
         <>

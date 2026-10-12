@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
-import { IconEye, IconEyeOff } from './icons';
-import { Txt } from './Text';
-import { TOUCH, color, radius, space } from './tokens';
+import { IconEye, IconEyeOff } from '@/ui/icons';
+import { Txt } from '@/ui/Text';
+import { TOUCH, color, radius, space } from '@/ui/tokens';
 
 type Props = TextInputProps & {
   label?: string;

@@ -1,8 +1,8 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { createElement, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Txt } from './Text';
-import { TOUCH, color, radius, space } from './tokens';
+import { Txt } from '@/ui/Text';
+import { TOUCH, color, radius, space } from '@/ui/tokens';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const label = (d: Date) =>

@@ -1,23 +1,26 @@
 import * as Brightness from 'expo-brightness';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import {
-  PERSONAL_TTL_H,
+  PERSONAL_SCAN_MIN,
+  REMOTE_TTL_H,
   TABLE_MAX_USES,
+  TABLE_SCAN_MIN,
   TABLE_TTL_H,
   decideInvitee,
   generateInvite,
   inviteDeepLink,
   myInvitees,
+  rotateTableInvite,
   type GeneratedInvite,
   type Invitee,
-} from '../src/api/invites';
-import { useNoScreenshots } from '../src/lib/privacy';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { camarada } from '../src/lib/format';
+} from '@/api/invites';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { camarada } from '@/lib/format';
+import { useNoScreenshots } from '@/lib/privacy';
 import {
   Banner,
   Button,
@@ -31,7 +34,7 @@ import {
   color,
   radius,
   space,
-} from '../src/ui';
+} from '@/ui';
 
 type Kind = 'personal' | 'table' | 'remote';
 
@@ -42,6 +45,10 @@ type Kind = 'personal' | 'table' | 'remote';
  * texto para membro — é isso que impede o convite de circular em grupo.
  * Moderador/admin: também o convite à distância, um código de texto de 1 uso
  * para quem está longe (outro estado). Quem gera ainda confirma a pessoa.
+ *
+ * Janela de leitura curta (0035): QRCode pessoal vale 2 min; o de mesa troca
+ * sozinho a cada 5 min enquanto esta tela está aberta (mesmo evento, mesmas
+ * 20 vagas). Foto do QRCode vence junto.
  */
 export default function Convidar() {
   useNoScreenshots('convidar');
@@ -93,6 +100,48 @@ export default function Convidar() {
   const [invite, setInvite] = useState<GeneratedInvite | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [focused, setFocused] = useState(true);
+  const rotating = useRef(false);
+  // Falhou (sem rede na mesa)? Tenta de novo a cada 15 s, não a cada segundo.
+  const retryAt = useRef(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+
+  // Relógio da contagem: só com QRCode na tela.
+  const showingQr = Boolean(invite) && kind !== 'remote';
+  useEffect(() => {
+    if (!showingQr || !focused) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [showingQr, focused]);
+
+  // Mesa: troca o QRCode quando a janela de 5 min acaba, só com a tela aberta.
+  useEffect(() => {
+    if (!invite || kind !== 'table' || !focused || rotating.current) return;
+    if (now < new Date(invite.scanExpiresAt).getTime()) return;
+    if (now >= new Date(invite.expiresAt).getTime() || now < retryAt.current) return;
+    rotating.current = true;
+    rotateTableInvite(invite)
+      .then(
+        (next) => {
+          setError(null);
+          setInvite(next);
+        },
+        (err: unknown) => {
+          retryAt.current = Date.now() + 15_000;
+          setError(err instanceof Error ? err.message : 'Não foi possível renovar o QRCode.');
+        },
+      )
+      .finally(() => {
+        rotating.current = false;
+      });
+  }, [invite, kind, focused, now]);
 
   if (!isBaseMember) {
     return (
@@ -112,6 +161,7 @@ export default function Convidar() {
     setError(null);
     try {
       setInvite(await generateInvite(profile, kind, kind === 'table' ? eventName.trim() : undefined));
+      setNow(Date.now());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao gerar o convite.');
     } finally {
@@ -119,15 +169,23 @@ export default function Convidar() {
     }
   }
 
+  const scanLeft = invite ? new Date(invite.scanExpiresAt).getTime() - now : 0;
+  const personalExpired = Boolean(invite) && kind === 'personal' && scanLeft <= 0;
+  const eventOver = Boolean(invite) && kind === 'table' && now >= new Date(invite!.expiresAt).getTime();
+
   const options: { key: Kind; label: string; detail: string }[] = [
-    { key: 'personal', label: 'Pessoal', detail: `QRCode · 1 uso · expira em ${PERSONAL_TTL_H}h` },
-    { key: 'table', label: 'De mesa (evento)', detail: `QRCode · ${TABLE_MAX_USES} usos · expira em ${TABLE_TTL_H}h` },
+    { key: 'personal', label: 'Pessoal', detail: `QRCode · 1 uso · vale ${PERSONAL_SCAN_MIN} min` },
+    {
+      key: 'table',
+      label: 'De mesa (evento)',
+      detail: `QRCode · até ${TABLE_MAX_USES} pessoas · troca a cada ${TABLE_SCAN_MIN} min · evento de ${TABLE_TTL_H}h`,
+    },
   ];
   if (isModerator) {
     options.push({
       key: 'remote',
       label: 'À distância',
-      detail: `Código para quem está longe · 1 uso · expira em ${PERSONAL_TTL_H}h`,
+      detail: `Código para quem está longe · 1 uso · expira em ${REMOTE_TTL_H}h`,
     });
   }
 
@@ -216,7 +274,18 @@ export default function Convidar() {
         </>
       ) : null}
 
-      {invite && kind !== 'remote' ? (
+      {invite && kind !== 'remote' && personalExpired ? (
+        <Card>
+          <Txt variant="heading" center>
+            QRCode expirou
+          </Txt>
+          <Txt variant="small" muted center>
+            O QRCode pessoal vale {PERSONAL_SCAN_MIN} minutos. Toque em "Gerar outro" com o camarada na sua frente.
+          </Txt>
+        </Card>
+      ) : null}
+
+      {invite && kind !== 'remote' && !personalExpired && !eventOver ? (
         <>
           <Section title="Mostre esta tela" />
           <Card>
@@ -235,13 +304,25 @@ export default function Convidar() {
               Convite de {camarada(profile?.display_name)}
             </Txt>
             <Txt variant="small" muted center>
-              Escaneie para entrar no YvY · {invite.maxUses === 1 ? '1 uso' : `${invite.maxUses} usos`} ·
-              expira {new Date(invite.expiresAt).toLocaleString('pt-BR')}
+              {kind === 'table'
+                ? `Escaneie para entrar no YvY · até ${invite.maxUses} pessoas · QRCode novo em ${mmss(scanLeft)} · evento até ${new Date(invite.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                : `Escaneie para entrar no YvY · 1 uso · expira em ${mmss(scanLeft)}`}
             </Txt>
           </Card>
         </>
       ) : null}
-      {invite && kind !== 'remote' ? (
+      {invite && kind === 'table' && eventOver ? (
+        <Card>
+          <Txt variant="heading" center>
+            Convite do evento encerrado
+          </Txt>
+          <Txt variant="small" muted center>
+            O QRCode de mesa vale {TABLE_TTL_H}h. Gere outro se o evento continua.
+          </Txt>
+        </Card>
+      ) : null}
+
+      {invite && kind !== 'remote' && !personalExpired && !eventOver ? (
         <Modal visible={big} animationType="fade" onRequestClose={() => void closeBig()}>
           <Pressable style={s.full} onPress={() => void closeBig()}>
             <QRCode value={inviteDeepLink(invite.token)} size={320} color="#000000" backgroundColor="#FFFFFF" />
@@ -291,6 +372,12 @@ export default function Convidar() {
       )}
     </Screen>
   );
+}
+
+/** Tempo restante em m:ss (nunca negativo). */
+function mmss(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
 const s = StyleSheet.create({

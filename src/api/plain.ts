@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Versão simplificada de textos oficiais (ementas, descrições de votação e

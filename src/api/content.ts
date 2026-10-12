@@ -1,9 +1,9 @@
-import { SEED_CARDS } from '../data/cards';
-import { SEED_CHECKS } from '../data/factChecks';
-import { withCache } from '../lib/cache';
-import type { CheckResult, FactCheck, ProposalCard } from '../lib/db.types';
-import { supabase } from '../lib/supabase';
-import { requestClaimCheck } from './claims';
+import { SEED_CARDS } from '@/data/cards';
+import { SEED_CHECKS } from '@/data/factChecks';
+import { withCache } from '@/lib/cache';
+import type { CheckResult, FactCheck, ProposalCard } from '@/lib/db.types';
+import { supabase } from '@/lib/supabase';
+import { requestClaimCheck } from '@/api/claims';
 
 /**
  * Conteudo publico: cards de proposta e checagem de fatos.

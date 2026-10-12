@@ -1,10 +1,10 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, RefreshControl } from 'react-native';
-import { deleteNotifications, listNotifications, markAllRead } from '../src/api/notifications';
-import type { AppNotification } from '../src/lib/db.types';
-import { relativeTime } from '../src/lib/format';
-import { Button, Card, EmptyState, Loading, Row, Screen, Txt, color } from '../src/ui';
+import { deleteNotifications, listNotifications, markAllRead } from '@/api/notifications';
+import type { AppNotification } from '@/lib/db.types';
+import { relativeTime } from '@/lib/format';
+import { Button, Card, EmptyState, Loading, Row, Screen, Txt, color } from '@/ui';
 
 /** Avisos da pessoa: post publicado ou recusado, com o motivo da moderação. */
 export default function Avisos() {

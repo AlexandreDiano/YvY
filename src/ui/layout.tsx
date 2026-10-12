@@ -7,8 +7,8 @@ import {
   type ViewProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Txt } from './Text';
-import { color, space } from './tokens';
+import { Txt } from '@/ui/Text';
+import { color, space } from '@/ui/tokens';
 
 /** Container de tela. `scroll` liga o ScrollView com padding seguro. */
 export function Screen({

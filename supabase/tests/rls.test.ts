@@ -294,7 +294,7 @@ async function main(): Promise<void> {
       );
       {
         const { error } = await naked.rpc('redeem_invite', {
-          p_token: '00000000-0000-4000-8000-000000000000',
+          p_claim: '00000000-0000-4000-8000-000000000000',
           p_full_name: 'Token Inventado',
           p_display_name: 'T.I.',
           p_neighborhood: AREA_A.neighborhood,
@@ -307,24 +307,53 @@ async function main(): Promise<void> {
   }
 
   {
-    // Convite real gerado pelo militante A, resgatado por conta nova.
+    // Convite real gerado pelo militante A: escaneado (reserva, sem conta) e
+    // resgatado por conta nova com o segredo da reserva (0035).
     const invite = await admin
       .from('invites')
       .insert({ created_by: milA.id, expires_at: new Date(Date.now() + 3600000).toISOString() })
-      .select('token')
+      .select('token,expires_at,scan_expires_at')
       .single();
-    const token = (invite.data as { token: string } | null)?.token;
+    const inv = invite.data as { token: string; expires_at: string; scan_expires_at: string } | null;
+    const token = inv?.token;
+    check(
+      'convite pessoal: servidor corta a janela para 2 min',
+      Boolean(inv) && new Date(inv!.scan_expires_at).getTime() - Date.now() <= 2 * 60_000 + 5_000,
+      inv?.scan_expires_at,
+    );
+
+    const scanner = createClient(URL_!, ANON!, { auth: { persistSession: false } });
+    const claimed = token ? await scanner.rpc('claim_invite', { p_token: token }) : null;
+    const claim = (claimed?.data as { claim: string }[] | null)?.[0]?.claim;
+    check('anônimo reserva convite válido ao escanear', Boolean(claim), claimed?.error?.message);
+    if (token) {
+      const again = await scanner.rpc('claim_invite', { p_token: token });
+      check('convite de 1 uso não reserva duas vezes', Boolean(again.error), again.error ? '' : 'reservou de novo');
+    }
+    await expectDenied('anônimo não lê reservas', anon.from('invite_claims').select('id').limit(1));
 
     const email = `rls-convidado-${RUN}@yvy.test`;
     const password = `yvy-${RUN}-convidado!`;
     const { data } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-    if (data.user && token) {
+    if (data.user && token && claim) {
       created.push(data.user.id);
       const guest = createClient(URL_!, ANON!, { auth: { persistSession: false } });
       await guest.auth.signInWithPassword({ email, password });
 
+      {
+        const raw = await guest.rpc('redeem_invite', {
+          p_claim: token,
+          p_full_name: 'Convidado de Teste',
+          p_display_name: 'C.T.',
+          p_neighborhood: AREA_A.neighborhood,
+          p_city: AREA_A.city,
+          p_state: AREA_A.state,
+        });
+        check('token do QRCode sem reserva não vira perfil', Boolean(raw.error), raw.error ? '' : 'aceitou token cru');
+      }
+
       const { data: redeemed, error } = await guest.rpc('redeem_invite', {
-        p_token: token,
+        p_claim: claim,
         p_full_name: 'Convidado de Teste',
         p_display_name: 'C.T.',
         p_cep: '01001000',
@@ -344,15 +373,24 @@ async function main(): Promise<void> {
         0,
       );
       {
-        const again = await guest.rpc('redeem_invite', {
-          p_token: token,
-          p_full_name: 'Convidado de Teste',
-          p_display_name: 'C.T.',
-          p_neighborhood: AREA_A.neighborhood,
-          p_city: AREA_A.city,
-          p_state: AREA_A.state,
-        });
-        check('convite de uso único não serve duas vezes', Boolean(again.error), again.error ? '' : 'aceitou de novo');
+        // Reserva já usada, por OUTRA conta nova (a mesma já tem perfil e
+        // falharia por isso, sem testar a reserva).
+        const email2 = `rls-convidado2-${RUN}@yvy.test`;
+        const second = await admin.auth.admin.createUser({ email: email2, password, email_confirm: true });
+        if (second.data.user) {
+          created.push(second.data.user.id);
+          const guest2 = createClient(URL_!, ANON!, { auth: { persistSession: false } });
+          await guest2.auth.signInWithPassword({ email: email2, password });
+          const again = await guest2.rpc('redeem_invite', {
+            p_claim: claim,
+            p_full_name: 'Outra Pessoa',
+            p_display_name: 'O.P.',
+            p_neighborhood: AREA_A.neighborhood,
+            p_city: AREA_A.city,
+            p_state: AREA_A.state,
+          });
+          check('reserva usada não serve para outra conta', Boolean(again.error), again.error ? '' : 'aceitou de novo');
+        }
       }
     }
   }
@@ -480,6 +518,21 @@ async function main(): Promise<void> {
     milB.client.from('invites').select('id').eq('created_by', milA.id),
     0,
   );
+  {
+    const table = await milA.client
+      .from('invites')
+      .insert({ created_by: milA.id, expires_at: new Date().toISOString(), is_table_qr: true, max_uses: 20 })
+      .select('id')
+      .single();
+    const tableId = (table.data as { id: string } | null)?.id;
+    check('militante gera QRCode de mesa', Boolean(tableId), table.error?.message);
+    if (tableId) {
+      const other = await milB.client.rpc('rotate_table_invite', { p_invite: tableId });
+      check('militante não renova QRCode de mesa alheio', Boolean(other.error), other.error ? '' : 'renovou');
+      const own = await milA.client.rpc('rotate_table_invite', { p_invite: tableId });
+      check('dono renova o próprio QRCode de mesa', !own.error, own.error?.message);
+    }
+  }
   await expectDenied(
     'militante não liga feature flag',
     milA.client.from('feature_flags').update({ is_enabled: true }).eq('key', 'module_puxada'),

@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /** Ideias, problemas e sugestões dos membros (migration 0029). Só a equipe lê todos. */
 export type FeedbackKind = 'ideia' | 'problema' | 'outro';

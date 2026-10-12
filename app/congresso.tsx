@@ -8,8 +8,8 @@ import {
   type Consultation,
   type House,
   type Vote,
-} from '../src/api/officials';
-import { brDate } from '../src/lib/format';
+} from '@/api/officials';
+import { brDate } from '@/lib/format';
 import {
   Badge,
   Banner,
@@ -25,7 +25,7 @@ import {
   Txt,
   color,
   radius,
-} from '../src/ui';
+} from '@/ui';
 
 const HOUSE: Record<House, { label: string; color: string }> = {
   camara: { label: 'Câmara', color: color.primary },

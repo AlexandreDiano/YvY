@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { Txt } from './Text';
-import { radius, space } from './tokens';
+import { Txt } from '@/ui/Text';
+import { radius, space } from '@/ui/tokens';
 
 /**
  * Foto de post: no feed aparece inteira (proporção real, sem cortar); tocar

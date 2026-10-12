@@ -1,7 +1,7 @@
-import type { PostFlag, PostListed, PostStatus, Profile } from '../lib/db.types';
-import { all, insert, localId, patch } from '../lib/localStore';
-import { supabase } from '../lib/supabase';
-import { withSignedImages } from './storage';
+import type { PostFlag, PostListed, PostStatus, Profile } from '@/lib/db.types';
+import { all, insert, localId, patch } from '@/lib/localStore';
+import { supabase } from '@/lib/supabase';
+import { withSignedImages } from '@/api/storage';
 
 /** Feed local "Fala Camarada" (fluxo 4.4 / tela 7.4). */
 

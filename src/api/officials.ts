@@ -1,4 +1,4 @@
-import { readCache, withCache } from '../lib/cache';
+import { readCache, withCache } from '@/lib/cache';
 
 /**
  * Transparência: o que quem foi eleito está votando e propondo.

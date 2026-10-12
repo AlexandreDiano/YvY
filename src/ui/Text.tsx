@@ -1,5 +1,5 @@
 import { Text as RNText, type TextProps, type TextStyle } from 'react-native';
-import { color, type } from './tokens';
+import { color, type } from '@/ui/tokens';
 
 type Variant = keyof typeof type;
 

@@ -1,4 +1,4 @@
-import { isDark } from './theme';
+import { isDark } from '@/ui/theme';
 
 /**
  * Design tokens do Yvy.

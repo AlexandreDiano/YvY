@@ -216,6 +216,8 @@ export type Invite = {
   max_uses: number;
   use_count: number;
   expires_at: string;
+  /** Até quando o QRCode atual pode ser escaneado (0035). */
+  scan_expires_at: string;
   is_table_qr: boolean;
   /** Convite à distância: código de texto, só moderador/admin gera (0015). */
   is_remote: boolean;
@@ -279,9 +281,18 @@ export type Database = {
       list_claim_checks: { Args: { p_limit?: number }; Returns: unknown[] };
       is_militant_or_above: { Args: Record<string, never>; Returns: boolean };
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      claim_invite: {
+        Args: { p_token: string };
+        Returns: { claim: string; claim_expires_at: string }[];
+      };
+      rotate_table_invite: {
+        Args: { p_invite: string };
+        Returns: { token: string; scan_expires_at: string }[];
+      };
       redeem_invite: {
         Args: {
-          p_token: string;
+          /** Segredo da reserva (claim_invite), não o token do QRCode. */
+          p_claim: string;
           p_full_name: string;
           p_display_name: string;
           p_phone: string | null;

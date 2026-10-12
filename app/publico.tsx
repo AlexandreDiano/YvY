@@ -1,11 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { myClaimChecks } from '../src/api/claims';
-import { FLAG } from '../src/api/flags';
-import { PlanCompare } from '../src/features/plans/PlanCompare';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { daysToElection, electionLabel } from '../src/lib/format';
+import { myClaimChecks } from '@/api/claims';
+import { FLAG } from '@/api/flags';
+import { PlanCompare } from '@/features/plans/PlanCompare';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { daysToElection, electionLabel } from '@/lib/format';
 import {
   Banner,
   Button,
@@ -17,8 +17,8 @@ import {
   YvyMark,
   color,
   space,
-} from '../src/ui';
-import { IconBallot, IconSearch } from '../src/ui/icons';
+} from '@/ui';
+import { IconBallot, IconSearch } from '@/ui/icons';
 
 /**
  * Área pública — sem conta, sem sessão.

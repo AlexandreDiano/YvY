@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { Txt } from './Text';
-import { color, radius, space } from './tokens';
+import { Txt } from '@/ui/Text';
+import { color, radius, space } from '@/ui/tokens';
 
 export function Loading({ label }: { label?: string }) {
   return (

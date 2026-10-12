@@ -1,34 +1,77 @@
-import type { Invite, Profile } from '../lib/db.types';
-import { all, insert, localId } from '../lib/localStore';
-import { supabase } from '../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import type { Invite, Profile } from '@/lib/db.types';
+import { env } from '@/lib/env';
+import { all, insert, localId, patch } from '@/lib/localStore';
+import { supabase } from '@/lib/supabase';
 
 /**
- * Convites por QRCode presencial (fluxo 4.2).
+ * Convites por QRCode presencial (fluxo 4.2), em duas etapas (0035):
  *
- * Regras de ouro implementadas aqui e na RPC `redeem_invite`:
- *  - convite pessoal: 1 uso, 24h. QRCode de mesa: 20 usos, 4h.
- *  - convite à distância: código de texto, 1 uso, 24h, só moderador/admin
- *    gera (policy em 0015_invites_remote.sql). Membro comum não tem código.
+ *  1. Escanear: `claimInvite` reserva uma vaga e devolve um segredo que fica
+ *     só neste aparelho (AsyncStorage, nunca na URL). Janela curta:
+ *       pessoal 2 min · mesa 5 min por QRCode (troca sozinho, até 20 pessoas
+ *       e 4h no evento) · distância 24h (código de texto).
+ *  2. Cadastrar: `redeem_invite` com o segredo, em até 24h — dá tempo de
+ *     preencher o formulário e confirmar o e-mail.
+ *
+ * Prazos saem do relógio do servidor (trigger da 0035); os daqui são só para
+ * o modo local e para os textos da tela.
  *  - o token NUNCA aparece como texto legivel na tela sem aviso explicito;
  *  - quem confirma e o convidador, nunca o convidado (sem auto-confirmacao).
  */
 
 const COL_INVITES = 'invites';
 
-export const PERSONAL_TTL_H = 24;
+export const PERSONAL_SCAN_MIN = 2;
+export const TABLE_SCAN_MIN = 5;
 export const TABLE_TTL_H = 4;
 export const TABLE_MAX_USES = 20;
+export const REMOTE_TTL_H = 24;
+/** Prazo para terminar o cadastro depois de escanear. */
+export const CLAIM_TTL_H = 24;
 
-export type GeneratedInvite = { token: string; expiresAt: string; maxUses: number };
+export type GeneratedInvite = {
+  id: string;
+  token: string;
+  /** Fim do convite inteiro (evento de 4h na mesa). */
+  expiresAt: string;
+  /** Até quando este QRCode pode ser escaneado. */
+  scanExpiresAt: string;
+  maxUses: number;
+  /**
+   * Relógio do servidor menos o do aparelho, medido ao gerar. Os horários
+   * acima já vêm convertidos para o relógio do aparelho: com janela de 2 min,
+   * celular com hora errada mostraria contagem errada.
+   */
+  skewMs: number;
+};
+
+const toLocal = (iso: string, skewMs: number) => new Date(new Date(iso).getTime() - skewMs).toISOString();
+
+function windows(kind: 'personal' | 'table' | 'remote') {
+  const now = Date.now();
+  if (kind === 'remote') {
+    const end = new Date(now + REMOTE_TTL_H * 3600_000).toISOString();
+    return { expiresAt: end, scanExpiresAt: end, maxUses: 1 };
+  }
+  if (kind === 'table') {
+    return {
+      expiresAt: new Date(now + TABLE_TTL_H * 3600_000).toISOString(),
+      scanExpiresAt: new Date(now + TABLE_SCAN_MIN * 60_000).toISOString(),
+      maxUses: TABLE_MAX_USES,
+    };
+  }
+  const end = new Date(now + PERSONAL_SCAN_MIN * 60_000).toISOString();
+  return { expiresAt: end, scanExpiresAt: end, maxUses: 1 };
+}
 
 export async function generateInvite(
   profile: Profile,
   kind: 'personal' | 'table' | 'remote',
   eventName?: string,
 ): Promise<GeneratedInvite> {
-  const ttlH = kind === 'table' ? TABLE_TTL_H : PERSONAL_TTL_H;
-  const maxUses = kind === 'table' ? TABLE_MAX_USES : 1;
-  const expiresAt = new Date(Date.now() + ttlH * 3600_000).toISOString();
+  const w = windows(kind);
 
   if (!supabase) {
     const row: Invite = {
@@ -36,33 +79,65 @@ export async function generateInvite(
       token: cryptoToken(),
       created_by: profile.id,
       used_by: null,
-      max_uses: maxUses,
+      max_uses: w.maxUses,
       use_count: 0,
-      expires_at: expiresAt,
+      expires_at: w.expiresAt,
+      scan_expires_at: w.scanExpiresAt,
       is_table_qr: kind === 'table',
       is_remote: kind === 'remote',
       event_name: eventName ?? null,
       created_at: new Date().toISOString(),
     };
     await insert(COL_INVITES, row);
-    return { token: row.token, expiresAt, maxUses };
+    return { id: row.id, token: row.token, ...w, skewMs: 0 };
   }
 
+  // Prazos e vagas: quem define é o trigger do banco, pelo relógio do servidor.
   const res = await supabase
     .from('invites')
     .insert({
       created_by: profile.id,
-      max_uses: maxUses,
-      expires_at: expiresAt,
+      max_uses: w.maxUses,
+      expires_at: w.expiresAt,
+      scan_expires_at: w.scanExpiresAt,
       is_table_qr: kind === 'table',
       is_remote: kind === 'remote',
       event_name: eventName ?? null,
     })
-    .select('token,expires_at,max_uses')
+    .select('id,token,expires_at,scan_expires_at,max_uses')
     .single();
   if (res.error) throw res.error;
-  const row = res.data as Pick<Invite, 'token' | 'expires_at' | 'max_uses'>;
-  return { token: row.token, expiresAt: row.expires_at, maxUses: row.max_uses };
+  const row = res.data as Pick<Invite, 'id' | 'token' | 'expires_at' | 'scan_expires_at' | 'max_uses'>;
+  // O servidor abriu a janela agora; quanto ela "sobra" além do esperado é a
+  // diferença de relógio (mais a latência, que é de segundos).
+  const skewMs = new Date(row.scan_expires_at).getTime() - new Date(w.scanExpiresAt).getTime();
+  return {
+    id: row.id,
+    token: row.token,
+    expiresAt: toLocal(row.expires_at, skewMs),
+    scanExpiresAt: toLocal(row.scan_expires_at, skewMs),
+    maxUses: row.max_uses,
+    skewMs,
+  };
+}
+
+/**
+ * QRCode de mesa: token novo a cada 5 min, mesma linha no banco — as 20 vagas
+ * e as 4h valem para o evento inteiro. Foto do QRCode morre na troca.
+ */
+export async function rotateTableInvite(inv: GeneratedInvite): Promise<GeneratedInvite> {
+  if (!supabase) {
+    const token = cryptoToken();
+    const scanExpiresAt = new Date(
+      Math.min(Date.now() + TABLE_SCAN_MIN * 60_000, new Date(inv.expiresAt).getTime()),
+    ).toISOString();
+    await patch<Invite>(COL_INVITES, inv.id, { token, scan_expires_at: scanExpiresAt });
+    return { ...inv, token, scanExpiresAt };
+  }
+  const { data, error } = await supabase.rpc('rotate_table_invite', { p_invite: inv.id });
+  if (error) throw error;
+  const row = (data as { token: string; scan_expires_at: string }[])[0]!;
+  return { ...inv, token: row.token, scanExpiresAt: toLocal(row.scan_expires_at, inv.skewMs) };
 }
 
 /** Convites que o usuario gerou, para ele acompanhar quem entrou. */
@@ -79,31 +154,83 @@ export async function myInvites(profile: Profile): Promise<Invite[]> {
   return res.data as Invite[];
 }
 
-/** O QRCode codifica um deep link, nao o token cru (fluxo 4.2). */
+/**
+ * O QRCode codifica um link, nao o token cru (fluxo 4.2).
+ *
+ * Com o site configurado, é https://<site>/cadastro/convite#t=<token>: a
+ * câmera de qualquer celular abre, no navegador, a tela de convite do PWA; o
+ * leitor do APK entende o mesmo link. O token vai depois do `#` de propósito:
+ * fragmento não é enviado ao servidor, então não fica em log da Vercel nem em
+ * Referer.
+ *
+ * Sem site configurado (modo local, APK sem EXPO_PUBLIC_SITE_URL), cai no
+ * yvy://invite/<token> antigo, que só o app lê.
+ */
 export function inviteDeepLink(token: string): string {
-  return `yvy://invite/${token}`;
+  const base = env.siteUrl || (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : '');
+  return base ? `${base}/cadastro/convite#t=${token}` : `yvy://invite/${token}`;
 }
 
+const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+
+/** Aceita o link https novo, o yvy:// antigo e o código digitado. */
 export function parseInviteLink(scanned: string): string | null {
-  const m = scanned.match(/^yvy:\/\/invite\/([0-9a-fA-F-]{36})$/);
-  if (m) return m[1]!;
-  if (/^[0-9a-fA-F-]{36}$/.test(scanned.trim())) return scanned.trim();
-  return null;
+  const text = scanned.trim();
+  const m =
+    text.match(new RegExp(`^yvy://invite/(${UUID})$`)) ??
+    text.match(new RegExp(`^https://[^/\\s]+/cadastro/convite[?#]t=(${UUID})$`)) ??
+    text.match(new RegExp(`^(${UUID})$`));
+  return m ? m[1]! : null;
 }
 
-/** Validacao local antes de abrir o formulario de cadastro. */
-export async function peekInvite(token: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+/** Reserva guardada no aparelho entre o scan e o fim do cadastro. */
+export type InviteClaim = { claim: string; expiresAt: string };
+
+const CLAIM_KEY = 'yvy:invite-claim';
+
+/**
+ * Etapa 1: reserva a vaga na hora do scan. Roda sem conta (`anon`), por isso
+ * só devolve o segredo — nada sobre quem convidou nem sobre o convite.
+ * O segredo vai para o AsyncStorage, nunca para a URL: no site, parâmetro de
+ * rota acaba na barra de endereço, no histórico e no log do servidor.
+ */
+export async function claimInvite(token: string): Promise<InviteClaim> {
+  let result: InviteClaim;
   if (!supabase) {
     const rows = await all<Invite>(COL_INVITES);
     const row = rows.find((i) => i.token === token);
-    if (!row) return { ok: false, reason: 'Convite não encontrado.' };
-    if (new Date(row.expires_at) < new Date()) return { ok: false, reason: 'Este convite expirou. Peça outro.' };
-    if (row.use_count >= row.max_uses) return { ok: false, reason: 'Este convite já foi utilizado.' };
-    return { ok: true };
+    if (!row) throw new Error('Convite não encontrado.');
+    const now = new Date();
+    if (new Date(row.scan_expires_at ?? row.expires_at) < now || new Date(row.expires_at) < now) {
+      throw new Error('Este QRCode expirou. Peça para gerar outro.');
+    }
+    if (row.use_count >= row.max_uses) throw new Error('Este convite já foi utilizado.');
+    await patch<Invite>(COL_INVITES, row.id, { use_count: row.use_count + 1 });
+    result = { claim: token, expiresAt: new Date(Date.now() + CLAIM_TTL_H * 3600_000).toISOString() };
+  } else {
+    const { data, error } = await supabase.rpc('claim_invite', { p_token: token });
+    if (error) throw new Error(error.message);
+    const row = (data as { claim: string; claim_expires_at: string }[])[0]!;
+    result = { claim: row.claim, expiresAt: row.claim_expires_at };
   }
-  // No backend quem decide e a RPC redeem_invite (SECURITY DEFINER): o
-  // cliente nao pode ler a tabela invites de outra pessoa, de proposito.
-  return { ok: true };
+  await AsyncStorage.setItem(CLAIM_KEY, JSON.stringify(result));
+  return result;
+}
+
+/** Reserva ainda válida neste aparelho, ou null. */
+export async function storedClaim(): Promise<InviteClaim | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CLAIM_KEY);
+    const c = raw ? (JSON.parse(raw) as InviteClaim) : null;
+    if (!c || new Date(c.expiresAt) < new Date()) return null;
+    return c;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearClaim(): Promise<void> {
+  await AsyncStorage.removeItem(CLAIM_KEY);
 }
 
 /**

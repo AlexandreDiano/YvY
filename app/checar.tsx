@@ -11,14 +11,14 @@ import {
   runClaimNow,
   type ClaimCheck,
   type QueueItem,
-} from '../src/api/claims';
-import { useAuth } from '../src/features/auth/AuthProvider';
+} from '@/api/claims';
+import { useAuth } from '@/features/auth/AuthProvider';
 import * as ImagePicker from 'expo-image-picker';
-import { checkFact, listChecks, type CheckOutcome } from '../src/api/content';
-import { CHECK_LABEL } from '../src/data/factChecks';
-import type { CheckResult, FactCheck } from '../src/lib/db.types';
-import { brDate } from '../src/lib/format';
-import { shareCheck } from '../src/lib/share';
+import { checkFact, listChecks, type CheckOutcome } from '@/api/content';
+import { CHECK_LABEL } from '@/data/factChecks';
+import type { CheckResult, FactCheck } from '@/lib/db.types';
+import { brDate } from '@/lib/format';
+import { shareCheck } from '@/lib/share';
 import {
   Badge,
   Banner,
@@ -31,8 +31,8 @@ import {
   Txt,
   color,
   space,
-} from '../src/ui';
-import { IconShare } from '../src/ui/icons';
+} from '@/ui';
+import { IconShare } from '@/ui/icons';
 
 const SEAL: Record<CheckResult, string> = {
   true: color.success,

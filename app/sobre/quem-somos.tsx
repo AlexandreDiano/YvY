@@ -38,7 +38,7 @@ export default function QuemSomos() {
       <Section title="Por que não tem link de convite" />
       <Txt variant="body">
         Código de texto vaza: basta um print. QRCode presencial exige as duas
-        pessoas no mesmo lugar, vale um uso e expira em 24h. A base cresce pelo
+        pessoas no mesmo lugar, vale um uso e expira em 2 minutos. A base cresce pelo
         encontro, não pela timeline.
       </Txt>
 

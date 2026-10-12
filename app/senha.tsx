@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { useAuth } from '../src/features/auth/AuthProvider';
-import { Button, Field, Screen, Section, Txt } from '../src/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { Button, Field, Screen, Section, Txt } from '@/ui';
 
 /**
  * Esqueci a senha: código por e-mail, sem link.
