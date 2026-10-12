@@ -1,5 +1,6 @@
 import { readCache, writeCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
+import { OSM_HEADERS } from '@/ui/MeetingPointPicker';
 
 /**
  * Bairros com membros, para colorir o mapa das ações (RPC members_by_area,
@@ -44,7 +45,7 @@ export async function areaShape(a: AreaCount, signal: AbortSignal): Promise<Area
   try {
     const q = encodeURIComponent(`${a.neighborhood}, ${a.city}, ${a.state ?? ''}`);
     const r = await fetch(NOMINATIM + q, {
-      headers: { 'User-Agent': 'Yvy/1.0 (app de organizacao de base)' },
+      headers: OSM_HEADERS,
       signal,
     });
     const j = (await r.json()) as { lat: string; lon: string; addresstype?: string; geojson?: { type: string } }[];

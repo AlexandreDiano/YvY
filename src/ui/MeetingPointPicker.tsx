@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { Button } from '@/ui/Button';
+import { MAP_BRIDGE, MapFrame } from '@/ui/MapFrame';
 import { Txt } from '@/ui/Text';
 import { color, radius, space } from '@/ui/tokens';
 
@@ -9,7 +9,8 @@ export type Point = { lat: number; lng: number };
 
 /**
  * Ponto de encontro da ação num mapa leve: Leaflet + OpenStreetMap dentro de
- * uma WebView (já vem no Expo, sem build nativo nem token). Toque marca o
+ * uma WebView no celular ou de um iframe isolado no site (MapFrame; sem build
+ * nativo nem token). Toque marca o
  * ponto. Começa centrado no bairro da pessoa (Nominatim/OSM). É lugar
  * público de encontro, não endereço de ninguém.
  */
@@ -24,6 +25,11 @@ export function MeetingPointPicker({
   area: { cep?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null };
 }) {
   const [center, setCenter] = useState<Point | null>(value);
+  // O alfinete anda dentro da página (toque); só recarrega ao "Tirar ponto".
+  // Recarregar a cada toque piscava o mapa e perdia o zoom.
+  const [gen, setGen] = useState(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const page = useMemo(() => (center ? html(center, value) : ''), [center, gen]);
 
   useEffect(() => {
     if (value) return;
@@ -32,13 +38,6 @@ export function MeetingPointPicker({
     return () => ctrl.abort();
   }, [area.cep, area.neighborhood, area.city, area.state, value]);
 
-  if (Platform.OS === 'web') {
-    return (
-      <Txt variant="small" muted>
-        Marcar ponto no mapa funciona no app instalado.
-      </Txt>
-    );
-  }
   if (!center) {
     return (
       <Txt variant="small" muted>
@@ -50,14 +49,12 @@ export function MeetingPointPicker({
   return (
     <View style={{ gap: space.xs }}>
       <View style={s.map}>
-        <WebView
-          originWhitelist={['*']}
-          source={{ html: html(center, value) }}
-          onMessage={(e) => {
-            const [lat, lng] = e.nativeEvent.data.split(',').map(Number);
+        <MapFrame
+          html={page}
+          onMessage={(data) => {
+            const [lat, lng] = data.split(',').map(Number);
             if (Number.isFinite(lat) && Number.isFinite(lng)) onChange({ lat: lat!, lng: lng! });
           }}
-          nestedScrollEnabled
         />
       </View>
       <Txt variant="small" muted>
@@ -65,12 +62,31 @@ export function MeetingPointPicker({
           ? `Ponto marcado (${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}). Toque em outro lugar para mudar.`
           : 'Toque no mapa para marcar o ponto de encontro.'}
       </Txt>
-      {value ? <Button title="Tirar ponto" kind="ghost" small block={false} onPress={() => onChange(null)} /> : null}
+      {value ? (
+        <Button
+          title="Tirar ponto"
+          kind="ghost"
+          small
+          block={false}
+          onPress={() => {
+            onChange(null);
+            setGen((g) => g + 1);
+          }}
+        />
+      ) : null}
     </View>
   );
 }
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br';
+
+/**
+ * Nominatim pede identificação. No celular vai no User-Agent; no navegador
+ * o cabeçalho próprio dispara preflight de CORS (e o Nominatim recusa), então
+ * lá vale o User-Agent e o Referer do próprio navegador.
+ */
+export const OSM_HEADERS: Record<string, string> =
+  Platform.OS === 'web' ? {} : { 'User-Agent': 'Yvy/1.0 (app de organizacao de base)' };
 
 /**
  * Centro do mapa a partir do cadastro, do mais preciso ao mais amplo: CEP,
@@ -89,10 +105,7 @@ export async function locate(
   ].filter(Boolean) as string[];
   for (const t of tries) {
     try {
-      const r = await fetch(NOMINATIM + t, {
-        headers: { 'User-Agent': 'Yvy/1.0 (app de organizacao de base)' },
-        signal,
-      });
+      const r = await fetch(NOMINATIM + t, { headers: OSM_HEADERS, signal });
       const j = (await r.json()) as { lat: string; lon: string }[];
       if (j[0]) return { lat: Number(j[0].lat), lng: Number(j[0].lon) };
     } catch {
@@ -119,13 +132,13 @@ function html(center: Point, marker: Point | null): string {
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>html,body,#m{height:100%;margin:0}</style></head><body><div id="m"></div><script>
+<style>html,body,#m{height:100%;margin:0}</style></head><body><div id="m"></div><script>${MAP_BRIDGE}
 var map=L.map('m').setView([${center.lat},${center.lng}],16);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
 var mk=${marker ? `L.marker([${marker.lat},${marker.lng}]).addTo(map)` : 'null'};
 map.on('click',function(e){
   if(mk){mk.setLatLng(e.latlng)}else{mk=L.marker(e.latlng).addTo(map)}
-  window.ReactNativeWebView.postMessage(e.latlng.lat+','+e.latlng.lng);
+  send(e.latlng.lat+','+e.latlng.lng);
 });
 </script></body></html>`;
 }

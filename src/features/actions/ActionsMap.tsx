@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { StyleSheet, View } from 'react-native';
 import type { ActionListed } from '@/lib/db.types';
 import { shortDateTime } from '@/lib/format';
 import { Txt, color, radius, space } from '@/ui';
+import { MAP_BRIDGE, MapFrame, type MapFrameHandle } from '@/ui/MapFrame';
 import { locate, type Point } from '@/ui/MeetingPointPicker';
 import { IconPin } from '@/ui/icons';
 import { actionTypeLabel } from '@/api/actions';
@@ -13,8 +13,9 @@ import { areaShape, membersByArea, type AreaCount, type AreaShape } from '@/feat
 type Area = { cep?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null };
 
 /**
- * Mapa das ações: Leaflet + OpenStreetMap numa WebView (sem build nativo nem
- * token), o mesmo esquema do MeetingPointPicker. Cada ação com ponto de
+ * Mapa das ações: Leaflet + OpenStreetMap numa WebView no celular e num
+ * iframe isolado no site (MapFrame; sem build nativo nem token), o mesmo
+ * esquema do MeetingPointPicker. Cada ação com ponto de
  * encontro vira um alfinete; tocar abre o resumo e "Abrir" leva à ação.
  * Ação sem ponto continua na lista e é contada embaixo do mapa.
  *
@@ -39,7 +40,7 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
   );
   const without = actions.length - pins.length;
   const [center, setCenter] = useState<Point | null>(null);
-  const web = useRef<WebView>(null);
+  const web = useRef<MapFrameHandle>(null);
   const [ready, setReady] = useState(false);
   const [areas, setAreas] = useState<(AreaCount & AreaShape)[]>([]);
   const [areaTotal, setAreaTotal] = useState(0);
@@ -47,7 +48,6 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
   // Bairros com membros: contagem do banco, contorno do OSM (um por segundo,
   // com cache), e cada um entra no mapa assim que chega.
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     const ctrl = new AbortController();
     void (async () => {
       const list = await membersByArea();
@@ -62,13 +62,16 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
     return () => ctrl.abort();
   }, []);
 
+  const page = useMemo(() => html(pins, center), [pins, center]);
+  // Página nova (ações mudaram): espera carregar de novo antes de mandar os bairros.
+  useEffect(() => setReady(false), [page]);
+
   // A página do mapa recarrega quando as ações mudam; reenvia os bairros.
   useEffect(() => {
     if (!ready || !areas.length) return;
-    const payload = JSON.stringify(
+    web.current?.post(
       areas.map((a) => ({ n: a.neighborhood, c: a.members, m: a.mine, lat: a.lat, lng: a.lng, g: a.geo })),
-    ).replace(/</g, '\\u003c');
-    web.current?.injectJavaScript(`window.setAreas && window.setAreas(${payload}); true;`);
+    );
   }, [ready, areas]);
 
   // Sem alfinete, o mapa abre no bairro do cadastro.
@@ -79,13 +82,6 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
     return () => ctrl.abort();
   }, [pins.length, center, area.cep, area.neighborhood, area.city, area.state]);
 
-  if (Platform.OS === 'web') {
-    return (
-      <Txt variant="small" muted>
-        O mapa funciona no app instalado. Aqui, use a lista abaixo.
-      </Txt>
-    );
-  }
   if (!pins.length && !center) {
     return (
       <View style={[s.map, s.center]}>
@@ -99,17 +95,13 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
   return (
     <View style={{ gap: space.xs }}>
       <View style={s.map}>
-        <WebView
+        <MapFrame
           ref={web}
-          onLoadStart={() => setReady(false)}
-          onLoadEnd={() => setReady(true)}
-          originWhitelist={['*']}
-          source={{ html: html(pins, center) }}
-          onMessage={(e) => {
-            const id = e.nativeEvent.data;
+          html={page}
+          onReady={() => setReady(true)}
+          onMessage={(id) => {
             if (pins.some((p) => p.id === id)) router.push(`/acoes/${id}`);
           }}
-          nestedScrollEnabled
         />
       </View>
       <View style={s.legend}>
@@ -152,7 +144,7 @@ function html(pins: Pin[], center: Point | null): string {
 .lb{background:rgba(255,255,255,.88);border:0;border-radius:6px;box-shadow:none;padding:2px 6px;text-align:center;font-size:11px;line-height:1.25}
 .lb b{display:block;font-size:12px}
 .p button{margin-top:6px;border:0;border-radius:6px;padding:6px 12px;background:${color.primary};color:#fff;font-size:13px}</style>
-</head><body><div id="m"></div><script>
+</head><body><div id="m"></div><script>${MAP_BRIDGE}
 var D=${data};
 var map=L.map('m');
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
@@ -162,7 +154,7 @@ D.pins.forEach(function(p){
   var b=document.createElement('b');b.textContent=p.t;box.appendChild(b);
   var sp=document.createElement('span');sp.textContent=p.s;box.appendChild(sp);
   var bt=document.createElement('button');bt.textContent='Abrir';
-  bt.onclick=function(){window.ReactNativeWebView.postMessage(p.id)};box.appendChild(bt);
+  bt.onclick=function(){send(p.id)};box.appendChild(bt);
   L.marker([p.lat,p.lng]).addTo(map).bindPopup(box);
   pts.push([p.lat,p.lng]);
 });
@@ -185,6 +177,7 @@ window.setAreas=function(list){
     if(a.m&&!fitted){fitted=true;try{map.fitBounds(lyr.getBounds(),{padding:[24,24],maxZoom:15})}catch(e){}}
   });
 };
+window.onHost=window.setAreas;
 </script></body></html>`;
 }
 
