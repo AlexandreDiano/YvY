@@ -25,15 +25,15 @@ export function SupportCard() {
       </Txt>
 
       <Button
-        title="Copiar código Pix"
+        title="Copiar chave Pix"
         onPress={async () => {
-          await Clipboard.setStringAsync(code);
-          notify('Código Pix copiado', 'No app do seu banco, escolha Pix › Copia e Cola e defina o valor.');
+          await Clipboard.setStringAsync(env.pixKey);
+          notify('Chave Pix copiada', 'No app do seu banco, escolha Pix › Pagar com chave, cole e defina o valor.');
         }}
       />
 
       <Button
-        title={more ? 'Esconder outras formas' : 'Outras formas (QRCode e chave)'}
+        title={more ? 'Esconder outras formas' : 'Outras formas (QRCode e copia e cola)'}
         kind="ghost"
         small
         onPress={() => setMore((v) => !v)}
@@ -49,6 +49,15 @@ export function SupportCard() {
           <Txt variant="small" muted selectable center>
             Chave Pix: {env.pixKey}
           </Txt>
+          <Button
+            title="Copiar código copia e cola"
+            kind="outline"
+            small
+            onPress={async () => {
+              await Clipboard.setStringAsync(code);
+              notify('Código copiado', 'No app do seu banco, escolha Pix › Copia e Cola e defina o valor.');
+            }}
+          />
         </>
       ) : null}
     </Card>
