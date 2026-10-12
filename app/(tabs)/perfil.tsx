@@ -11,6 +11,8 @@ import { InstallCard } from '@/features/pwa/InstallCard';
 import { useInstall } from '@/features/pwa/install';
 import { SupportCard } from '@/features/support/SupportCard';
 import { env } from '@/lib/env';
+import { monitoringEnabled, sendTestError } from '@/lib/monitoring';
+import { notify } from '@/lib/notify';
 import { camarada, formatCep, formatPhone, longDate } from '@/lib/format';
 import {
   Button,
@@ -268,6 +270,17 @@ export default function Perfil() {
                 router.replace('/');
               }}
             />
+            {monitoringEnabled() ? (
+              <Button
+                title="Enviar erro de teste (Sentry)"
+                kind="ghost"
+                small
+                onPress={() => {
+                  sendTestError();
+                  notify('Erro de teste enviado', 'Deve aparecer no painel do Sentry em até alguns minutos.');
+                }}
+              />
+            ) : null}
           </Card>
         </>
       ) : null}

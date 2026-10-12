@@ -102,7 +102,8 @@
         {
           "faceIDPermission": "O YvY usa o Face ID só para destrancar o app, se você ligar essa opção em Perfil."
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

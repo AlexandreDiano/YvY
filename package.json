@@ -15,6 +15,8 @@
     "@expo/metro-runtime": "~57.0.16",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
+    "@sentry/browser": "10.37.0",
+    "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.117.3",
     "expo": "~57.0.27",
     "expo-brightness": "~57.0.2",

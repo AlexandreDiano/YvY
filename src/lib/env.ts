@@ -16,6 +16,8 @@ export const env = {
   /** Nome e cidade do recebedor no código Pix (sem acento; o banco mostra). */
   pixName: process.env.EXPO_PUBLIC_PIX_NAME ?? 'YvY',
   pixCity: process.env.EXPO_PUBLIC_PIX_CITY ?? 'BRASIL',
+  /** Sentry (relatório de erros, src/lib/monitoring.ts). DSN é público por natureza. */
+  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
   /** Instagram de contato no rodapé do Perfil (sem @). */
   instagram: process.env.EXPO_PUBLIC_INSTAGRAM ?? 'dianooxz',
 };
