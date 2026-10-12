@@ -2,7 +2,6 @@ import { Share } from 'react-native';
 import type { FactCheck, ProposalCard } from '@/lib/db.types';
 import { CHECK_LABEL } from '@/data/factChecks';
 import { SEVERITY } from '@/ui/Badge';
-import { brDate } from '@/lib/format';
 
 /**
  * Compartilhamento por texto (WhatsApp e o canal principal, secao 10.2).
@@ -30,14 +29,17 @@ export async function shareCard(card: ProposalCard): Promise<void> {
   await Share.share({ message: lines.join('\n') });
 }
 
+/**
+ * Compartilha checagem APROVADA PELA EQUIPE (fact_checks). Checagem por IA
+ * não passa por aqui (revisão jurídica de 12/10): no WhatsApp quase ninguém
+ * lê o aviso "feita por IA" no fim, e o print corta.
+ */
 export async function shareCheck(check: {
   claim: string;
   result: FactCheck['result'];
   explanation: string;
   source_name: string | null;
   source_url: string | null;
-  /** Preenchido quando a checagem é automática (IA): vai rotulada no texto. */
-  autoCheckedAt?: string | null;
 }): Promise<void> {
   const lines = [
     `CHECAGEM: ${CHECK_LABEL[check.result].toUpperCase()}`,
@@ -49,9 +51,7 @@ export async function shareCheck(check: {
     // Link cru: WhatsApp transforma em clicavel e quem recebe confere sozinho.
     check.source_url,
     '',
-    check.autoCheckedAt
-      ? `Checagem automática feita por IA em ${brDate(check.autoCheckedAt)}, não revisada pela equipe. Confira a fonte.`
-      : 'Checado no YvY.',
+    'Checado pela equipe do YvY.',
   ].filter(Boolean);
   await Share.share({ message: lines.join('\n') });
 }

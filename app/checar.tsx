@@ -103,7 +103,7 @@ export default function Checar() {
     try {
       const r = await runClaimNow(id);
       if (!r.ok) setError(r.error ?? 'Não foi possível checar agora.');
-      await Promise.all([loadQueue(), loadMine(), listClaimChecks().then(setOthers)]);
+      await Promise.all([loadQueue(), loadMine(), isModerator ? listClaimChecks().then(setOthers) : Promise.resolve()]);
     } finally {
       setRunning(null);
     }
@@ -112,7 +112,7 @@ export default function Checar() {
   async function removeCheck(id: string) {
     try {
       await deleteClaimCheck(id);
-      await Promise.all([loadQueue(), loadMine(), listClaimChecks().then(setOthers)]);
+      await Promise.all([loadQueue(), loadMine(), isModerator ? listClaimChecks().then(setOthers) : Promise.resolve()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao apagar.');
     }
@@ -128,10 +128,12 @@ export default function Checar() {
 
   useEffect(() => {
     void listChecks().then(setRecent);
-    void listClaimChecks().then(setOthers);
+    if (isModerator) void listClaimChecks().then(setOthers);
     void loadQueue();
     void loadMine();
-  }, []);
+    // isModerator chega quando o perfil carrega: recarrega a lista da equipe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isModerator]);
 
   async function run() {
     setBusy(true);
@@ -183,12 +185,21 @@ export default function Checar() {
       {outcome ? (
         <>
           <Section title="Resultado" />
+          {outcome.kind === 'auto' ? (
+            <AutoResult
+              claim={outcome.claim}
+              result={outcome.result}
+              explanation={outcome.explanation}
+              sourceName={outcome.source_name}
+              sourceUrl={outcome.source_url}
+              checkedAt={outcome.checked_at}
+            />
+          ) : (
           <Card stripe={SEAL[outcome.result]}>
             <Badge label={CHECK_LABEL[outcome.result].toUpperCase()} color={SEAL[outcome.result]} />
             <Txt variant="heading">"{outcome.claim}"</Txt>
             <Txt variant="body">{outcome.explanation}</Txt>
             <Source name={outcome.source_name} url={outcome.source_url} />
-            {outcome.kind === 'auto' ? <AutoLabel checkedAt={outcome.checked_at} /> : null}
             {outcome.result !== 'unverified' ? (
               <Button
                 title="Compartilhar resultado"
@@ -201,7 +212,6 @@ export default function Checar() {
                     explanation: outcome.explanation,
                     source_name: outcome.source_name,
                     source_url: outcome.source_url,
-                    autoCheckedAt: outcome.kind === 'auto' ? outcome.checked_at : null,
                   })
                 }
               />
@@ -213,6 +223,7 @@ export default function Checar() {
               />
             )}
           </Card>
+          )}
         </>
       ) : null}
 
@@ -233,7 +244,11 @@ export default function Checar() {
 
       {others.length ? (
         <>
-          <Section title="Checadas por IA nos últimos 7 dias" />
+          <Section title="Checagens por IA · equipe" />
+          <Txt variant="small" muted>
+            Só moderador e admin veem. Nada daqui é público: o que estiver certo vira checagem da equipe
+            (promote_claim_check) antes de aparecer para todos.
+          </Txt>
           {others
             .filter((c) => !mine.some((m) => m.id === c.id))
             .map((c) => (
@@ -342,11 +357,11 @@ function ClaimCard({
   onCancel?: () => void;
 }) {
   return (
-    <Card stripe={c.result ? SEAL[c.result] : color.neutral}>
+    <Card stripe={color.neutral}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Badge
-          label={c.status === 'done' && c.result ? CHECK_LABEL[c.result] : STATUS_LABEL[c.status]}
-          color={c.status === 'done' && c.result ? SEAL[c.result] : color.neutral}
+          label={c.status === 'done' && c.result ? 'Checagem por IA' : STATUS_LABEL[c.status]}
+          color={color.neutral}
         />
         {unseen ? (
           <Txt variant="label" tone="accent" upper>
@@ -360,6 +375,9 @@ function ClaimCard({
         </Txt>
       ) : null}
       {c.claim_text ? <Txt variant="body">"{c.claim_text}"</Txt> : null}
+      {c.status === 'done' && c.result && c.result !== 'unverified' ? (
+        <Txt variant="small">{AUTO_HINT[c.result]}</Txt>
+      ) : null}
       {c.explanation ? (
         <Txt variant="small" muted>
           {c.explanation}
@@ -367,23 +385,6 @@ function ClaimCard({
       ) : null}
       <Source name={c.source_name} url={c.source_url} />
       {c.status === 'done' ? <AutoLabel checkedAt={c.checked_at} /> : null}
-      {c.status === 'done' && c.result && c.result !== 'unverified' && c.claim_text ? (
-        <Button
-          title="Compartilhar"
-          small
-          kind="outline"
-          onPress={() =>
-            void shareCheck({
-              claim: c.claim_text!,
-              result: c.result!,
-              explanation: c.explanation ?? '',
-              source_name: c.source_name,
-              source_url: c.source_url,
-              autoCheckedAt: c.checked_at,
-            })
-          }
-        />
-      ) : null}
       {onDelete ? (
         <Button title="Apagar (equipe)" kind="ghost" small block={false} onPress={onDelete} />
       ) : null}
@@ -396,6 +397,43 @@ function ClaimCard({
           onPress={onCancel}
         />
       ) : null}
+    </Card>
+  );
+}
+
+/**
+ * Checagem por IA, para quem pediu (revisão jurídica de 12/10): sem selo de
+ * veredito nem botão de compartilhar — a IA mostra o que achou e a fonte, e
+ * a pessoa tira a conclusão. Só a checagem aprovada pela equipe ganha selo e
+ * pode ser compartilhada.
+ */
+const AUTO_HINT: Record<Exclude<CheckResult, 'unverified'>, string> = {
+  true: 'Indício: parece verdade.',
+  half_true: 'Indício: parece verdade só em parte.',
+  exaggeration: 'Indício: parece exagerado.',
+  false: 'Indício: parece não se sustentar.',
+};
+
+function AutoResult(props: {
+  claim: string;
+  result: CheckResult;
+  explanation: string;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  checkedAt: string | null;
+}) {
+  return (
+    <Card stripe={color.neutral}>
+      <Badge label="O que a IA encontrou" color={color.neutral} />
+      <Txt variant="heading">"{props.claim}"</Txt>
+      {props.result !== 'unverified' ? <Txt variant="small">{AUTO_HINT[props.result]}</Txt> : null}
+      <Txt variant="body">{props.explanation}</Txt>
+      <Source name={props.sourceName} url={props.sourceUrl} />
+      <AutoLabel checkedAt={props.checkedAt} />
+      <Txt variant="small" muted>
+        Leia a fonte e tire sua conclusão. Checagem por IA não pode ser compartilhada pelo app até a equipe
+        revisar.
+      </Txt>
     </Card>
   );
 }
