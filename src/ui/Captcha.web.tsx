@@ -74,13 +74,19 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
           'error-callback': (code: string) => {
             onToken(null);
             setFailed(String(code || 'desconhecido'));
-            reportIssue('Turnstile falhou', { code: String(code || ''), standalone: String(isStandalone()) });
+            // Domínio do site (não é dado pessoal): 110200 = domínio fora da lista
+            // de hostnames do widget no Cloudflare.
+            reportIssue('Turnstile falhou', {
+              code: String(code || ''),
+              standalone: String(isStandalone()),
+              host: window.location.hostname,
+            });
           },
         });
       },
       () => {
         setFailed('script');
-        reportIssue('Turnstile: script não carregou', { standalone: String(isStandalone()) });
+        reportIssue('Turnstile: script não carregou', { standalone: String(isStandalone()), host: window.location.hostname });
       },
     );
     return () => {
@@ -98,7 +104,9 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
         <Txt variant="small" tone="danger">
           {failed === 'script'
             ? 'Não deu para carregar a verificação da Cloudflare. Confira a internet ou se há bloqueador de anúncios.'
-            : `A verificação falhou (código ${failed}). Tente de novo em alguns segundos.`}
+            : failed === '110200'
+              ? `Este endereço (${window.location.hostname}) não está autorizado na verificação. Abra pelo endereço oficial do YvY e instale de novo a partir dele.`
+              : `A verificação falhou (código ${failed}). Tente de novo em alguns segundos.`}
         </Txt>
       ) : null}
     </View>
