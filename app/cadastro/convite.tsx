@@ -73,7 +73,9 @@ export default function EntrarComConvite() {
     }
   }
 
-  const canScan = Platform.OS !== 'web' && permission?.granted;
+  // Também no site/PWA: o expo-camera lê QRCode no navegador (BarcodeDetector
+  // do Chrome ou, no Safari, a biblioteca barcode-detector). Precisa de HTTPS.
+  const canScan = Boolean(permission?.granted);
 
   return (
     <Screen>
@@ -109,13 +111,11 @@ export default function EntrarComConvite() {
       ) : (
         <View style={s.placeholder}>
           <Txt variant="body" center muted>
-            {Platform.OS === 'web'
-              ? 'No navegador, leia o QRCode do convite com a câmera do celular, ou use o código abaixo.'
+            {permission && !permission.granted && !permission.canAskAgain
+              ? 'A câmera está bloqueada para o YvY. Libere nas configurações do navegador/celular, ou use o código abaixo.'
               : 'Precisamos da câmera só para ler o QRCode do convite.'}
           </Txt>
-          {Platform.OS !== 'web' ? (
-            <Button title="Permitir câmera" onPress={() => void requestPermission()} />
-          ) : null}
+          <Button title="Permitir câmera" onPress={() => void requestPermission()} />
         </View>
       )}
 
