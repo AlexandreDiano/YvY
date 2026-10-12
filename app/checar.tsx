@@ -1,0 +1,429 @@
+import { useEffect, useState } from 'react';
+import { Linking, View } from 'react-native';
+import {
+  cancelClaimRequest,
+  deleteClaimCheck,
+  listClaimChecks,
+  listClaimQueue,
+  markClaimsSeen,
+  myClaimChecks,
+  readTextFromImage,
+  runClaimNow,
+  type ClaimCheck,
+  type QueueItem,
+} from '../src/api/claims';
+import { useAuth } from '../src/features/auth/AuthProvider';
+import * as ImagePicker from 'expo-image-picker';
+import { checkFact, listChecks, type CheckOutcome } from '../src/api/content';
+import { CHECK_LABEL } from '../src/data/factChecks';
+import type { CheckResult, FactCheck } from '../src/lib/db.types';
+import { brDate } from '../src/lib/format';
+import { shareCheck } from '../src/lib/share';
+import {
+  Badge,
+  Banner,
+  Button,
+  Card,
+  Field,
+  Row,
+  Screen,
+  Section,
+  Txt,
+  color,
+  space,
+} from '../src/ui';
+import { IconShare } from '../src/ui/icons';
+
+const SEAL: Record<CheckResult, string> = {
+  true: color.success,
+  half_true: color.warning,
+  exaggeration: color.accent,
+  false: color.danger,
+  unverified: color.neutral,
+};
+
+/** Tela 7.8 — checagem de fatos (fluxo 4.6). */
+export default function Checar() {
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<CheckOutcome | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [recent, setRecent] = useState<FactCheck[]>([]);
+  const { isModerator } = useAuth();
+  const [reading, setReading] = useState(false);
+
+  /** Foto ou print: o Gemini lê o texto, a pessoa revisa e pede a checagem. */
+  async function fromImage(source: 'camera' | 'library') {
+    const perm =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setError(source === 'camera' ? 'Libere a câmera para fotografar.' : 'Libere o acesso às fotos.');
+      return;
+    }
+    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.6, base64: true };
+    const picked =
+      source === 'camera' ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
+    const asset = picked.canceled ? null : picked.assets[0];
+    if (!asset?.base64) return;
+    setReading(true);
+    setError(null);
+    try {
+      const r = await readTextFromImage(asset.base64, asset.mimeType ?? 'image/jpeg');
+      if (r.text) setInput(r.text);
+      else setError(r.error ?? 'Não achei texto na imagem.');
+    } finally {
+      setReading(false);
+    }
+  }
+
+  async function cancelMine(c: ClaimCheck) {
+    await cancelClaimRequest(c.id, c.status !== 'done').catch(() => undefined);
+    await loadMine();
+  }
+  const [mine, setMine] = useState<(ClaimCheck & { unseen: boolean; asked?: string })[]>([]);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [running, setRunning] = useState<string | null>(null);
+
+  async function loadQueue() {
+    if (!isModerator) return;
+    setQueue(await listClaimQueue().catch(() => []));
+  }
+
+  async function checkNow(id: string) {
+    setRunning(id);
+    try {
+      const r = await runClaimNow(id);
+      if (!r.ok) setError(r.error ?? 'Não foi possível checar agora.');
+      await Promise.all([loadQueue(), loadMine(), listClaimChecks().then(setOthers)]);
+    } finally {
+      setRunning(null);
+    }
+  }
+
+  async function removeCheck(id: string) {
+    try {
+      await deleteClaimCheck(id);
+      await Promise.all([loadQueue(), loadMine(), listClaimChecks().then(setOthers)]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao apagar.');
+    }
+  }
+  const [others, setOthers] = useState<ClaimCheck[]>([]);
+
+  async function loadMine() {
+    const list = await myClaimChecks();
+    setMine(list);
+    // abriu a tela = viu: o aviso do Início some
+    await markClaimsSeen(list.filter((c) => c.unseen).map((c) => c.id));
+  }
+
+  useEffect(() => {
+    void listChecks().then(setRecent);
+    void listClaimChecks().then(setOthers);
+    void loadQueue();
+    void loadMine();
+  }, []);
+
+  async function run() {
+    setBusy(true);
+    setError(null);
+    setOutcome(null);
+    try {
+      const res = await checkFact(input);
+      setOutcome(res);
+      if (res.kind === 'queued' || res.kind === 'auto') void loadMine();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao checar.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Screen>
+      <Field
+        label="Texto para checar"
+        value={input}
+        onChangeText={setInput}
+        multiline
+        placeholder="Cole aqui o que chegou no WhatsApp..."
+        hint="Telefone, e-mail e CPF são apagados antes de qualquer coisa. Se for checado por IA, outras pessoas veem só a afirmação, nunca o seu texto."
+      />
+      <Button title="Checar" loading={busy} onPress={run} disabled={input.trim().length < 8} />
+      <Row style={{ flexWrap: 'wrap' }}>
+        <Button
+          title="Ler de um print"
+          kind="outline"
+          small
+          block={false}
+          loading={reading}
+          onPress={() => void fromImage('library')}
+        />
+        <Button title="Fotografar" kind="ghost" small block={false} onPress={() => void fromImage('camera')} />
+      </Row>
+      <Txt variant="small" muted>
+        A imagem não é guardada: só o texto lido vem para o campo acima, para você conferir antes de checar.
+      </Txt>
+
+      {error ? (
+        <Txt variant="small" tone="danger">
+          {error}
+        </Txt>
+      ) : null}
+
+      {outcome ? (
+        <>
+          <Section title="Resultado" />
+          <Card stripe={SEAL[outcome.result]}>
+            <Badge label={CHECK_LABEL[outcome.result].toUpperCase()} color={SEAL[outcome.result]} />
+            <Txt variant="heading">"{outcome.claim}"</Txt>
+            <Txt variant="body">{outcome.explanation}</Txt>
+            <Source name={outcome.source_name} url={outcome.source_url} />
+            {outcome.kind === 'auto' ? <AutoLabel checkedAt={outcome.checked_at} /> : null}
+            {outcome.result !== 'unverified' ? (
+              <Button
+                title="Compartilhar resultado"
+                small
+                left={<IconShare size={16} color={color.textOnPrimary} />}
+                onPress={() =>
+                  void shareCheck({
+                    claim: outcome.claim,
+                    result: outcome.result,
+                    explanation: outcome.explanation,
+                    source_name: outcome.source_name,
+                    source_url: outcome.source_url,
+                    autoCheckedAt: outcome.kind === 'auto' ? outcome.checked_at : null,
+                  })
+                }
+              />
+            ) : (
+              <Banner
+                tone="warning"
+                title={outcome.kind === 'queued' ? 'Na fila de checagem' : 'Não verificamos ainda'}
+                detail="Na dúvida, não compartilhe. Mande também para a equipe de checagem do seu bairro."
+              />
+            )}
+          </Card>
+        </>
+      ) : null}
+
+      {mine.length ? (
+        <>
+          <Section title="Suas checagens" />
+          {mine.map((c) => (
+            <ClaimCard
+              key={c.id}
+              c={c}
+              unseen={c.unseen}
+              asked={c.asked}
+              onCancel={() => void cancelMine(c)}
+            />
+          ))}
+        </>
+      ) : null}
+
+      {others.length ? (
+        <>
+          <Section title="Checadas por IA nos últimos 7 dias" />
+          {others
+            .filter((c) => !mine.some((m) => m.id === c.id))
+            .map((c) => (
+              <ClaimCard
+                key={c.id}
+                c={c}
+                onDelete={isModerator ? () => void removeCheck(c.id) : undefined}
+              />
+            ))}
+        </>
+      ) : null}
+
+      {isModerator && queue.length ? (
+        <>
+          <Section title="Fila da checagem · equipe" />
+          <Txt variant="small" muted>
+            Só moderador e admin veem. "Checar agora" não espera a rodada de 15 min. "Apagar" é para item com
+            problema (teste, texto sem sentido), não para mudar veredito.
+          </Txt>
+          {queue
+            .filter((q) => q.status !== 'done')
+            .map((q) => (
+              <Card key={q.id} stripe={q.status === 'failed' ? color.danger : color.neutral}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Badge label={STATUS_LABEL[q.status]} color={q.status === 'failed' ? color.danger : color.neutral} />
+                  <Txt variant="small" muted>
+                    {q.requested_count}× pedido · {q.attempts} tentativa(s)
+                  </Txt>
+                </Row>
+                <Txt variant="body">"{q.input_text ?? q.claim_text ?? '—'}"</Txt>
+                {q.error ? (
+                  <Txt variant="small" tone="danger" numberOfLines={2}>
+                    {q.error}
+                  </Txt>
+                ) : null}
+                <Row>
+                  <Button
+                    title="Checar agora"
+                    small
+                    block={false}
+                    loading={running === q.id}
+                    disabled={!!running}
+                    onPress={() => void checkNow(q.id)}
+                  />
+                  <Button title="Apagar" kind="ghost" small block={false} onPress={() => void removeCheck(q.id)} />
+                </Row>
+              </Card>
+            ))}
+        </>
+      ) : null}
+
+      <Section title="Checagens da equipe" />
+      {recent.map((c) => (
+        <View key={c.id} style={{ gap: space.xs }}>
+          <Row>
+            <Badge label={CHECK_LABEL[c.result]} color={SEAL[c.result]} />
+          </Row>
+          <Txt variant="body">"{c.claim_text}"</Txt>
+          <Txt variant="small" muted>
+            {c.explanation}
+          </Txt>
+          <Source name={c.source_name} url={c.source_url} />
+          {c.source_auto ? (
+            <Txt variant="small" muted>
+              Link achado pela busca automática — a equipe confere se a fonte diz isso.
+            </Txt>
+          ) : null}
+          {c.result !== 'unverified' ? (
+            <Button
+              title="Compartilhar"
+              small
+              kind="outline"
+              block={false}
+              left={<IconShare size={14} color={color.primary} />}
+              onPress={() =>
+                void shareCheck({
+                  claim: c.claim_text,
+                  result: c.result,
+                  explanation: c.explanation,
+                  source_name: c.source_name,
+                  source_url: c.source_url,
+                })
+              }
+            />
+          ) : null}
+        </View>
+      ))}
+    </Screen>
+  );
+}
+
+/** Uma checagem automática (minha ou de outra pessoa), com compartilhar. */
+function ClaimCard({
+  c,
+  unseen,
+  asked,
+  onDelete,
+  onCancel,
+}: {
+  c: ClaimCheck;
+  unseen?: boolean;
+  /** O que a pessoa colou (só no aparelho dela). */
+  asked?: string;
+  onDelete?: () => void;
+  /** Minha checagem: na fila = cancelar; pronta = tirar da minha lista. */
+  onCancel?: () => void;
+}) {
+  return (
+    <Card stripe={c.result ? SEAL[c.result] : color.neutral}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Badge
+          label={c.status === 'done' && c.result ? CHECK_LABEL[c.result] : STATUS_LABEL[c.status]}
+          color={c.status === 'done' && c.result ? SEAL[c.result] : color.neutral}
+        />
+        {unseen ? (
+          <Txt variant="label" tone="accent" upper>
+            Novo
+          </Txt>
+        ) : null}
+      </Row>
+      {asked && c.status !== 'done' ? (
+        <Txt variant="small" muted>
+          Você pediu: "{asked}"
+        </Txt>
+      ) : null}
+      {c.claim_text ? <Txt variant="body">"{c.claim_text}"</Txt> : null}
+      {c.explanation ? (
+        <Txt variant="small" muted>
+          {c.explanation}
+        </Txt>
+      ) : null}
+      <Source name={c.source_name} url={c.source_url} />
+      {c.status === 'done' ? <AutoLabel checkedAt={c.checked_at} /> : null}
+      {c.status === 'done' && c.result && c.result !== 'unverified' && c.claim_text ? (
+        <Button
+          title="Compartilhar"
+          small
+          kind="outline"
+          onPress={() =>
+            void shareCheck({
+              claim: c.claim_text!,
+              result: c.result!,
+              explanation: c.explanation ?? '',
+              source_name: c.source_name,
+              source_url: c.source_url,
+              autoCheckedAt: c.checked_at,
+            })
+          }
+        />
+      ) : null}
+      {onDelete ? (
+        <Button title="Apagar (equipe)" kind="ghost" small block={false} onPress={onDelete} />
+      ) : null}
+      {onCancel ? (
+        <Button
+          title={c.status === 'done' ? 'Tirar da minha lista' : 'Cancelar pedido'}
+          kind="ghost"
+          small
+          block={false}
+          onPress={onCancel}
+        />
+      ) : null}
+    </Card>
+  );
+}
+
+const STATUS_LABEL: Record<ClaimCheck['status'], string> = {
+  queued: 'Na fila',
+  processing: 'Checando',
+  done: 'Pronto',
+  failed: 'Não deu para checar',
+};
+
+/**
+ * Rótulo de checagem por IA. Precaução diante das regras do TSE sobre
+ * conteúdo gerado por IA no período eleitoral (confirmar com o jurídico) e
+ * porque a equipe ainda não revisou.
+ */
+function AutoLabel({ checkedAt }: { checkedAt: string | null }) {
+  return (
+    <Txt variant="small" muted>
+      Checagem automática feita por IA{checkedAt ? ` em ${brDate(checkedAt)}` : ''}, ainda não revisada pela
+      equipe. Confira a fonte.
+    </Txt>
+  );
+}
+
+/** Fonte com link: toque abre o original, para a pessoa conferir sozinha. */
+function Source({ name, url }: { name: string | null; url: string | null }) {
+  if (!name && !url) return null;
+  return url ? (
+    <Txt variant="small" tone="primary" onPress={() => void Linking.openURL(url)}>
+      Fonte: {name ?? url} ›
+    </Txt>
+  ) : (
+    <Txt variant="small" muted>
+      Fonte: {name}
+    </Txt>
+  );
+}
