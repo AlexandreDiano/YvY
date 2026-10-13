@@ -59,6 +59,9 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // Lista do e-Cidadania via rewrite da Vercel: é dado do Senado, não arquivo
+  // do site. O app já guarda a lista no cache próprio.
+  if (url.pathname.startsWith('/ecidadania/')) return;
 
   if (req.mode === 'navigate') {
     event.respondWith(networkFirst(req, url));

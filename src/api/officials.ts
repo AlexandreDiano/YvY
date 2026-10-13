@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { readCache, withCache } from '@/lib/cache';
 
 /**
@@ -804,6 +805,12 @@ export async function cityGazettes(city: string, uf: string): Promise<{ data: Ci
 // ------------------------------------------------------- consultas públicas
 
 const ECIDADANIA = 'https://www12.senado.leg.br/ecidadania';
+/**
+ * De onde a lista é lida. O Senado não libera CORS: no site, o pedido vai
+ * para o próprio domínio e a Vercel repassa ao e-Cidadania (rewrite em
+ * vercel.json). Link de votar continua apontando direto para o Senado.
+ */
+const ECIDADANIA_FETCH = Platform.OS === 'web' ? '/ecidadania' : ECIDADANIA;
 
 export type Consultation = {
   id: string;
@@ -858,7 +865,7 @@ export function parseConsultations(html: string): Consultation[] {
  * Consultas públicas abertas no e-Cidadania (Senado), na ordem da página.
  * O Senado não tem API para isso: o app lê a página pública. Se o layout do
  * site mudar, a lista vem vazia e a tela oferece o link direto.
- * Só no app: o site não libera CORS, então no navegador não dá para ler.
+ * No navegador passa pelo rewrite da Vercel (ECIDADANIA_FETCH).
  */
 export async function listConsultations(page = 1): Promise<{ list: Consultation[]; stale: boolean }> {
   const { data, stale } = await cached(
@@ -868,7 +875,7 @@ export async function listConsultations(page = 1): Promise<{ list: Consultation[
       const timer = setTimeout(() => ctrl.abort(), 20000);
       try {
         // 100 por página; o e-Cidadania tem dezenas de páginas.
-        const res = await fetch(`${ECIDADANIA}/pesquisamateria?p=${page}`, { signal: ctrl.signal });
+        const res = await fetch(`${ECIDADANIA_FETCH}/pesquisamateria?p=${page}`, { signal: ctrl.signal });
         if (!res.ok) throw new Error(`e-Cidadania respondeu ${res.status}.`);
         const list = parseConsultations(await res.text());
         if (!list.length) throw new Error('Não foi possível ler a lista do e-Cidadania.');

@@ -11,6 +11,10 @@
     { "source": "/votacao/:id", "destination": "/votacao/[id]" },
     { "source": "/plano/:sq", "destination": "/plano/[sq]" },
     {
+      "source": "/ecidadania/pesquisamateria",
+      "destination": "https://www12.senado.leg.br/ecidadania/pesquisamateria"
+    },
+    {
       "source": "/monitoring",
       "destination": "https://o4512244334002176.ingest.us.sentry.io/api/4512244336164864/envelope/"
     }

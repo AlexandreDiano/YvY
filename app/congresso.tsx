@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, Platform, RefreshControl, StyleSheet, View } from 'react-native';
+import { Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import {
   ECIDADANIA_URL,
   listConsultations,
@@ -78,7 +78,6 @@ function Consultations() {
   const [q, setQ] = useState('');
 
   useEffect(() => {
-    if (Platform.OS === 'web') return; // sem CORS no site do Senado
     listConsultations(1).then(
       (r) => {
         setList(r.list);
@@ -116,14 +115,11 @@ function Consultations() {
     />
   );
 
-  if (Platform.OS === 'web' || error) {
+  if (error) {
     return (
       <>
         <Txt variant="small" muted>
-          {error
-            ? 'Não foi possível carregar a lista do e-Cidadania agora.'
-            : 'A lista de consultas aparece no app instalado.'}{' '}
-          Dá para votar direto no site do Senado.
+          Não foi possível carregar a lista do e-Cidadania agora. Dá para votar direto no site do Senado.
         </Txt>
         {openSite}
       </>
