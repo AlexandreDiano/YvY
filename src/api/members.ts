@@ -65,3 +65,17 @@ export async function giveSensitiveConsent(): Promise<void> {
   const { error } = await supabase.rpc('give_sensitive_consent' as never);
   if (error) throw error;
 }
+
+/**
+ * Suspende (ou, só admin, reativa) uma conta. Admin suspende qualquer um que
+ * não seja admin; moderador, membro comum do bairro que modera. A pessoa
+ * recebe aviso com o motivo (migration 0044).
+ */
+export async function setMemberActive(userId: string, active: boolean, reason?: string): Promise<void> {
+  if (!supabase) return;
+  const res = await supabase.rpc(
+    'set_member_active' as never,
+    { p_user: userId, p_active: active, p_reason: reason ?? null } as never,
+  );
+  if (res.error) throw new Error(res.error.message);
+}

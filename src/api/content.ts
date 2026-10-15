@@ -76,7 +76,9 @@ export async function listChecks(): Promise<FactCheck[]> {
       if (res.error) throw res.error;
       return res.data as FactCheck[];
     });
-    return data?.length ? data : localChecks;
+    // lista vazia vinda do banco é resposta de verdade (a equipe pode ter
+    // tirado tudo do ar); o seed local é só para quando não deu para buscar
+    return data ?? localChecks;
   } catch {
     return localChecks;
   }

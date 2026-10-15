@@ -129,13 +129,34 @@ export async function runClaimNow(id: string): Promise<{ ok: boolean; error?: st
  */
 export async function publishClaimCheck(
   id: string,
-  edits: { claim: string; result: Exclude<CheckResult, 'unverified'>; explanation: string },
+  edits: {
+    claim: string;
+    result: Exclude<CheckResult, 'unverified'>;
+    explanation: string;
+    /** Só quando a IA não achou fonte e a equipe achou. */
+    sourceUrl?: string;
+    sourceName?: string;
+  },
 ): Promise<void> {
   if (!supabase) return;
   const res = await supabase.rpc(
     'promote_claim_check' as never,
-    { p_id: id, p_claim: edits.claim, p_result: edits.result, p_explanation: edits.explanation } as never,
+    {
+      p_id: id,
+      p_claim: edits.claim,
+      p_result: edits.result,
+      p_explanation: edits.explanation,
+      p_source_url: edits.sourceUrl ?? null,
+      p_source_name: edits.sourceName ?? null,
+    } as never,
   );
+  if (res.error) throw new Error(res.error.message);
+}
+
+/** Tira do ar uma checagem que a equipe já tinha publicado (migration 0044). */
+export async function unpublishFactCheck(id: string): Promise<void> {
+  if (!supabase) return;
+  const res = await supabase.rpc('unpublish_fact_check' as never, { p_id: id } as never);
   if (res.error) throw new Error(res.error.message);
 }
 

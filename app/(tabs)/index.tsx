@@ -108,6 +108,15 @@ export default function Home() {
         />
       ) : null}
 
+      {profile?.is_active === false ? (
+        <Banner
+          tone="danger"
+          title="Sua conta foi suspensa"
+          detail="A moderação suspendeu seu acesso à base. O motivo está nos seus avisos. Para contestar, fale com a coordenação."
+          action={<Button title="Ver avisos" small block={false} onPress={() => router.push('/avisos')} />}
+        />
+      ) : null}
+
       {membership === 'pending' ? (
         <Banner
           tone="warning"

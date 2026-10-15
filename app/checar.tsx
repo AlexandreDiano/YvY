@@ -9,6 +9,7 @@ import {
   myClaimChecks,
   publishClaimCheck,
   readTextFromImage,
+  unpublishFactCheck,
   runClaimNow,
   type ClaimCheck,
   type QueueItem,
@@ -120,6 +121,19 @@ export default function Checar() {
     }
   }
   const [others, setOthers] = useState<ClaimCheck[]>([]);
+
+  function unpublish(c: FactCheck) {
+    confirmAction(
+      'Tirar esta checagem do ar?',
+      `"${c.claim_text}" deixa de aparecer para todo mundo e não pode mais ser compartilhada pelo app.`,
+      'Tirar do ar',
+      () =>
+        void unpublishFactCheck(c.id)
+          .then(() => listChecks().then(setRecent))
+          .catch((err) => setError(err instanceof Error ? err.message : 'Não deu para tirar do ar.')),
+      true,
+    );
+  }
 
   async function publish(id: string, edits: Parameters<typeof publishClaimCheck>[1]) {
     try {
@@ -249,7 +263,7 @@ export default function Checar() {
               asked={c.asked}
               onCancel={() => void cancelMine(c)}
               onPublish={
-                isModerator && c.status === 'done' && c.result !== 'unverified'
+                isModerator && c.status === 'done' && c.claim_text
                   ? (edits) => publish(c.id, edits)
                   : undefined
               }
@@ -263,7 +277,8 @@ export default function Checar() {
           <Section title="Checagens por IA · equipe" />
           <Txt variant="small" muted>
             Só moderador e admin veem. Nada daqui é público até alguém da equipe abrir a fonte, conferir e
-            publicar. Se a IA errou, corrija o texto antes ou apague.
+            publicar. Se a IA errou, corrija o texto antes ou apague. Se ela não achou fonte, cole o link de
+            uma que vocês acharam.
           </Txt>
           {others
             .filter((c) => !mine.some((m) => m.id === c.id))
@@ -319,39 +334,7 @@ export default function Checar() {
 
       <Section title="Checagens da equipe" />
       {recent.map((c) => (
-        <View key={c.id} style={{ gap: space.xs }}>
-          <Row>
-            <Badge label={CHECK_LABEL[c.result]} color={SEAL[c.result]} />
-          </Row>
-          <Txt variant="body">"{c.claim_text}"</Txt>
-          <Txt variant="small" muted>
-            {c.explanation}
-          </Txt>
-          <Source name={c.source_name} url={c.source_url} />
-          {c.source_auto ? (
-            <Txt variant="small" muted>
-              Link achado pela busca automática — a equipe confere se a fonte diz isso.
-            </Txt>
-          ) : null}
-          {c.result !== 'unverified' ? (
-            <Button
-              title="Compartilhar"
-              small
-              kind="outline"
-              block={false}
-              left={<IconShare size={14} color={color.primary} />}
-              onPress={() =>
-                void shareCheck({
-                  claim: c.claim_text,
-                  result: c.result,
-                  explanation: c.explanation,
-                  source_name: c.source_name,
-                  source_url: c.source_url,
-                })
-              }
-            />
-          ) : null}
-        </View>
+        <PublishedCheck key={c.id} c={c} onUnpublish={isModerator ? () => unpublish(c) : undefined} />
       ))}
     </Screen>
   );
@@ -410,7 +393,7 @@ function ClaimCard({
       {onPublish && reviewing ? (
         <ReviewForm c={c} onPublish={onPublish} onClose={() => setReviewing(false)} />
       ) : null}
-      {onPublish && !reviewing && c.source_url ? (
+      {onPublish && !reviewing && c.status === 'done' ? (
         <Button title="Conferir e publicar" small block={false} onPress={() => setReviewing(true)} />
       ) : null}
       {onDelete ? (
@@ -471,13 +454,56 @@ function ReviewedCard({ c, onCancel }: { c: ClaimCheck; onCancel?: () => void })
   );
 }
 
+/** Checagem pública da equipe. Moderador/admin pode tirar do ar. */
+function PublishedCheck({ c, onUnpublish }: { c: FactCheck; onUnpublish?: () => void }) {
+  return (
+    <View style={{ gap: space.xs }}>
+      <Row>
+        <Badge label={CHECK_LABEL[c.result]} color={SEAL[c.result]} />
+      </Row>
+      <Txt variant="body">"{c.claim_text}"</Txt>
+      <Txt variant="small" muted>
+        {c.explanation}
+      </Txt>
+      <Source name={c.source_name} url={c.source_url} />
+      {c.source_auto ? (
+        <Txt variant="small" muted>
+          Link achado pela busca automática, a equipe confere se a fonte diz isso.
+        </Txt>
+      ) : null}
+      <Row>
+        {c.result !== 'unverified' ? (
+          <Button
+            title="Compartilhar"
+            small
+            kind="outline"
+            block={false}
+            left={<IconShare size={14} color={color.primary} />}
+            onPress={() =>
+              void shareCheck({
+                claim: c.claim_text,
+                result: c.result,
+                explanation: c.explanation,
+                source_name: c.source_name,
+                source_url: c.source_url,
+              })
+            }
+          />
+        ) : null}
+        {onUnpublish ? <Button title="Tirar do ar" kind="ghost" small block={false} onPress={onUnpublish} /> : null}
+      </Row>
+    </View>
+  );
+}
+
 type Published = Exclude<CheckResult, 'unverified'>;
 const PUBLISHABLE: Published[] = ['true', 'half_true', 'exaggeration', 'false'];
 
 /**
  * Revisão antes de ir a público. Quem publica responde pelo que está escrito,
- * então dá para corrigir afirmação, resultado e explicação. A fonte não muda:
- * é a que a busca trouxe e é ela que as pessoas vão abrir.
+ * então dá para corrigir afirmação, resultado e explicação. Se a busca trouxe
+ * fonte, ela fica (é o que as pessoas vão abrir). Se não trouxe, ou a IA não
+ * concluiu, a equipe cola o link da fonte que achou.
  */
 function ReviewForm({
   c,
@@ -485,23 +511,38 @@ function ReviewForm({
   onClose,
 }: {
   c: ClaimCheck;
-  onPublish: (edits: { claim: string; result: Published; explanation: string }) => Promise<void>;
+  onPublish: (edits: Parameters<typeof publishClaimCheck>[1]) => Promise<void>;
   onClose: () => void;
 }) {
   const [claim, setClaim] = useState(c.claim_text ?? '');
-  const [result, setResult] = useState<Published>(c.result && c.result !== 'unverified' ? c.result : 'half_true');
-  const [explanation, setExplanation] = useState(c.explanation ?? '');
+  const [result, setResult] = useState<Published | null>(c.result && c.result !== 'unverified' ? c.result : null);
+  const [explanation, setExplanation] = useState(c.result === 'unverified' ? '' : (c.explanation ?? ''));
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceName, setSourceName] = useState('');
   const [saving, setSaving] = useState(false);
-  const ready = claim.trim().length > 8 && explanation.trim().length > 8;
+  const needsSource = !c.source_url;
+  const ready =
+    !!result &&
+    claim.trim().length > 8 &&
+    explanation.trim().length > 8 &&
+    (!needsSource || /^https?:\/\/\S+\.\S+/.test(sourceUrl.trim()));
 
   function submit() {
+    if (!result) return;
+    const source = needsSource ? sourceName.trim() || sourceUrl.trim() : (c.source_name ?? c.source_url);
     confirmAction(
       'Publicar para todo mundo?',
-      `Vai aparecer como "${CHECK_LABEL[result]}" para qualquer pessoa, com a fonte ${c.source_name ?? c.source_url}. Você abriu a fonte e ela diz isso mesmo?`,
+      `Vai aparecer como "${CHECK_LABEL[result]}" para qualquer pessoa, com a fonte ${source}. Você abriu a fonte e ela diz isso mesmo?`,
       'Publicar',
       () => {
         setSaving(true);
-        void onPublish({ claim: claim.trim(), result, explanation: explanation.trim() }).finally(() => {
+        void onPublish({
+          claim: claim.trim(),
+          result,
+          explanation: explanation.trim(),
+          sourceUrl: needsSource ? sourceUrl.trim() : undefined,
+          sourceName: needsSource ? sourceName.trim() || undefined : undefined,
+        }).finally(() => {
           setSaving(false);
           onClose();
         });
@@ -518,6 +559,20 @@ function ReviewForm({
         ))}
       </Row>
       <Field label="Explicação" value={explanation} onChangeText={setExplanation} multiline />
+      {needsSource ? (
+        <>
+          <Field
+            label="Link da fonte"
+            value={sourceUrl}
+            onChangeText={setSourceUrl}
+            placeholder="https://..."
+            autoCapitalize="none"
+            keyboardType="url"
+            hint="A IA não achou fonte. Sem link não dá para publicar."
+          />
+          <Field label="Nome da fonte (opcional)" value={sourceName} onChangeText={setSourceName} placeholder="Ex.: Agência Lupa" />
+        </>
+      ) : null}
       <Row>
         <Button title="Publicar" small block={false} loading={saving} disabled={!ready} onPress={submit} />
         <Button title="Voltar" kind="ghost" small block={false} onPress={onClose} />

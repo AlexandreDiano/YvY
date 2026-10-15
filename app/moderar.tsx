@@ -2,6 +2,8 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Image, View } from 'react-native';
 import { listForModeration, moderate, scopeLabel } from '@/api/feed';
+import { setMemberActive } from '@/api/members';
+import { confirmAction } from '@/lib/notify';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { PostListed } from '@/lib/db.types';
 import { useNoScreenshots } from '@/lib/privacy';
@@ -41,6 +43,7 @@ export default function Moderar() {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -61,25 +64,45 @@ export default function Moderar() {
     );
   }
 
-  async function decide(post: PostListed, decision: 'published' | 'removed') {
+  async function decide(post: PostListed, decision: 'published' | 'removed', suspend = false) {
     if (!profile) return;
     setBusy(true);
+    setError(null);
     try {
       await moderate(post.id, decision, profile.id, decision === 'removed' ? reason.trim() : undefined);
+      if (suspend) await setMemberActive(post.author_id, false, reason.trim());
       setRejecting(null);
       setReason('');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não deu para concluir.');
       await load();
     } finally {
       setBusy(false);
     }
   }
 
+  function suspendAuthor(post: PostListed) {
+    confirmAction(
+      'Recusar e suspender?',
+      `O post sai e ${camarada(post.author_display_name)} perde o acesso à base. A pessoa recebe o motivo. Só um admin reativa a conta depois.`,
+      'Suspender',
+      () => void decide(post, 'removed', true),
+      true,
+    );
+  }
+
   return (
     <Screen>
       <Txt variant="small" muted>
         Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de cidade, região e
-        Brasil, só com aprovação.
+        Brasil, só com aprovação. Recusar avisa o autor com o motivo; em caso grave dá para suspender a conta.
       </Txt>
+      {error ? (
+        <Txt variant="small" tone="danger">
+          {error}
+        </Txt>
+      ) : null}
 
       {posts.length === 0 ? (
         <EmptyState title="Fila vazia" detail="Nada aguardando moderação agora." />
@@ -88,7 +111,13 @@ export default function Moderar() {
           <Card key={p.id} stripe={p.status === 'flagged' ? color.danger : color.warning}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Badge
-                label={p.status === 'flagged' ? `${p.flagged_count} denúncias` : 'Pendente'}
+                label={
+                  p.status !== 'flagged'
+                    ? 'Pendente'
+                    : p.flagged_count >= 3
+                      ? `${p.flagged_count} denúncias`
+                      : 'Em revisão'
+                }
                 color={p.status === 'flagged' ? color.danger : color.warning}
               />
               <Txt variant="small" muted>
@@ -103,6 +132,11 @@ export default function Moderar() {
               <PostImage uri={p.image_url} />
             ) : null}
             <Txt variant="body">{p.content}</Txt>
+            {p.status === 'flagged' && p.moderator_note ? (
+              <Txt variant="small" muted>
+                Mandado para revisão: {p.moderator_note}
+              </Txt>
+            ) : null}
             {rejecting === p.id ? (
               <>
                 <Txt variant="label" muted upper>
@@ -124,12 +158,20 @@ export default function Moderar() {
                     disabled={reason.trim().length < 4}
                     onPress={() => void decide(p, 'removed')}
                   />
+                  <Button
+                    title="Recusar e suspender autor"
+                    kind="ghost"
+                    small
+                    block={false}
+                    disabled={busy || reason.trim().length < 4}
+                    onPress={() => suspendAuthor(p)}
+                  />
                   <Button title="Voltar" kind="ghost" small block={false} onPress={() => setRejecting(null)} />
                 </Row>
               </>
             ) : (
               <Row>
-                <Button title="Aprovar" small block={false} loading={busy} onPress={() => void decide(p, 'published')} />
+                <Button title={p.status === 'flagged' ? 'Manter no feed' : 'Aprovar'} small block={false} loading={busy} onPress={() => void decide(p, 'published')} />
                 <Button
                   title="Recusar"
                   kind="outline"

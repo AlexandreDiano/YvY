@@ -574,6 +574,73 @@ async function main(): Promise<void> {
     check('anônimo não publica checagem por IA', Boolean(error), error ? '' : 'a RPC aceitou');
   }
   {
+    // 0044: revisão de post publicado
+    const r1 = await milB.client.rpc('send_post_to_review', { p_post: postA.id, p_reason: 'teste de revisão' });
+    check('militante comum não manda post para revisão', Boolean(r1.error), r1.error ? '' : 'mandou');
+    const r2 = await modA.client.rpc('send_post_to_review', { p_post: postA.id, p_reason: 'teste de revisão' });
+    check('moderador manda post publicado para revisão', !r2.error, r2.error?.message);
+    await expectRows(
+      'post em revisão sai do feed',
+      milA.client.from('posts').select('id').eq('id', postA.id).eq('status', 'published'),
+      0,
+    );
+    const u = await milA.client.rpc('unpublish_fact_check', { p_id: crypto.randomUUID() });
+    check('militante comum não tira checagem do ar', Boolean(u.error), u.error ? '' : 'tirou');
+  }
+  {
+    // 0041/0044: IA não concluiu, a equipe acha a fonte, publica e depois tira do ar
+    const cc = (
+      await admin
+        .from('claim_checks')
+        .insert({
+          input_hash: `rls-${RUN}`,
+          status: 'done',
+          claim_text: 'Afirmação de teste do RLS',
+          result: 'unverified',
+          explanation: 'A IA não achou fonte.',
+          checked_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single()
+    ).data as { id: string } | null;
+    if (cc) {
+      const noSrc = await modA.client.rpc('promote_claim_check', { p_id: cc.id, p_result: 'false' });
+      check('não publica checagem sem fonte', Boolean(noSrc.error), noSrc.error ? '' : 'publicou');
+      const pub = await modA.client.rpc('promote_claim_check', {
+        p_id: cc.id,
+        p_result: 'false',
+        p_explanation: 'Fonte oficial desmente a afirmação.',
+        p_source_url: 'https://www.gov.br/teste',
+      });
+      check('moderador publica com fonte achada pela equipe', !pub.error, pub.error?.message);
+      const factId = pub.data as string | null;
+      if (factId) {
+        await expectRows('checagem publicada aparece para anônimo', anon.from('fact_checks').select('id').eq('id', factId), 1);
+        const off = await modA.client.rpc('unpublish_fact_check', { p_id: factId });
+        check('moderador tira checagem do ar', !off.error, off.error?.message);
+        await expectRows('checagem tirada do ar some para anônimo', anon.from('fact_checks').select('id').eq('id', factId), 0);
+        await admin.from('fact_checks').delete().eq('id', factId);
+      }
+      await admin.from('claim_checks').delete().eq('id', cc.id);
+    }
+  }
+  {
+    // 0044: suspensão. O alvo é o militante pendente do bairro A, que não é
+    // usado depois daqui.
+    const s1 = await milA.client.rpc('set_member_active', { p_user: pending.id, p_active: false, p_reason: 'teste' });
+    check('militante comum não suspende ninguém', Boolean(s1.error), s1.error ? '' : 'suspendeu');
+    const s2 = await modA.client.rpc('set_member_active', { p_user: milB.id, p_active: false, p_reason: 'teste' });
+    check('moderador não suspende membro de outro bairro', Boolean(s2.error), s2.error ? '' : 'suspendeu');
+    const s3 = await modA.client.rpc('set_member_active', { p_user: adm.id, p_active: false, p_reason: 'teste' });
+    check('ninguém suspende admin pelo app', Boolean(s3.error), s3.error ? '' : 'suspendeu');
+    const s4 = await modA.client.rpc('set_member_active', { p_user: pending.id, p_active: false, p_reason: 'teste' });
+    check('moderador suspende membro do bairro dele', !s4.error, s4.error?.message);
+    const s5 = await modA.client.rpc('set_member_active', { p_user: pending.id, p_active: true });
+    check('moderador não reativa conta', Boolean(s5.error), s5.error ? '' : 'reativou');
+    const s6 = await adm.client.rpc('set_member_active', { p_user: pending.id, p_active: true });
+    check('admin reativa conta', !s6.error, s6.error?.message);
+  }
+  {
     const { error } = await milB.client.rpc('decide_invitee', {
       p_invitee: pending.id,
       p_decision: 'active',

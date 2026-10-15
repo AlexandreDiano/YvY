@@ -335,8 +335,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile: seen,
       role,
       membership: seen?.membership_status ?? null,
-      isBaseMember: Boolean(militantish && seen?.membership_status === 'active'),
-      isModerator: role === 'moderator' || role === 'admin',
+      // conta suspensa (is_active false) perde a base e a moderação; o banco já corta tudo
+      isBaseMember: Boolean(militantish && seen?.membership_status === 'active' && seen?.is_active !== false),
+      isModerator: (role === 'moderator' || role === 'admin') && seen?.is_active !== false,
       isAdmin: role === 'admin',
       flags,
       visitorView: canPreviewVisitor && visitorView,

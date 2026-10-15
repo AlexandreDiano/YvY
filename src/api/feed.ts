@@ -164,6 +164,19 @@ export async function moderate(
   if (res.error) throw res.error;
 }
 
+/**
+ * Moderador/admin tira um post publicado do feed e manda para a fila de
+ * moderação (RPC send_post_to_review, migration 0044).
+ */
+export async function sendPostToReview(postId: string, reason: string): Promise<void> {
+  if (!supabase) {
+    await patch<PostListed>(COL_POSTS, postId, { status: 'flagged', moderator_note: reason });
+    return;
+  }
+  const res = await supabase.rpc('send_post_to_review' as never, { p_post: postId, p_reason: reason } as never);
+  if (res.error) throw new Error(res.error.message);
+}
+
 export async function flagPost(
   postId: string,
   flaggerId: string,
