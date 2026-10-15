@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { shrinkImage } from '@/lib/shrinkImage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, RefreshControl, View } from 'react-native';
 import {
   FLAG_REASONS,
@@ -14,6 +14,7 @@ import {
   sendPostToReview,
   type FeedScope,
 } from '@/api/feed';
+import { myRegion, type MyRegion } from '@/api/geo';
 import { unreadCount } from '@/api/notifications';
 import { uploadPostImage, type PickedImage } from '@/api/storage';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -37,7 +38,7 @@ import {
 } from '@/ui';
 import { IconCamera, IconFlag } from '@/ui/icons';
 
-const SCOPES: FeedScope[] = ['bairro', 'cidade', 'regiao', 'brasil'];
+const SCOPES: FeedScope[] = ['bairro', 'regiao_imediata', 'regiao', 'brasil'];
 
 // Fora do componente para sobreviver a uma remontagem da tela (trava de
 // biometria, troca de aba): senão o nível voltava para bairro e o post de
@@ -45,7 +46,8 @@ const SCOPES: FeedScope[] = ['bairro', 'cidade', 'regiao', 'brasil'];
 let lastScope: FeedScope = 'bairro';
 
 /**
- * Feed da Base em quatro níveis: bairro, cidade, região e Brasil. Post de
+ * Feed da Base em quatro níveis: bairro, região imediata do IBGE, região do
+ * país e Brasil. Post de
  * bairro passa pelo moderador do bairro; o resto passa pelo admin.
  */
 export default function Base() {
@@ -53,6 +55,10 @@ export default function Base() {
   const router = useRouter();
   const { profile, isModerator, mode } = useAuth();
   const [scope, setScope] = useState<FeedScope>(lastScope);
+  const [region, setRegion] = useState<MyRegion | null>(null);
+  useEffect(() => {
+    if (profile) void myRegion(profile.id).then(setRegion);
+  }, [profile]);
   const [posts, setPosts] = useState<PostListed[]>([]);
   const [text, setText] = useState('');
   const [image, setImage] = useState<PickedImage | null>(null);
@@ -143,7 +149,7 @@ export default function Base() {
           ? 'Publicado neste aparelho.'
           : scope === 'bairro'
             ? 'Vai para a moderação do bairro. Se ninguém responder em 2h, publica sozinho.'
-            : 'Vai para a moderação. Posts de cidade, região e Brasil só saem depois de aprovados.',
+            : 'Vai para a moderação. Posts de região e Brasil só saem depois de aprovados.',
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível publicar.');
@@ -256,7 +262,7 @@ export default function Base() {
         {SCOPES.map((s) => (
           <Chip
             key={s}
-            label={scopeLabel(s, profile)}
+            label={scopeLabel(s, profile, region?.name)}
             active={scope === s}
             onPress={() => {
               lastScope = s;
@@ -271,7 +277,7 @@ export default function Base() {
 
       <Card>
         <Field
-          placeholder={`Escreva para ${scopeLabel(scope, profile).toLowerCase()}...`}
+          placeholder={`Escreva para ${scopeLabel(scope, profile, region?.name)}...`}
           value={text}
           onChangeText={setText}
           multiline

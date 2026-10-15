@@ -2,6 +2,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { actionTypeLabel, cancelPresence, confirmPresence, inArea, listActions, myConfirmations } from '@/api/actions';
+import { inRegion, myRegion, type MyRegion } from '@/api/geo';
 import { ActionsMap } from '@/features/actions/ActionsMap';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ActionListed } from '@/lib/db.types';
@@ -27,6 +28,13 @@ export default function Acoes() {
   const [city, setCity] = useState<string | null>(profile?.city ?? null);
   const [neighborhood, setNeighborhood] = useState<string | null>(profile?.neighborhood ?? null);
   const [picked, setPicked] = useState(false);
+  // Região imediata do IBGE (Curitiba + SJP + Pinhais...). Ligada, cidade e
+  // bairro só mostram o que é da região da pessoa.
+  const [region, setRegion] = useState<MyRegion | null>(null);
+  const [regionOnly, setRegionOnly] = useState(true);
+  useEffect(() => {
+    if (profile) void myRegion(profile.id).then(setRegion);
+  }, [profile]);
   // perfil pode chegar depois do primeiro render (site aberto direto em /acoes)
   useEffect(() => {
     if (picked || !profile) return;
@@ -54,17 +62,23 @@ export default function Acoes() {
     }, [load]),
   );
 
-  const cities = useMemo(() => distinct([profile?.city, ...acoes.map((a) => a.city)]), [acoes, profile]);
+  const inScope = useMemo(
+    () => (regionOnly && region ? acoes.filter((a) => inRegion(a.city, region)) : acoes),
+    [acoes, region, regionOnly],
+  );
+  const cities = useMemo(() => distinct([profile?.city, ...inScope.map((a) => a.city)]), [inScope, profile]);
   const neighborhoods = useMemo(
     () =>
       distinct([
         city === null || city === profile?.city ? profile?.neighborhood : null,
-        ...acoes.filter((a) => inArea(a, city, null)).map((a) => a.neighborhood),
+        ...inScope.filter((a) => inArea(a, city, null)).map((a) => a.neighborhood),
       ]),
-    [acoes, city, profile],
+    [inScope, city, profile],
   );
-  const visible = acoes.filter((a) => inArea(a, city, neighborhood));
-  const where = [neighborhood, city].filter(Boolean).join(', ') || 'todas as cidades';
+  const visible = inScope.filter((a) => inArea(a, city, neighborhood));
+  const where =
+    [neighborhood, city].filter(Boolean).join(', ') ||
+    (regionOnly && region ? `região de ${region.name}` : 'todas as cidades');
 
   return (
     <Screen safeTop
@@ -86,6 +100,35 @@ export default function Acoes() {
 
       {profile ? <ActionsMap actions={visible} area={profile} /> : null}
 
+      {region ? (
+        <>
+          <Txt variant="label" muted upper>
+            Região
+          </Txt>
+          <Row style={{ flexWrap: 'wrap' }} gap={space.sm}>
+            <Chip
+              label={`Região de ${region.name}`}
+              active={regionOnly}
+              onPress={() => {
+                setPicked(true);
+                setRegionOnly(true);
+                setCity(null);
+                setNeighborhood(null);
+              }}
+            />
+            <Chip
+              label="Todas"
+              active={!regionOnly}
+              onPress={() => {
+                setPicked(true);
+                setRegionOnly(false);
+                setCity(null);
+                setNeighborhood(null);
+              }}
+            />
+          </Row>
+        </>
+      ) : null}
       <Txt variant="label" muted upper>
         Cidade
       </Txt>

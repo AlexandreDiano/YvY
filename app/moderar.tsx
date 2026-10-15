@@ -33,7 +33,7 @@ const QUICK_REASONS = [
 ];
 
 /**
- * Fila de moderação. Moderador vê o bairro dele; admin vê cidade, região e
+ * Fila de moderação. Moderador vê o bairro dele; admin vê região e
  * Brasil. Recusar pede motivo, que aparece para o autor em Avisos.
  */
 export default function Moderar() {
@@ -95,7 +95,7 @@ export default function Moderar() {
   return (
     <Screen>
       <Txt variant="small" muted>
-        Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de cidade, região e
+        Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de região e
         Brasil, só com aprovação. Recusar avisa o autor com o motivo; em caso grave dá para suspender a conta.
       </Txt>
       {error ? (
@@ -125,7 +125,7 @@ export default function Moderar() {
               </Txt>
             </Row>
             <Txt variant="label" tone="primary">
-              {camarada(p.author_display_name)} · {scopeLabel(p.scope ?? 'bairro', null)}
+              {camarada(p.author_display_name)} · {p.scope === 'regiao_imediata' ? `Região próxima de ${p.city}` : scopeLabel(p.scope ?? 'bairro', null)}
               {p.scope && p.scope !== 'bairro' ? ` · ${p.state}` : ''}
             </Txt>
             {p.image_url ? (

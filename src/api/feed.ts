@@ -15,17 +15,20 @@ export const FLAG_REASONS: { key: PostFlag['reason']; label: string }[] = [
   { key: 'outro', label: 'Outro' },
 ];
 
-export type FeedScope = 'bairro' | 'cidade' | 'regiao' | 'brasil';
+export type FeedScope = 'bairro' | 'regiao_imediata' | 'regiao' | 'brasil';
 
-/** Rótulo do nível, já com o lugar da pessoa ("Bairro · Quississana"). */
-export function scopeLabel(scope: FeedScope, profile: Profile | null): string {
+/**
+ * Rótulo do nível, já com o lugar da pessoa ("Bairro · Quississana",
+ * "Região de Curitiba", "Sul"). `regionName` é a região imediata do IBGE.
+ */
+export function scopeLabel(scope: FeedScope, profile: Profile | null, regionName?: string | null): string {
   switch (scope) {
     case 'bairro':
       return profile?.neighborhood ? `Bairro · ${profile.neighborhood}` : 'Bairro';
-    case 'cidade':
-      return profile?.city ? `Cidade · ${profile.city}` : 'Cidade';
+    case 'regiao_imediata':
+      return regionName ? `Região de ${regionName}` : 'Região próxima';
     case 'regiao':
-      return `Região · ${regionOf(profile?.state)}`;
+      return profile?.state ? regionOf(profile.state) : 'Região do país';
     case 'brasil':
       return 'Brasil';
   }
@@ -64,7 +67,8 @@ export async function listFeed(profile: Profile, page = 0, scope: FeedScope = 'b
   }
   let q = supabase.from('posts_with_author').select('*').eq('status', 'published').eq('scope', scope);
   if (scope === 'bairro') q = q.eq('neighborhood', profile.neighborhood ?? '').eq('city', profile.city ?? '');
-  if (scope === 'cidade') q = q.eq('city', profile.city ?? '').eq('state', profile.state ?? '');
+  // a região imediata fica dentro de uma UF; quais cidades entram a RLS decide (same_region)
+  if (scope === 'regiao_imediata') q = q.eq('state', profile.state ?? '');
   if (scope === 'regiao') q = q.in('state', REGION_UFS[regionOf(profile.state)] ?? []);
   const res = await q.order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
   if (res.error) throw res.error;

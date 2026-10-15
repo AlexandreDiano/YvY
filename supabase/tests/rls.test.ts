@@ -178,6 +178,8 @@ async function main(): Promise<void> {
   const milB = await makeActor('milB', 'militant', 'active', AREA_B);
   const modA = await makeActor('modA', 'moderator', 'active', AREA_A);
   const adm = await makeActor('admin', 'admin', 'active', AREA_A);
+  const sjp = await makeActor('sjp', 'militant', 'active', { neighborhood: `Teste-${RUN}`, city: 'São José dos Pinhais', state: 'PR' });
+  const londrina = await makeActor('londrina', 'militant', 'active', { neighborhood: `Teste-${RUN}`, city: 'Londrina', state: 'PR' });
 
   // conteúdo de apoio, inserido com service_role
   const postA = (
@@ -428,16 +430,17 @@ async function main(): Promise<void> {
     0,
   );
   {
-    // nível cidade (0043): A e B são bairros diferentes da mesma cidade
+    // região imediata (0043). A e B são bairros da mesma cidade inventada (fora
+    // do IBGE): cai na comparação pela própria cidade
     const cityPost = (
       await admin
         .from('posts')
-        .insert({ author_id: milA.id, content: 'post para a cidade', status: 'published', scope: 'cidade', ...AREA_A })
+        .insert({ author_id: milA.id, content: 'post para a cidade', status: 'published', scope: 'regiao_imediata', ...AREA_A })
         .select('id')
         .single()
     ).data as { id: string };
     await expectRows(
-      'militante B lê post de cidade da mesma cidade',
+      'militante B lê post de região da mesma cidade',
       milB.client.from('posts').select('id').eq('id', cityPost.id),
       1,
     );
@@ -448,7 +451,7 @@ async function main(): Promise<void> {
           author_id: milB.id,
           content: 'post de outra cidade',
           status: 'published',
-          scope: 'cidade',
+          scope: 'regiao_imediata',
           ...AREA_A,
           city: OTHER_CITY,
         })
@@ -456,10 +459,46 @@ async function main(): Promise<void> {
         .single()
     ).data as { id: string };
     await expectRows(
-      'militante A não lê post de cidade de outra cidade',
+      'militante A não lê post de região de outra cidade',
       milA.client.from('posts').select('id').eq('id', otherCity.id),
       0,
     );
+    // caso real: quem mora em São José dos Pinhais vê post de região de Curitiba
+    const curitiba = (
+      await admin
+        .from('posts')
+        .insert({
+          author_id: milA.id,
+          content: `post para a região de Curitiba ${RUN}`,
+          status: 'published',
+          scope: 'regiao_imediata',
+          neighborhood: 'Centro',
+          city: 'Curitiba',
+          state: 'PR',
+        })
+        .select('id')
+        .single()
+    ).data as { id: string };
+    await expectRows(
+      'morador de São José dos Pinhais lê post de região de Curitiba',
+      sjp.client.from('posts').select('id').eq('id', curitiba.id),
+      1,
+    );
+    await expectRows(
+      'morador de Londrina não lê post de região de Curitiba',
+      londrina.client.from('posts').select('id').eq('id', curitiba.id),
+      0,
+    );
+    await admin.from('posts').delete().eq('id', curitiba.id);
+    const reg = await sjp.client.rpc('my_region');
+    const row = (reg.data as { regiao_nome: string; cidades: string[] }[] | null)?.[0];
+    check(
+      'my_region de SJP é a região de Curitiba, com as cidades vizinhas',
+      row?.regiao_nome === 'Curitiba' && !!row?.cidades.includes('Pinhais'),
+      reg.error?.message ?? JSON.stringify(row?.regiao_nome),
+    );
+    const anonReg = await anon.rpc('my_region');
+    check('anônimo não chama my_region', Boolean(anonReg.error), anonReg.error ? '' : 'chamou');
   }
   await expectRows(
     'militante A não lê post pendente (só moderação lê)',
