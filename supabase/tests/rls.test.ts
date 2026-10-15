@@ -111,6 +111,7 @@ async function expectDenied(
 const RUN = Date.now().toString(36);
 const AREA_A = { neighborhood: `Teste-A-${RUN}`, city: `Cidade-${RUN}`, state: 'SP' };
 const AREA_B = { neighborhood: `Teste-B-${RUN}`, city: `Cidade-${RUN}`, state: 'SP' };
+const OTHER_CITY = `Outra-${RUN}`;
 
 type Actor = { id: string; email: string; client: SupabaseClient };
 
@@ -159,6 +160,7 @@ async function makeActor(
 
 async function teardown(): Promise<void> {
   await admin.from('posts').delete().eq('city', AREA_A.city);
+  await admin.from('posts').delete().eq('city', OTHER_CITY);
   await admin.from('actions').delete().eq('city', AREA_A.city);
   for (const id of created) {
     await admin.from('profiles').delete().eq('id', id);
@@ -425,6 +427,40 @@ async function main(): Promise<void> {
     milB.client.from('posts').select('id').eq('id', postA.id),
     0,
   );
+  {
+    // nível cidade (0043): A e B são bairros diferentes da mesma cidade
+    const cityPost = (
+      await admin
+        .from('posts')
+        .insert({ author_id: milA.id, content: 'post para a cidade', status: 'published', scope: 'cidade', ...AREA_A })
+        .select('id')
+        .single()
+    ).data as { id: string };
+    await expectRows(
+      'militante B lê post de cidade da mesma cidade',
+      milB.client.from('posts').select('id').eq('id', cityPost.id),
+      1,
+    );
+    const otherCity = (
+      await admin
+        .from('posts')
+        .insert({
+          author_id: milB.id,
+          content: 'post de outra cidade',
+          status: 'published',
+          scope: 'cidade',
+          ...AREA_A,
+          city: OTHER_CITY,
+        })
+        .select('id')
+        .single()
+    ).data as { id: string };
+    await expectRows(
+      'militante A não lê post de cidade de outra cidade',
+      milA.client.from('posts').select('id').eq('id', otherCity.id),
+      0,
+    );
+  }
   await expectRows(
     'militante A não lê post pendente (só moderação lê)',
     milA.client.from('posts').select('id').eq('id', postPend.id).eq('status', 'pending'),

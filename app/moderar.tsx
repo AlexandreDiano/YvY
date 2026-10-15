@@ -31,7 +31,7 @@ const QUICK_REASONS = [
 ];
 
 /**
- * Fila de moderação. Moderador vê o bairro dele; admin vê estado, região e
+ * Fila de moderação. Moderador vê o bairro dele; admin vê cidade, região e
  * Brasil. Recusar pede motivo, que aparece para o autor em Avisos.
  */
 export default function Moderar() {
@@ -77,7 +77,7 @@ export default function Moderar() {
   return (
     <Screen>
       <Txt variant="small" muted>
-        Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de estado, região e
+        Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de cidade, região e
         Brasil, só com aprovação.
       </Txt>
 

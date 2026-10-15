@@ -116,7 +116,7 @@ export type Post = {
   flagged_count: number;
   created_at: string;
   /** Até onde o post circula (0021). Ausente em post antigo do modo local = bairro. */
-  scope?: 'bairro' | 'estado' | 'regiao' | 'brasil';
+  scope?: 'bairro' | 'cidade' | 'regiao' | 'brasil';
 };
 
 export type AppNotification = {

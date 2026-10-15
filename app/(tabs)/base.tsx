@@ -36,10 +36,10 @@ import {
 } from '@/ui';
 import { IconCamera, IconFlag } from '@/ui/icons';
 
-const SCOPES: FeedScope[] = ['bairro', 'estado', 'regiao', 'brasil'];
+const SCOPES: FeedScope[] = ['bairro', 'cidade', 'regiao', 'brasil'];
 
 /**
- * Feed da Base em quatro níveis: bairro, estado, região e Brasil. Post de
+ * Feed da Base em quatro níveis: bairro, cidade, região e Brasil. Post de
  * bairro passa pelo moderador do bairro; o resto passa pelo admin.
  */
 export default function Base() {
@@ -129,7 +129,7 @@ export default function Base() {
           ? 'Publicado neste aparelho.'
           : scope === 'bairro'
             ? 'Vai para a moderação do bairro. Se ninguém responder em 2h, publica sozinho.'
-            : 'Vai para a moderação. Posts de estado, região e Brasil só saem depois de aprovados.',
+            : 'Vai para a moderação. Posts de cidade, região e Brasil só saem depois de aprovados.',
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível publicar.');

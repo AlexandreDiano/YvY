@@ -15,15 +15,15 @@ export const FLAG_REASONS: { key: PostFlag['reason']; label: string }[] = [
   { key: 'outro', label: 'Outro' },
 ];
 
-export type FeedScope = 'bairro' | 'estado' | 'regiao' | 'brasil';
+export type FeedScope = 'bairro' | 'cidade' | 'regiao' | 'brasil';
 
 /** Rótulo do nível, já com o lugar da pessoa ("Bairro · Quississana"). */
 export function scopeLabel(scope: FeedScope, profile: Profile | null): string {
   switch (scope) {
     case 'bairro':
       return profile?.neighborhood ? `Bairro · ${profile.neighborhood}` : 'Bairro';
-    case 'estado':
-      return profile?.state ? `Estado · ${profile.state}` : 'Estado';
+    case 'cidade':
+      return profile?.city ? `Cidade · ${profile.city}` : 'Cidade';
     case 'regiao':
       return `Região · ${regionOf(profile?.state)}`;
     case 'brasil':
@@ -64,7 +64,7 @@ export async function listFeed(profile: Profile, page = 0, scope: FeedScope = 'b
   }
   let q = supabase.from('posts_with_author').select('*').eq('status', 'published').eq('scope', scope);
   if (scope === 'bairro') q = q.eq('neighborhood', profile.neighborhood ?? '').eq('city', profile.city ?? '');
-  if (scope === 'estado') q = q.eq('state', profile.state ?? '');
+  if (scope === 'cidade') q = q.eq('city', profile.city ?? '').eq('state', profile.state ?? '');
   if (scope === 'regiao') q = q.in('state', REGION_UFS[regionOf(profile.state)] ?? []);
   const res = await q.order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
   if (res.error) throw res.error;
@@ -130,7 +130,7 @@ export async function listForModeration(profile: Profile): Promise<PostListed[]>
     const rows = await all<PostListed>(COL_POSTS);
     return rows.filter((p) => p.status === 'pending' || p.status === 'flagged');
   }
-  // bairro do moderador e, para admin, estado/região/Brasil. Quem decide é a RLS
+  // bairro do moderador e, para admin, cidade/região/Brasil. Quem decide é a RLS
   const res = await supabase
     .from('posts_with_author')
     .select('*')
