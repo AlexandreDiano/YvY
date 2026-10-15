@@ -13,8 +13,7 @@ export default function Termos() {
       <Section title="O que é o YvY" />
       <Txt variant="body">
         Ferramenta de organização de base: encontrar pessoas do mesmo bairro,
-        marcar ação local, conversar no feed do bairro, organizar puxada de voto
-        e consultar propostas e checagem de fatos com fonte citada.
+        marcar ação local, conversar no feed do bairro e consultar propostas e checagem de fatos com fonte citada.
       </Txt>
 
       <Section title="Conta" />
@@ -40,13 +39,6 @@ export default function Termos() {
           social é descumprir estes termos.
         </Txt>
       </Card>
-
-      <Section title="Cadastro de outra pessoa" />
-      <Txt variant="body">
-        Ao cadastrar um eleitor que não usa o app, você declara que a pessoa
-        autorizou. Ela pode pedir a exclusão a qualquer momento. Cadastrar quem
-        não autorizou é descumprir estes termos e a LGPD.
-      </Txt>
 
       <Section title="Suspensão" />
       <Txt variant="body">

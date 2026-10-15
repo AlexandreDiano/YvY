@@ -20,8 +20,7 @@ export default function Privacidade() {
       <Card>
         <Txt variant="body">
           Controlador: {RESPONSAVEL.nome}. Pedidos sobre dados pessoais — acesso, correção, exclusão, retirada de
-          consentimento — vão para {RESPONSAVEL.email}. Vale também para quem foi cadastrado por um membro e não
-          tem conta no app.
+          consentimento — vão para {RESPONSAVEL.email}.
         </Txt>
       </Card>
 
@@ -68,35 +67,6 @@ export default function Privacidade() {
         </Txt>
       </Card>
 
-      <Section title="Cadastro de eleitor para puxada de voto" />
-      <Card>
-        <Txt variant="body">
-          Esta é a parte mais sensível do app, e vale ler com atenção.
-        </Txt>
-        <Txt variant="body">
-          Para levar gente à urna, o app guarda nome completo, zona, seção, local
-          de votação e, se informada, uma referência de localização — podendo ser
-          de alguém que nem usa o app, cadastrado por um membro.
-        </Txt>
-        <Txt variant="body">
-          Regras: o membro só pode cadastrar quem autorizou; quem lê esse
-          registro é apenas o puxador daquela rota e a administração. Para
-          funcionar sem internet no dia, o celular do puxador guarda só uma cópia
-          mínima da rota (primeiro nome e inicial, zona, seção e local de
-          votação — nunca nome completo nem referência de endereço), apagada no
-          fim de 25/10. No banco, todos os registros de puxada são apagados
-          automaticamente à 00:00 de 26/10/2026.
-        </Txt>
-        <Txt variant="body">
-          Este módulo está desligado no momento e não aceita cadastros.
-        </Txt>
-        <Txt variant="body">
-          Qualquer pessoa cadastrada pode pedir a exclusão imediata dos dados
-          dela a qualquer momento, inclusive antes da eleição, pelo e-mail{' '}
-          {RESPONSAVEL.email} — mesmo sem ter conta no app.
-        </Txt>
-      </Card>
-
       <Section title="O que não fazemos" />
       <Card>
         <Txt variant="body">Não vendemos dado. Não há rastreador de anúncio no app.</Txt>
@@ -110,7 +80,8 @@ export default function Privacidade() {
           base da equipe não cobre o assunto, o texto vai para uma fila e é
           checado por IA: a afirmação vai para uma busca na web (Tavily) e para o Gemini, do Google — no plano gratuito o Google pode usar esse texto para melhorar os produtos dele. Se você usar "Ler de um print", a imagem vai ao Gemini só para ler o texto e não é guardada. Depois da
           checagem o texto colado é apagado; fica só a afirmação neutra e o
-          resultado, que outras pessoas podem ver ao checar a mesma coisa.
+          resultado. Esse resultado aparece só para quem pediu a checagem. Ele
+          só fica público depois que alguém da equipe confere a fonte e valida.
         </Txt>
         <Txt variant="body">
           Ideias e problemas que membros mandam à equipe vão ao Gemini só com o

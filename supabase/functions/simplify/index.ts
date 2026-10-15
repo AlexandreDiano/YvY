@@ -20,7 +20,7 @@ const DAILY_CAP = 800;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info",
+  "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info, x-yvy-client",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 

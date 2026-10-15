@@ -13,7 +13,6 @@ import type { MembershipStatus, Profile, UserRole } from '@/lib/db.types';
 import { isBackendConfigured } from '@/lib/env';
 import { suggestDisplayName } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
-import { clearPullOnSignOut } from '@/features/pull/offline';
 
 /**
  * Sessão do app.
@@ -141,7 +140,6 @@ function localProfile(input: SignUpInput, membership: MembershipStatus): Profile
     invited_by: null,
     notify_actions: true,
     notify_feed: false,
-    notify_pull: true,
     terms_accepted_at: input.acceptedTerms ? now : null,
     sensitive_consent_at: input.sensitiveConsent ? now : null,
     created_at: now,
@@ -321,9 +319,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       return;
     }
-    // Cópia da rota de puxada (nomes de eleitores) não fica no aparelho de
-    // quem saiu. A fila de votos (só IDs) fica para o mesmo puxador enviar.
-    await clearPullOnSignOut();
     await supabase!.auth.signOut();
     setProfile(null);
     setVisitorView(false);

@@ -4,9 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * Cache offline-first. Principio do contexto (secao 1.4 / risco "internet no
  * dia 25"): o app mostra o ultimo conteudo conhecido quando a rede cai.
  *
- * Regra: dado pessoal de terceiro NAO entra neste cache. A rota de puxada
- * tem nome e endereco de eleitor que nunca abriu o app; ela e sempre buscada
- * online e vive apenas em memoria durante a sessao.
+ * Dado pessoal de terceiro nao entra aqui.
  */
 const PREFIX = 'yvy:cache:';
 

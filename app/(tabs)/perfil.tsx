@@ -261,13 +261,6 @@ export default function Perfil() {
         />
         <Divider />
         <Toggle
-          value={profile.notify_pull}
-          onChange={(v) => void updateProfile({ notify_pull: v })}
-          label="Puxada de voto"
-          detail="Rota atribuída e aviso do dia 25."
-        />
-        <Divider />
-        <Toggle
           value
           onChange={() => {
             Alert.alert(

@@ -167,7 +167,8 @@ async function fromQueue(claim: string): Promise<CheckOutcome> {
   if (!c) return NOT_FOUND(claim);
   if (c.status === 'done' && c.result) {
     return {
-      kind: 'auto',
+      // já conferida e publicada pela equipe: vale como checagem da base
+      kind: c.reviewed ? 'editorial' : 'auto',
       result: c.result,
       claim: c.claim_text ?? claim,
       explanation: c.explanation ?? '',

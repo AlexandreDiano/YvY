@@ -25,6 +25,8 @@ export type ClaimCheck = {
   source_name: string | null;
   source_url: string | null;
   checked_at: string | null;
+  /** A equipe conferiu e publicou: o conteúdo acima já é o da versão validada. */
+  reviewed?: boolean;
 };
 
 /** `text`: o que a pessoa colou, só neste aparelho — o servidor não devolve o texto colado. */
@@ -118,6 +120,23 @@ export async function runClaimNow(id: string): Promise<{ ok: boolean; error?: st
   if (error) return { ok: false, error: 'Não foi possível checar agora.' };
   const r = data as { ok?: number; error?: string };
   return { ok: (r.ok ?? 0) > 0, error: r.error };
+}
+
+/**
+ * Moderador/admin confere a checagem da IA e publica em `fact_checks`
+ * (RPC promote_claim_check, 0041). Dá para corrigir o texto antes; a fonte
+ * é sempre a que a busca achou.
+ */
+export async function publishClaimCheck(
+  id: string,
+  edits: { claim: string; result: Exclude<CheckResult, 'unverified'>; explanation: string },
+): Promise<void> {
+  if (!supabase) return;
+  const res = await supabase.rpc(
+    'promote_claim_check' as never,
+    { p_id: id, p_claim: edits.claim, p_result: edits.result, p_explanation: edits.explanation } as never,
+  );
+  if (res.error) throw new Error(res.error.message);
 }
 
 /** Apagar item com problema (texto sem sentido, teste, abuso). Moderador/admin. */

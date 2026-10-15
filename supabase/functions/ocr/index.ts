@@ -14,7 +14,7 @@ const MAX_BASE64 = 4_000_000; // ~3 MB de imagem
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info",
+  "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info, x-yvy-client",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, status = 200) => Response.json(b, { status, headers: CORS });

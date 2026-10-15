@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 
 export const ACTION_TYPES: { key: ActionType; label: string }[] = [
   { key: 'panfletagem', label: 'Panfletagem' },
-  { key: 'puxada_voto', label: 'Puxada de voto' },
   { key: 'mutirao_cadastro', label: 'Mutirão de cadastro' },
   { key: 'comicio', label: 'Comício' },
   { key: 'portas_portas', label: 'Porta a porta' },

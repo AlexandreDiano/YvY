@@ -120,10 +120,6 @@ function RootLayout() {
                 options={{ title: "Moderação do bairro" }}
               />
               <Stack.Screen
-                name="rotas"
-                options={{ title: "Rotas de puxada" }}
-              />
-              <Stack.Screen
                 name="sobre/privacidade"
                 options={{ title: "Privacidade" }}
               />

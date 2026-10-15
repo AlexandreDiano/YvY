@@ -136,8 +136,6 @@ async function makeActor(
 }
 
 async function teardown(): Promise<void> {
-  await admin.from('voters').delete().eq('city', AREA_A.city);
-  await admin.from('pull_routes').delete().eq('city', AREA_A.city);
   await admin.from('posts').delete().eq('city', AREA_A.city);
   await admin.from('actions').delete().eq('city', AREA_A.city);
   for (const id of created) {
@@ -186,22 +184,6 @@ async function main(): Promise<void> {
     ...AREA_A,
   });
 
-  const voterOfB = (
-    await admin
-      .from('voters')
-      .insert({
-        full_name: 'Eleitor Cadastrado Por B',
-        zone: '001',
-        section: '0002',
-        polling_place: 'Escola Teste',
-        registered_by: milB.id,
-        consent_source: 'militant',
-        ...AREA_B,
-      })
-      .select('id')
-      .single()
-  ).data as { id: string };
-
   console.log('conteúdo público — sem conta nenhuma');
   await expectRows('anônimo lê cards de proposta', anon.from('proposal_cards').select('id').limit(1), 1);
   await expectRows('anônimo lê checagens', anon.from('fact_checks').select('id').limit(1), 1);
@@ -213,7 +195,6 @@ async function main(): Promise<void> {
   await expectRows('anônimo não lê perfis', anon.from('profiles').select('id').limit(1), 0);
   await expectRows('anônimo não lê o feed', anon.from('posts').select('id').limit(1), 0);
   await expectRows('anônimo não lê ações', anon.from('actions').select('id').limit(1), 0);
-  await expectRows('anônimo não lê eleitores', anon.from('voters').select('id').limit(1), 0);
   await expectRows('anônimo não lê convites', anon.from('invites').select('id').limit(1), 0);
   await expectDenied(
     'anônimo não escreve nos cards',
@@ -466,39 +447,6 @@ async function main(): Promise<void> {
     }),
   );
 
-  console.log('\neleitores — dado pessoal de terceiro');
-  await expectRows(
-    'militante A não lê eleitor cadastrado por B',
-    milA.client.from('voters').select('id').eq('id', voterOfB.id),
-    0,
-  );
-  await expectRows(
-    'militante pendente não lê a tabela de eleitores',
-    pending.client.from('voters').select('id'),
-    0,
-  );
-  await expectRows(
-    'quem cadastrou lê o próprio cadastro',
-    milB.client.from('voters').select('id').eq('id', voterOfB.id),
-    1,
-  );
-  await expectDenied(
-    'ninguém cadastra eleitor no nome de outro militante',
-    milA.client.from('voters').insert({
-      full_name: 'Eleitor Forjado',
-      zone: '001',
-      section: '0003',
-      polling_place: 'Escola Teste',
-      registered_by: milB.id,
-      ...AREA_A,
-    }),
-  );
-  await expectDenied(
-    'militante não marca voto de eleitor que não é da rota dele',
-    milA.client.from('voters').update({ has_voted: true }).eq('id', voterOfB.id),
-  );
-  await expectRows('admin lê eleitores', adm.client.from('voters').select('id').eq('id', voterOfB.id), 1);
-
   console.log('\nconvites e flags');
   await expectDenied(
     'militante pendente não gera convite',
@@ -535,7 +483,7 @@ async function main(): Promise<void> {
   }
   await expectDenied(
     'militante não liga feature flag',
-    milA.client.from('feature_flags').update({ is_enabled: true }).eq('key', 'module_puxada'),
+    milA.client.from('feature_flags').update({ is_enabled: true }).eq('key', 'module_checagem'),
   );
   await expectRows(
     'militante não lê audit_log',
@@ -545,22 +493,12 @@ async function main(): Promise<void> {
 
   console.log('\nRPCs');
   {
-    const { error } = await milA.client.rpc('build_pull_routes', {
-      p_neighborhood: AREA_A.neighborhood,
-      p_city: AREA_A.city,
-      p_state: AREA_A.state,
-      p_max: 5,
-    });
-    check('militante comum não forma rotas', Boolean(error), error ? '' : 'a RPC aceitou');
+    const { error } = await milA.client.rpc('promote_claim_check', { p_id: crypto.randomUUID() });
+    check('militante comum não publica checagem por IA', Boolean(error), error ? '' : 'a RPC aceitou');
   }
   {
-    const { error } = await modA.client.rpc('build_pull_routes', {
-      p_neighborhood: AREA_A.neighborhood,
-      p_city: AREA_A.city,
-      p_state: AREA_A.state,
-      p_max: 5,
-    });
-    check('coordenador do bairro forma rotas', !error, error?.message);
+    const { error } = await anon.rpc('promote_claim_check', { p_id: crypto.randomUUID() });
+    check('anônimo não publica checagem por IA', Boolean(error), error ? '' : 'a RPC aceitou');
   }
   {
     const { error } = await milB.client.rpc('decide_invitee', {

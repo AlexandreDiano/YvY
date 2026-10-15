@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 export const FLAG = {
   acoes: 'module_acoes',
   feed: 'module_feed',
-  puxada: 'module_puxada',
   checagem: 'module_checagem',
   convites: 'module_convites',
   transparencia: 'module_transparencia',
@@ -21,7 +20,6 @@ export type FlagKey = (typeof FLAG)[keyof typeof FLAG];
 export const DEFAULT_FLAGS: Record<FlagKey, boolean> = {
   module_acoes: true,
   module_feed: true,
-  module_puxada: false, // ligado no dia 24/10 pelo painel admin
   module_checagem: true,
   module_convites: true,
   module_transparencia: true,

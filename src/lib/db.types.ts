@@ -12,7 +12,6 @@ export type MembershipStatus = 'pending' | 'active' | 'rejected';
 
 export type ActionType =
   | 'panfletagem'
-  | 'puxada_voto'
   | 'mutirao_cadastro'
   | 'comicio'
   | 'portas_portas'
@@ -51,7 +50,6 @@ export type Profile = {
   invited_by: string | null;
   notify_actions: boolean;
   notify_feed: boolean;
-  notify_pull: boolean;
   terms_accepted_at: string | null;
   /** Consentimento para dado de participação política (LGPD art. 11, 0039). */
   sensitive_consent_at: string | null;
@@ -179,37 +177,6 @@ export type FactCheck = {
   created_at: string;
 };
 
-export type Voter = {
-  id: string;
-  full_name: string;
-  zone: string;
-  section: string;
-  polling_place: string;
-  cep: string | null;
-  neighborhood: string | null;
-  city: string | null;
-  state: string | null;
-  address_hint: string | null;
-  registered_by: string | null;
-  consent_source: 'self' | 'militant';
-  pulled_by: string | null;
-  pull_route_id: string | null;
-  has_voted: boolean;
-  voted_at: string | null;
-  created_at: string;
-};
-
-export type PullRoute = {
-  id: string;
-  puller_id: string | null;
-  neighborhood: string;
-  city: string;
-  state: string;
-  max_voters: number;
-  is_complete: boolean;
-  created_at: string;
-};
-
 export type Invite = {
   id: string;
   token: string;
@@ -261,8 +228,6 @@ export type Database = {
       post_flags: Table<PostFlag>;
       proposal_cards: Table<ProposalCard>;
       fact_checks: Table<FactCheck>;
-      voters: Table<Voter>;
-      pull_routes: Table<PullRoute>;
       invites: Table<Invite>;
       moderators: Table<Moderator>;
       feature_flags: Table<FeatureFlag>;
@@ -321,10 +286,6 @@ export type Database = {
       decide_invitee: {
         Args: { p_invitee: string; p_decision: MembershipStatus };
         Returns: undefined;
-      };
-      build_pull_routes: {
-        Args: { p_neighborhood: string; p_city: string; p_state: string; p_max: number };
-        Returns: { route_id: string; voter_count: number }[];
       };
     };
     Enums: {

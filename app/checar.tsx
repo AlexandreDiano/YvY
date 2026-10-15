@@ -7,6 +7,7 @@ import {
   listClaimQueue,
   markClaimsSeen,
   myClaimChecks,
+  publishClaimCheck,
   readTextFromImage,
   runClaimNow,
   type ClaimCheck,
@@ -19,12 +20,14 @@ import { checkFact, listChecks, type CheckOutcome } from '@/api/content';
 import { CHECK_LABEL } from '@/data/factChecks';
 import type { CheckResult, FactCheck } from '@/lib/db.types';
 import { brDate } from '@/lib/format';
+import { confirmAction } from '@/lib/notify';
 import { shareCheck } from '@/lib/share';
 import {
   Badge,
   Banner,
   Button,
   Card,
+  Chip,
   Field,
   Row,
   Screen,
@@ -119,6 +122,15 @@ export default function Checar() {
   }
   const [others, setOthers] = useState<ClaimCheck[]>([]);
 
+  async function publish(id: string, edits: Parameters<typeof publishClaimCheck>[1]) {
+    try {
+      await publishClaimCheck(id, edits);
+      await Promise.all([listClaimChecks().then(setOthers), listChecks().then(setRecent), loadMine()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não deu para publicar.');
+    }
+  }
+
   async function loadMine() {
     const list = await myClaimChecks();
     setMine(list);
@@ -158,7 +170,7 @@ export default function Checar() {
         onChangeText={setInput}
         multiline
         placeholder="Cole aqui o que chegou no WhatsApp..."
-        hint="Telefone, e-mail e CPF são apagados antes de qualquer coisa. Se for checado por IA, outras pessoas veem só a afirmação, nunca o seu texto."
+        hint="Telefone, e-mail e CPF são apagados antes de qualquer coisa. Se for checado por IA, só você vê o resultado até alguém da equipe conferir e publicar."
       />
       <Button title="Checar" loading={busy} onPress={run} disabled={input.trim().length < 8} />
       <Row style={{ flexWrap: 'wrap' }}>
@@ -237,6 +249,11 @@ export default function Checar() {
               unseen={c.unseen}
               asked={c.asked}
               onCancel={() => void cancelMine(c)}
+              onPublish={
+                isModerator && c.status === 'done' && c.result !== 'unverified'
+                  ? (edits) => publish(c.id, edits)
+                  : undefined
+              }
             />
           ))}
         </>
@@ -246,8 +263,8 @@ export default function Checar() {
         <>
           <Section title="Checagens por IA · equipe" />
           <Txt variant="small" muted>
-            Só moderador e admin veem. Nada daqui é público: o que estiver certo vira checagem da equipe
-            (promote_claim_check) antes de aparecer para todos.
+            Só moderador e admin veem. Nada daqui é público até alguém da equipe abrir a fonte, conferir e
+            publicar. Se a IA errou, corrija o texto antes ou apague.
           </Txt>
           {others
             .filter((c) => !mine.some((m) => m.id === c.id))
@@ -256,6 +273,7 @@ export default function Checar() {
                 key={c.id}
                 c={c}
                 onDelete={isModerator ? () => void removeCheck(c.id) : undefined}
+                onPublish={isModerator ? (edits) => publish(c.id, edits) : undefined}
               />
             ))}
         </>
@@ -347,6 +365,7 @@ function ClaimCard({
   asked,
   onDelete,
   onCancel,
+  onPublish,
 }: {
   c: ClaimCheck;
   unseen?: boolean;
@@ -355,7 +374,12 @@ function ClaimCard({
   onDelete?: () => void;
   /** Minha checagem: na fila = cancelar; pronta = tirar da minha lista. */
   onCancel?: () => void;
+  onPublish?: (edits: Parameters<typeof publishClaimCheck>[1]) => Promise<void>;
 }) {
+  const [reviewing, setReviewing] = useState(false);
+  if (c.reviewed && c.result && c.claim_text) {
+    return <ReviewedCard c={c} onCancel={onCancel} />;
+  }
   return (
     <Card stripe={color.neutral}>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -385,6 +409,12 @@ function ClaimCard({
       ) : null}
       <Source name={c.source_name} url={c.source_url} />
       {c.status === 'done' ? <AutoLabel checkedAt={c.checked_at} /> : null}
+      {onPublish && reviewing ? (
+        <ReviewForm c={c} onPublish={onPublish} onClose={() => setReviewing(false)} />
+      ) : null}
+      {onPublish && !reviewing && c.source_url ? (
+        <Button title="Conferir e publicar" small block={false} onPress={() => setReviewing(true)} />
+      ) : null}
       {onDelete ? (
         <Button title="Apagar (equipe)" kind="ghost" small block={false} onPress={onDelete} />
       ) : null}
@@ -398,6 +428,104 @@ function ClaimCard({
         />
       ) : null}
     </Card>
+  );
+}
+
+/** Checagem que a equipe já conferiu: ganha selo e pode ser compartilhada. */
+function ReviewedCard({ c, onCancel }: { c: ClaimCheck; onCancel?: () => void }) {
+  const result = c.result!;
+  return (
+    <Card stripe={SEAL[result]}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Badge label={CHECK_LABEL[result].toUpperCase()} color={SEAL[result]} />
+        <Txt variant="small" muted>
+          Conferida pela equipe
+        </Txt>
+      </Row>
+      <Txt variant="body">"{c.claim_text}"</Txt>
+      {c.explanation ? (
+        <Txt variant="small" muted>
+          {c.explanation}
+        </Txt>
+      ) : null}
+      <Source name={c.source_name} url={c.source_url} />
+      <Row>
+        <Button
+          title="Compartilhar"
+          small
+          kind="outline"
+          block={false}
+          left={<IconShare size={14} color={color.primary} />}
+          onPress={() =>
+            void shareCheck({
+              claim: c.claim_text!,
+              result,
+              explanation: c.explanation ?? '',
+              source_name: c.source_name,
+              source_url: c.source_url,
+            })
+          }
+        />
+        {onCancel ? (
+          <Button title="Tirar da minha lista" kind="ghost" small block={false} onPress={onCancel} />
+        ) : null}
+      </Row>
+    </Card>
+  );
+}
+
+type Published = Exclude<CheckResult, 'unverified'>;
+const PUBLISHABLE: Published[] = ['true', 'half_true', 'exaggeration', 'false'];
+
+/**
+ * Revisão antes de ir a público. Quem publica responde pelo texto, então dá
+ * para corrigir a afirmação, o resultado e a explicação. A fonte não muda: é
+ * a que a busca trouxe, e é ela que as pessoas vão abrir.
+ */
+function ReviewForm({
+  c,
+  onPublish,
+  onClose,
+}: {
+  c: ClaimCheck;
+  onPublish: (edits: { claim: string; result: Published; explanation: string }) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [claim, setClaim] = useState(c.claim_text ?? '');
+  const [result, setResult] = useState<Published>(c.result && c.result !== 'unverified' ? c.result : 'half_true');
+  const [explanation, setExplanation] = useState(c.explanation ?? '');
+  const [saving, setSaving] = useState(false);
+  const ready = claim.trim().length > 8 && explanation.trim().length > 8;
+
+  function submit() {
+    confirmAction(
+      'Publicar para todo mundo?',
+      `Vai aparecer como "${CHECK_LABEL[result]}" para qualquer pessoa, com a fonte ${c.source_name ?? c.source_url}. Você abriu a fonte e ela diz isso mesmo?`,
+      'Publicar',
+      () => {
+        setSaving(true);
+        void onPublish({ claim: claim.trim(), result, explanation: explanation.trim() }).finally(() => {
+          setSaving(false);
+          onClose();
+        });
+      },
+    );
+  }
+
+  return (
+    <View style={{ gap: space.sm }}>
+      <Field label="Afirmação" value={claim} onChangeText={setClaim} multiline />
+      <Row style={{ flexWrap: 'wrap' }}>
+        {PUBLISHABLE.map((r) => (
+          <Chip key={r} label={CHECK_LABEL[r]} active={r === result} onPress={() => setResult(r)} />
+        ))}
+      </Row>
+      <Field label="Explicação" value={explanation} onChangeText={setExplanation} multiline />
+      <Row>
+        <Button title="Publicar" small block={false} loading={saving} disabled={!ready} onPress={submit} />
+        <Button title="Voltar" kind="ghost" small block={false} onPress={onClose} />
+      </Row>
+    </View>
   );
 }
 

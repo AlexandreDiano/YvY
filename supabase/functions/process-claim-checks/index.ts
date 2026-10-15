@@ -201,20 +201,30 @@ function fontesBlock(results: TavilyResult[]): string {
 
 /** Se um modelo estiver lotado (503) ou sem cota (429), tenta o próximo. */
 const GEMINI_FALLBACKS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"];
+const GEMINI_TIMEOUT_MS = 30_000;
 
 async function geminiJson(model: string, system: string, user: string): Promise<Record<string, unknown>> {
   const chain = [model, ...GEMINI_FALLBACKS.filter((m) => m !== model)];
   let last = "";
   for (const m of chain) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY! },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY! },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts: [{ text: user }] }],
+          generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
+        }),
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+      });
+    } catch (err) {
+      // Em 13/10 o 3.8-flash travou por mais de um minuto em duas rodadas
+      // seguidas e a checagem inteira estourou o prazo. Melhor cair pro próximo.
+      last = `${m}: ${err instanceof Error ? err.name : "erro de rede"}`;
+      continue;
+    }
     const body = (await res.json().catch(() => ({}))) as GeminiResponse;
     if (res.ok) {
       const out = (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("");
@@ -222,7 +232,8 @@ async function geminiJson(model: string, system: string, user: string): Promise<
     }
     last = `${m}: ${res.status} ${body.error?.status ?? ""} ${body.error?.message ?? ""}`.trim();
     if (res.status === 401 || res.status === 403) throw new AccountError(last);
-    if (res.status !== 429 && res.status !== 503 && res.status !== 500) throw new Error(last);
+    // 404 = modelo aposentado pelo Google; tenta o próximo em vez de falhar sempre.
+    if (![404, 429, 500, 503].includes(res.status)) throw new Error(last);
   }
   // Todos lotados/sem cota: tenta de novo na próxima rodada, sem gastar tentativa.
   throw new AccountError(last);
@@ -453,7 +464,7 @@ function sanitize(v: Verdict, urls: Set<string>): Verdict {
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info",
+  "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info, x-yvy-client",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, status = 200) => Response.json(b, { status, headers: CORS });

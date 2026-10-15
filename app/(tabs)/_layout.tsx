@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FLAG } from '@/api/flags';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { color, space, type } from '@/ui';
-import { IconBallot, IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
+import { IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
 
 /**
  * Bottom tabs (tela 7.1). "Aberto por fora, fechado por dentro": Ações e Base
@@ -58,17 +58,6 @@ export default function TabsLayout() {
           title: 'Base',
           href: isBaseMember && flags[FLAG.feed] ? undefined : null,
           tabBarIcon: ({ color: c, size }) => <IconChat size={size} color={c} />,
-        }}
-      />
-      <Tabs.Screen
-        name="votar"
-        options={{
-          title: 'Votar',
-          // Puxada desligada até liberação do advogado eleitoral (revisão de
-          // 12/10): sem a flag, a aba nem aparece — e o banco recusa cadastro
-          // de eleitor (0039).
-          href: flags[FLAG.puxada] ? undefined : null,
-          tabBarIcon: ({ color: c, size }) => <IconBallot size={size} color={c} />,
         }}
       />
       <Tabs.Screen
