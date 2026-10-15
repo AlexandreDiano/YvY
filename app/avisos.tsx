@@ -4,6 +4,7 @@ import { Alert, RefreshControl } from 'react-native';
 import { deleteNotifications, listNotifications, markAllRead } from '@/api/notifications';
 import type { AppNotification } from '@/lib/db.types';
 import { relativeTime } from '@/lib/format';
+import { confirmAction } from '@/lib/notify';
 import { Button, Card, EmptyState, Loading, Row, Screen, Txt, color } from '@/ui';
 
 export default function Avisos() {
@@ -47,19 +48,27 @@ export default function Avisos() {
         />
       }
     >
-      {items.length > 1 ? (
-        <Button
-          title="Apagar todos"
-          kind="ghost"
-          small
-          block={false}
-          onPress={() =>
-            Alert.alert('Apagar todos os avisos?', 'Não dá para desfazer.', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Apagar', style: 'destructive', onPress: () => void remove() },
-            ])
-          }
-        />
+      {items.length > 0 ? (
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Txt variant="small" muted>
+            {items.length === 1 ? '1 aviso' : `${items.length} avisos`}
+          </Txt>
+          <Button
+            title="Apagar todos"
+            kind="outline"
+            small
+            block={false}
+            onPress={() =>
+              confirmAction(
+                'Apagar todos os avisos?',
+                'Somem todos de uma vez e não dá para desfazer.',
+                'Apagar todos',
+                () => void remove(),
+                true,
+              )
+            }
+          />
+        </Row>
       ) : null}
       {items.length === 0 ? (
         <EmptyState title="Nenhum aviso" detail="Quando a moderação decidir um post seu, aparece aqui." />
