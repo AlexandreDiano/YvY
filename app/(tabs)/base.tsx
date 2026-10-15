@@ -14,7 +14,7 @@ import {
   sendPostToReview,
   type FeedScope,
 } from '@/api/feed';
-import { myRegion, type MyRegion } from '@/api/geo';
+import { followedRegions, myRegion, type MyRegion } from '@/api/geo';
 import { unreadCount } from '@/api/notifications';
 import { uploadPostImage, type PickedImage } from '@/api/storage';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -56,9 +56,14 @@ export default function Base() {
   const { profile, isModerator, mode } = useAuth();
   const [scope, setScope] = useState<FeedScope>(lastScope);
   const [region, setRegion] = useState<MyRegion | null>(null);
+  const [followed, setFollowed] = useState<MyRegion[]>([]);
+  // no nível região: null = a própria, senão o id de uma região seguida
+  const [viewing, setViewing] = useState<number | null>(null);
   useEffect(() => {
     if (profile) void myRegion(profile.id).then(setRegion);
   }, [profile]);
+  const shownRegion = (viewing !== null && followed.find((f) => f.id === viewing)) || region;
+  const readingOther = scope === 'regiao_imediata' && viewing !== null && shownRegion !== region;
   const [posts, setPosts] = useState<PostListed[]>([]);
   const [text, setText] = useState('');
   const [image, setImage] = useState<PickedImage | null>(null);
@@ -77,7 +82,7 @@ export default function Base() {
       if (!profile) return;
       const req = ++latest.current;
       try {
-        const list = await listFeed(profile, p, s);
+        const list = await listFeed(profile, p, s, s === 'regiao_imediata' ? shownRegion : null);
         if (req !== latest.current) return;
         setPosts(list);
         setError(null);
@@ -86,7 +91,7 @@ export default function Base() {
         setError(err instanceof Error ? err.message : 'Falha ao carregar o feed.');
       }
     },
-    [profile, scope],
+    [profile, scope, shownRegion],
   );
 
   // recarrega a cada foco, assim post aprovado aparece sem precisar puxar a tela
@@ -95,7 +100,12 @@ export default function Base() {
       setPage(0);
       void load(0);
       void unreadCount().then(setUnread);
-    }, [load]),
+      // a lista de regiões seguidas muda na tela /regioes
+      void followedRegions().then((list) => {
+        setFollowed(list);
+        if (viewing !== null && !list.some((f) => f.id === viewing)) setViewing(null);
+      });
+    }, [load, viewing]),
   );
 
   async function pickImage(source: 'camera' | 'library') {
@@ -275,35 +285,66 @@ export default function Base() {
         ))}
       </Row>
 
-      <Card>
-        <Field
-          placeholder={`Escreva para ${scopeLabel(scope, profile, region?.name)}...`}
-          value={text}
-          onChangeText={setText}
-          multiline
-          maxLength={MAX_POST_CHARS}
-        />
-        {image ? <Image source={{ uri: image.uri }} style={{ height: 160, borderRadius: radius.sm }} /> : null}
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Row>
-            <Button
-              title={image ? 'Trocar foto' : 'Foto'}
-              kind="ghost"
-              small
-              block={false}
-              left={<IconCamera size={18} color={color.primary} />}
-              onPress={chooseImage}
+      {scope === 'regiao_imediata' && region ? (
+        <Row style={{ flexWrap: 'wrap' }}>
+          <Chip
+            label={`Minha · ${region.name}`}
+            active={viewing === null}
+            onPress={() => {
+              setViewing(null);
+              setPosts([]);
+            }}
+          />
+          {followed.map((f) => (
+            <Chip
+              key={f.id}
+              label={`${f.name} (${f.uf})`}
+              active={viewing === f.id}
+              onPress={() => {
+                setViewing(f.id);
+                setPosts([]);
+              }}
             />
-            {image ? (
-              <Button title="Tirar" kind="ghost" small block={false} onPress={() => setImage(null)} />
-            ) : null}
-          </Row>
-          <Txt variant="small" muted>
-            {text.length}/{MAX_POST_CHARS}
-          </Txt>
+          ))}
+          <Chip label="+ Seguir região" onPress={() => router.push('/regioes')} />
         </Row>
-        <Button title="Publicar" small loading={busy} disabled={!text.trim()} onPress={publish} />
-      </Card>
+      ) : null}
+
+      {readingOther ? (
+        <Txt variant="small" muted>
+          Você está lendo a região de {shownRegion?.name}. Para postar, volte para a sua região.
+        </Txt>
+      ) : (
+        <Card>
+          <Field
+            placeholder={`Escreva para ${scopeLabel(scope, profile, region?.name)}...`}
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={MAX_POST_CHARS}
+          />
+          {image ? <Image source={{ uri: image.uri }} style={{ height: 160, borderRadius: radius.sm }} /> : null}
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Row>
+              <Button
+                title={image ? 'Trocar foto' : 'Foto'}
+                kind="ghost"
+                small
+                block={false}
+                left={<IconCamera size={18} color={color.primary} />}
+                onPress={chooseImage}
+              />
+              {image ? (
+                <Button title="Tirar" kind="ghost" small block={false} onPress={() => setImage(null)} />
+              ) : null}
+            </Row>
+            <Txt variant="small" muted>
+              {text.length}/{MAX_POST_CHARS}
+            </Txt>
+          </Row>
+          <Button title="Publicar" small loading={busy} disabled={!text.trim()} onPress={publish} />
+        </Card>
+      )}
 
       {error ? (
         <Txt variant="small" tone="danger">

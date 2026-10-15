@@ -93,6 +93,7 @@ function RootLayout() {
                 options={{ title: "Votação" }}
               />
               <Stack.Screen name="avisos" options={{ title: "Avisos" }} />
+              <Stack.Screen name="regioes" options={{ title: "Regiões que você segue" }} />
               <Stack.Screen
                 name="plano/[sq]"
                 options={{ title: "Plano de governo" }}

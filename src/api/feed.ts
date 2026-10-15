@@ -1,6 +1,7 @@
 import type { PostFlag, PostListed, PostStatus, Profile } from '@/lib/db.types';
 import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { inRegion, type MyRegion } from '@/api/geo';
 import { withSignedImages } from '@/api/storage';
 
 /** Feed do bairro, o "Fala Camarada". */
@@ -56,8 +57,16 @@ const COL_POSTS = 'posts';
 const COL_FLAGS = 'flags';
 const PAGE = 20;
 
-/** Feed de um nível. A RLS já limita o que cada um vê; o filtro aqui escolhe a aba. */
-export async function listFeed(profile: Profile, page = 0, scope: FeedScope = 'bairro'): Promise<PostListed[]> {
+/**
+ * Feed de um nível. A RLS já limita o que cada um vê; o filtro aqui escolhe a
+ * aba. No nível região, `region` diz qual: a da pessoa ou uma que ela segue.
+ */
+export async function listFeed(
+  profile: Profile,
+  page = 0,
+  scope: FeedScope = 'bairro',
+  region?: MyRegion | null,
+): Promise<PostListed[]> {
   if (!supabase) {
     const rows = await all<PostListed>(COL_POSTS);
     return rows
@@ -67,12 +76,15 @@ export async function listFeed(profile: Profile, page = 0, scope: FeedScope = 'b
   }
   let q = supabase.from('posts_with_author').select('*').eq('status', 'published').eq('scope', scope);
   if (scope === 'bairro') q = q.eq('neighborhood', profile.neighborhood ?? '').eq('city', profile.city ?? '');
-  // a região imediata fica dentro de uma UF; quais cidades entram a RLS decide (same_region)
-  if (scope === 'regiao_imediata') q = q.eq('state', profile.state ?? '');
+  // a região imediata fica dentro de uma UF; quais cidades entram a RLS decide
+  if (scope === 'regiao_imediata') q = q.eq('state', region?.uf ?? profile.state ?? '');
   if (scope === 'regiao') q = q.in('state', REGION_UFS[regionOf(profile.state)] ?? []);
   const res = await q.order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
   if (res.error) throw res.error;
-  return withSignedImages(res.data as PostListed[]);
+  let rows = res.data as PostListed[];
+  // a RLS devolve a própria região e as seguidas da mesma UF juntas; aqui separa
+  if (scope === 'regiao_imediata' && region) rows = rows.filter((p) => inRegion(p.city, region));
+  return withSignedImages(rows);
 }
 
 /** Autor apaga o próprio post (editar não existe). Admin também pode. */

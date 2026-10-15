@@ -489,6 +489,37 @@ async function main(): Promise<void> {
       londrina.client.from('posts').select('id').eq('id', curitiba.id),
       0,
     );
+    // 0045: seguir região
+    const regs = await londrina.client.rpc('list_regions', { p_uf: 'PR' });
+    const regList = (regs.data as { regiao_id: number; regiao_nome: string }[] | null) ?? [];
+    const cwb = regList.find((x) => x.regiao_nome === 'Curitiba')?.regiao_id;
+    check('lista as regiões do PR', regList.length > 20 && !!cwb, regs.error?.message);
+    if (cwb) {
+      const pf = await pending.client.rpc('follow_region', { p_regiao: cwb, p_follow: true });
+      check('pendente não segue região', Boolean(pf.error), pf.error ? '' : 'seguiu');
+      const f = await londrina.client.rpc('follow_region', { p_regiao: cwb, p_follow: true });
+      check('membro segue outra região', !f.error, f.error?.message);
+      await expectRows(
+        'quem segue a região de Curitiba lê o post de lá',
+        londrina.client.from('posts').select('id').eq('id', curitiba.id),
+        1,
+      );
+      await expectRows(
+        'ninguém lê a lista de regiões seguidas de outro',
+        sjp.client.from('region_follows').select('user_id').eq('user_id', londrina.id),
+        0,
+      );
+      const others = regList.filter((x) => x.regiao_id !== cwb).slice(0, 5);
+      const results = [];
+      for (const o of others) results.push(await londrina.client.rpc('follow_region', { p_regiao: o.regiao_id, p_follow: true }));
+      check('no máximo 5 regiões seguidas', results.filter((x) => !x.error).length === 4 && Boolean(results[4]?.error));
+      await londrina.client.rpc('follow_region', { p_regiao: cwb, p_follow: false });
+      await expectRows(
+        'deixou de seguir, deixou de ler',
+        londrina.client.from('posts').select('id').eq('id', curitiba.id),
+        0,
+      );
+    }
     await admin.from('posts').delete().eq('id', curitiba.id);
     const reg = await sjp.client.rpc('my_region');
     const row = (reg.data as { regiao_nome: string; cidades: string[] }[] | null)?.[0];

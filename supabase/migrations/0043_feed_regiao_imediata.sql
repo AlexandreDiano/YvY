@@ -69,9 +69,9 @@ $$;
 
 /** Região imediata de quem está logado, com as cidades dela (rótulo e filtros do app). */
 create or replace function public.my_region()
-returns table (regiao_id int, regiao_nome text, cidades text[])
+returns table (regiao_id int, regiao_nome text, uf text, cidades text[])
 language sql stable security definer set search_path = public as $$
-  select m.regiao_id, m.regiao_nome,
+  select m.regiao_id, m.regiao_nome, m.uf,
          (select array_agg(c.nome order by c.nome) from municipios c where c.regiao_id = m.regiao_id)
     from profiles p
     join municipios m on m.uf = p.state and public.norm_city(m.nome) = public.norm_city(p.city)

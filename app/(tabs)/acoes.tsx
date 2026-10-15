@@ -2,7 +2,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { actionTypeLabel, cancelPresence, confirmPresence, inArea, listActions, myConfirmations } from '@/api/actions';
-import { inRegion, myRegion, type MyRegion } from '@/api/geo';
+import { followedRegions, inRegion, myRegion, type MyRegion } from '@/api/geo';
 import { ActionsMap } from '@/features/actions/ActionsMap';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ActionListed } from '@/lib/db.types';
@@ -31,10 +31,14 @@ export default function Acoes() {
   // Região imediata do IBGE (Curitiba + SJP + Pinhais...). Ligada, cidade e
   // bairro só mostram o que é da região da pessoa.
   const [region, setRegion] = useState<MyRegion | null>(null);
-  const [regionOnly, setRegionOnly] = useState(true);
+  const [followed, setFollowed] = useState<MyRegion[]>([]);
+  // 'mine' = região da pessoa, número = região seguida, 'all' = sem filtro
+  const [regionSel, setRegionSel] = useState<'mine' | 'all' | number>('mine');
   useEffect(() => {
     if (profile) void myRegion(profile.id).then(setRegion);
   }, [profile]);
+  const selected =
+    regionSel === 'all' ? null : regionSel === 'mine' ? region : (followed.find((f) => f.id === regionSel) ?? region);
   // perfil pode chegar depois do primeiro render (site aberto direto em /acoes)
   useEffect(() => {
     if (picked || !profile) return;
@@ -48,6 +52,7 @@ export default function Acoes() {
     if (!profile) return;
     try {
       setAcoes(await listActions());
+      setFollowed(await followedRegions());
       setConfirmed(await myConfirmations(profile.id));
       setError(null);
     } catch (err) {
@@ -63,22 +68,32 @@ export default function Acoes() {
   );
 
   const inScope = useMemo(
-    () => (regionOnly && region ? acoes.filter((a) => inRegion(a.city, region)) : acoes),
-    [acoes, region, regionOnly],
+    () => (selected ? acoes.filter((a) => inRegion(a.city, selected)) : acoes),
+    [acoes, selected],
   );
-  const cities = useMemo(() => distinct([profile?.city, ...inScope.map((a) => a.city)]), [inScope, profile]);
+  const cities = useMemo(
+    () => distinct([selected === region || !selected ? profile?.city : null, ...inScope.map((a) => a.city)]),
+    [inScope, profile, selected, region],
+  );
   const neighborhoods = useMemo(
     () =>
       distinct([
-        city === null || city === profile?.city ? profile?.neighborhood : null,
+        selected === region && (city === null || city === profile?.city) ? profile?.neighborhood : null,
         ...inScope.filter((a) => inArea(a, city, null)).map((a) => a.neighborhood),
       ]),
     [inScope, city, profile],
   );
   const visible = inScope.filter((a) => inArea(a, city, neighborhood));
+  function pickRegion(sel: 'mine' | 'all' | number) {
+    setPicked(true);
+    setRegionSel(sel);
+    setCity(null);
+    setNeighborhood(null);
+  }
+
   const where =
     [neighborhood, city].filter(Boolean).join(', ') ||
-    (regionOnly && region ? `região de ${region.name}` : 'todas as cidades');
+    (selected ? `região de ${selected.name}` : 'todas as cidades');
 
   return (
     <Screen safeTop
@@ -108,24 +123,19 @@ export default function Acoes() {
           <Row style={{ flexWrap: 'wrap' }} gap={space.sm}>
             <Chip
               label={`Região de ${region.name}`}
-              active={regionOnly}
-              onPress={() => {
-                setPicked(true);
-                setRegionOnly(true);
-                setCity(null);
-                setNeighborhood(null);
-              }}
+              active={regionSel === 'mine'}
+              onPress={() => pickRegion('mine')}
             />
-            <Chip
-              label="Todas"
-              active={!regionOnly}
-              onPress={() => {
-                setPicked(true);
-                setRegionOnly(false);
-                setCity(null);
-                setNeighborhood(null);
-              }}
-            />
+            {followed.map((f) => (
+              <Chip
+                key={f.id}
+                label={`${f.name} (${f.uf})`}
+                active={regionSel === f.id}
+                onPress={() => pickRegion(f.id)}
+              />
+            ))}
+            <Chip label="Todas" active={regionSel === 'all'} onPress={() => pickRegion('all')} />
+            <Chip label="+ Seguir região" onPress={() => router.push('/regioes')} />
           </Row>
         </>
       ) : null}
