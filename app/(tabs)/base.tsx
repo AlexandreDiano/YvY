@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { shrinkImage } from '@/lib/shrinkImage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, Image, RefreshControl, View } from 'react-native';
 import {
   FLAG_REASONS,
@@ -11,6 +11,7 @@ import {
   flagPost,
   listFeed,
   scopeLabel,
+  sendPostToReview,
   type FeedScope,
 } from '@/api/feed';
 import { unreadCount } from '@/api/notifications';
@@ -38,6 +39,11 @@ import { IconCamera, IconFlag } from '@/ui/icons';
 
 const SCOPES: FeedScope[] = ['bairro', 'cidade', 'regiao', 'brasil'];
 
+// Fora do componente para sobreviver a uma remontagem da tela (trava de
+// biometria, troca de aba): senão o nível voltava para bairro e o post de
+// Brasil que a pessoa estava vendo sumia.
+let lastScope: FeedScope = 'bairro';
+
 /**
  * Feed da Base em quatro níveis: bairro, cidade, região e Brasil. Post de
  * bairro passa pelo moderador do bairro; o resto passa pelo admin.
@@ -46,7 +52,7 @@ export default function Base() {
   useNoScreenshots('base');
   const router = useRouter();
   const { profile, isModerator, mode } = useAuth();
-  const [scope, setScope] = useState<FeedScope>('bairro');
+  const [scope, setScope] = useState<FeedScope>(lastScope);
   const [posts, setPosts] = useState<PostListed[]>([]);
   const [text, setText] = useState('');
   const [image, setImage] = useState<PickedImage | null>(null);
@@ -56,13 +62,21 @@ export default function Base() {
   const [error, setError] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
 
+  // Várias buscas podem estar no ar ao mesmo tempo (foco, troca de nível,
+  // perfil recarregado a cada renovação de sessão). Só a última pedida vale:
+  // uma resposta atrasada de outro nível não pode sobrescrever a tela.
+  const latest = useRef(0);
   const load = useCallback(
     async (p = 0, s: FeedScope = scope) => {
       if (!profile) return;
+      const req = ++latest.current;
       try {
-        setPosts(await listFeed(profile, p, s));
+        const list = await listFeed(profile, p, s);
+        if (req !== latest.current) return;
+        setPosts(list);
         setError(null);
       } catch (err) {
+        if (req !== latest.current) return;
         setError(err instanceof Error ? err.message : 'Falha ao carregar o feed.');
       }
     },
@@ -180,6 +194,26 @@ export default function Base() {
     );
   }
 
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewReason, setReviewReason] = useState('');
+
+  async function sendToReview(post: PostListed) {
+    try {
+      await sendPostToReview(post.id, reviewReason.trim());
+      setReviewing(null);
+      setReviewReason('');
+      await load(0);
+      Alert.alert(
+        'Post em revisão',
+        post.scope && post.scope !== 'bairro'
+          ? 'Saiu do feed. Post fora do bairro é decidido por um admin, na Moderação.'
+          : 'Saiu do feed e está na Moderação do bairro.',
+      );
+    } catch (err) {
+      Alert.alert('Erro', err instanceof Error ? err.message : 'Não deu para mandar para revisão.');
+    }
+  }
+
   let lastBucket = '';
 
   return (
@@ -225,8 +259,10 @@ export default function Base() {
             label={scopeLabel(s, profile)}
             active={scope === s}
             onPress={() => {
+              lastScope = s;
               setScope(s);
               setPage(0);
+              setPosts([]);
               void load(0, s);
             }}
           />
@@ -296,7 +332,40 @@ export default function Base() {
                   <PostImage uri={p.image_url} />
                 ) : null}
                 <Txt variant="body">{p.content}</Txt>
-                <Row style={{ justifyContent: 'flex-end' }}>
+                {reviewing === p.id ? (
+                  <>
+                    <Field
+                      label="Por que este post precisa de revisão?"
+                      value={reviewReason}
+                      onChangeText={setReviewReason}
+                      maxLength={200}
+                    />
+                    <Row>
+                      <Button
+                        title="Tirar do feed e revisar"
+                        kind="accent"
+                        small
+                        block={false}
+                        disabled={reviewReason.trim().length < 4}
+                        onPress={() => void sendToReview(p)}
+                      />
+                      <Button title="Voltar" kind="ghost" small block={false} onPress={() => setReviewing(null)} />
+                    </Row>
+                  </>
+                ) : null}
+                <Row style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  {isModerator && !mine && reviewing !== p.id ? (
+                    <Button
+                      title="Mandar para revisão"
+                      kind="ghost"
+                      small
+                      block={false}
+                      onPress={() => {
+                        setReviewing(p.id);
+                        setReviewReason('');
+                      }}
+                    />
+                  ) : null}
                   {mine ? (
                     <Button title="Apagar" kind="ghost" small block={false} onPress={() => remove(p)} />
                   ) : (
