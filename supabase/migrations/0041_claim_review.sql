@@ -1,4 +1,4 @@
--- Yvy — checagem por IA só fica pública depois que alguém da equipe valida
+-- Checagem por IA só fica pública depois que alguém da equipe valida
 -- (decisão de 15/10, depois da conversa com o advogado).
 --
 -- Até aqui a promoção era só pelo SQL Editor, só admin, e nada impedia

@@ -1,4 +1,4 @@
--- Yvy — puxada de voto sai do app de vez (decisão de 15/10, orientação do
+-- Puxada de voto sai do app de vez (decisão de 15/10, orientação do
 -- advogado eleitoral). Desligada desde a 0039; as três tabelas estavam vazias
 -- quando esta migration foi escrita.
 --
@@ -21,9 +21,9 @@ drop function if exists public.auto_purge_pull_data();
 drop function if exists public.purge_pull_data();
 drop function if exists public.build_pull_routes(text, text, text, int);
 
-drop table if exists pull_results;
-drop table if exists pull_routes;
-drop table if exists voters;
+-- Num drop só: voters tem FK e policy apontando para pull_routes, e o
+-- Postgres resolve a ordem quando as três vão juntas.
+drop table if exists voters, pull_routes, pull_results;
 
 drop type if exists consent_source;
 
