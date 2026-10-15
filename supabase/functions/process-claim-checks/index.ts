@@ -151,6 +151,48 @@ function parseJsonLoose(text: string): Record<string, unknown> {
   return JSON.parse(text.slice(start, end + 1));
 }
 
+// ------------------------------------------------------------ fontes aceitas
+
+/**
+ * Só estes sites valem como fonte da checagem: órgãos oficiais, agências de
+ * checagem, agências de notícia e os grandes jornais. Ficam de fora blogs,
+ * sites sem redação identificada e veículos assumidamente partidários, de
+ * qualquer lado. A busca já procura só aqui e o sanitize() confere de novo,
+ * caso a busca deixe passar alguma coisa.
+ *
+ * Domínio vale com os subdomínios (gov.br cobre www.gov.br, camara.leg.br etc.).
+ * Coluna, opinião e blog ficam de fora mesmo nesses sites: é texto de autor,
+ * não reportagem.
+ * Mudar a lista é decisão editorial: combinar com a equipe antes.
+ */
+const TRUSTED_DOMAINS = [
+  // órgãos oficiais e dados públicos
+  "gov.br", "leg.br", "jus.br", "mp.br", "def.br",
+  // agências de checagem (signatárias da IFCN ou do Comprova)
+  "lupa.uol.com.br", "lupa.news", "aosfatos.org", "apublica.org", "projetocomprova.com.br",
+  "boatos.org", "e-farsas.com", "checamos.afp.com",
+  // agências de notícia
+  "agenciabrasil.ebc.com.br", "reuters.com", "apnews.com", "afp.com", "efe.com",
+  // jornais e portais com redação e correção pública de erros
+  "g1.globo.com", "oglobo.globo.com", "valor.globo.com", "folha.uol.com.br", "estadao.com.br",
+  "noticias.uol.com.br", "economia.uol.com.br", "bbc.com", "cnnbrasil.com.br", "poder360.com.br", "nexojornal.com.br",
+  "correiobraziliense.com.br", "veja.abril.com.br", "exame.com", "infomoney.com.br",
+  "dw.com", "elpais.com", "piaui.folha.uol.com.br",
+];
+
+const OPINION_PATH = /\/(colunas?|colunistas?|opiniao|blogs?|editoriais?)(\/|$)/i;
+
+function trustedHost(url: string): boolean {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return false;
+  }
+  if (!TRUSTED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`))) return false;
+  return !OPINION_PATH.test(new URL(url).pathname);
+}
+
 type TavilyResult = { title: string; url: string; content: string };
 
 type Depth = "basic" | "advanced";
@@ -160,7 +202,12 @@ type Depth = "basic" | "advanced";
  * crédito (fila do cron); "advanced" custa 2 e traz trechos mais relevantes de
  * cada página, só no "checar agora" da equipe.
  */
-async function tavilySearch(query: string, max = 6, depth: Depth = "basic"): Promise<TavilyResult[]> {
+async function tavilySearch(
+  query: string,
+  max = 6,
+  depth: Depth = "basic",
+  trustedOnly = true,
+): Promise<TavilyResult[]> {
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${TAVILY_KEY}` },
@@ -172,6 +219,7 @@ async function tavilySearch(query: string, max = 6, depth: Depth = "basic"): Pro
       max_results: max,
       chunks_per_source: 3,
       include_answer: false,
+      ...(trustedOnly ? { include_domains: TRUSTED_DOMAINS } : {}),
     }),
   });
   const body = await res.json().catch(() => ({}));
@@ -181,7 +229,9 @@ async function tavilySearch(query: string, max = 6, depth: Depth = "basic"): Pro
     if ([401, 403, 429, 432, 433].includes(res.status)) throw new AccountError(msg);
     throw new Error(msg);
   }
-  return ((body.results ?? []) as TavilyResult[]).filter((r) => r.url && r.content);
+  return ((body.results ?? []) as TavilyResult[]).filter(
+    (r) => r.url && r.content && (!trustedOnly || trustedHost(r.url)),
+  );
 }
 
 const JUDGE_SYSTEM = `${RULES}
@@ -304,7 +354,8 @@ async function fillSources(db: any, model: string): Promise<{ filled: number; tr
   for (const j of jobs.slice(0, 8)) {
     tried++;
     try {
-      const results = await tavilySearch(`${j.claim.slice(0, 200)} ${j.source}`.trim(), 5);
+      // aqui a fonte é a que a equipe citou (pode ser fora da lista), então busca aberta
+      const results = await tavilySearch(`${j.claim.slice(0, 200)} ${j.source}`.trim(), 5, "basic", false);
       if (!results.length) continue;
       const raw = await geminiJson(
         model,
@@ -352,8 +403,8 @@ Depois de buscar, chame a ferramenta submit_verdict uma única vez. source_url p
 // web_search com filtragem dinâmica só existe nas linhas Opus/Sonnet atuais
 const searchTool = (model: string) =>
   model.startsWith("claude-haiku")
-    ? { type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 4 }
-    : { type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 4 };
+    ? { type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 4, allowed_domains: TRUSTED_DOMAINS }
+    : { type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 4, allowed_domains: TRUSTED_DOMAINS };
 
 // fallback de recusa no servidor existe para Opus/Fable/Sonnet, não para Haiku
 const fallback = (model: string) =>
@@ -440,7 +491,7 @@ function sanitize(v: Verdict, urls: Set<string>): Verdict {
   const claim = (v.claim ?? "").trim().slice(0, 500);
   if (!claim) throw new Error("veredito sem afirmação");
 
-  const sourceOk = !!v.source_url && urls.has(v.source_url);
+  const sourceOk = !!v.source_url && urls.has(v.source_url) && trustedHost(v.source_url);
   if (result !== "unverified" && !sourceOk) {
     // veredito sem fonte rastreável não sai, melhor "não sei" do que erro com selo
     return {
