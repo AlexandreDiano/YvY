@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
-import { listActions, myConfirmations, confirmPresence } from '@/api/actions';
+import { confirmPresence, inArea, listActions, myConfirmations } from '@/api/actions';
 import { myClaimChecks } from '@/api/claims';
 import { pendingInvitees } from '@/api/invites';
 import { FLAG } from '@/api/flags';
@@ -49,7 +49,7 @@ export default function Home() {
   const load = useCallback(async () => {
     if (profile && isBaseMember && flags[FLAG.acoes]) {
       try {
-        setAcoes(await listActions(profile));
+        setAcoes((await listActions()).filter((a) => inArea(a, profile.city, profile.neighborhood)));
         setConfirmed(await myConfirmations(profile.id));
       } catch {
         setAcoes([]);

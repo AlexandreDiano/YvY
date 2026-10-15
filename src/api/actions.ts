@@ -32,22 +32,27 @@ export type NewAction = {
 const COL_ACTIONS = 'actions';
 const COL_PARTS = 'participants';
 
-export async function listActions(profile: Profile): Promise<ActionListed[]> {
+export async function listActions(): Promise<ActionListed[]> {
   if (!supabase) {
     const rows = await all<ActionListed>(COL_ACTIONS);
     return rows
       .filter((a) => a.status !== 'draft' && a.status !== 'cancelled')
       .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
   }
+  // Sem filtro de área aqui: a RLS já limita ao bairro da pessoa, às ações
+  // públicas e às que ela criou (admin vê tudo). Bairro e cidade a tela filtra.
   const res = await supabase
     .from('actions_with_counts')
     .select('*')
     .in('status', ['open', 'confirmed'])
-    .eq('neighborhood', profile.neighborhood ?? '')
-    .eq('city', profile.city ?? '')
-    .order('scheduled_at');
+    .order('scheduled_at')
+    .limit(300);
   if (res.error) throw res.error;
   return res.data as ActionListed[];
+}
+
+export function inArea(a: ActionListed, city: string | null, neighborhood: string | null): boolean {
+  return (!city || a.city === city) && (!neighborhood || a.neighborhood === neighborhood);
 }
 
 export async function getAction(id: string): Promise<ActionListed | null> {

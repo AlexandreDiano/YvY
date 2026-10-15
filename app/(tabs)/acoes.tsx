@@ -1,17 +1,10 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl } from 'react-native';
-import {
-  ACTION_TYPES,
-  actionTypeLabel,
-  cancelPresence,
-  confirmPresence,
-  listActions,
-  myConfirmations,
-} from '@/api/actions';
+import { actionTypeLabel, cancelPresence, confirmPresence, inArea, listActions, myConfirmations } from '@/api/actions';
 import { ActionsMap } from '@/features/actions/ActionsMap';
 import { useAuth } from '@/features/auth/AuthProvider';
-import type { ActionListed, ActionType } from '@/lib/db.types';
+import type { ActionListed } from '@/lib/db.types';
 import { shortDateTime } from '@/lib/format';
 import {
   Button,
@@ -30,14 +23,23 @@ export default function Acoes() {
   const { profile } = useAuth();
   const [acoes, setAcoes] = useState<ActionListed[]>([]);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<ActionType | 'all'>('all');
+  // null = todas. Começa no bairro do cadastro, que é o que a pessoa mais procura.
+  const [city, setCity] = useState<string | null>(profile?.city ?? null);
+  const [neighborhood, setNeighborhood] = useState<string | null>(profile?.neighborhood ?? null);
+  const [picked, setPicked] = useState(false);
+  // perfil pode chegar depois do primeiro render (site aberto direto em /acoes)
+  useEffect(() => {
+    if (picked || !profile) return;
+    setCity(profile.city);
+    setNeighborhood(profile.neighborhood);
+  }, [profile, picked]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!profile) return;
     try {
-      setAcoes(await listActions(profile));
+      setAcoes(await listActions());
       setConfirmed(await myConfirmations(profile.id));
       setError(null);
     } catch (err) {
@@ -52,7 +54,17 @@ export default function Acoes() {
     }, [load]),
   );
 
-  const visible = filter === 'all' ? acoes : acoes.filter((a) => a.type === filter);
+  const cities = useMemo(() => distinct([profile?.city, ...acoes.map((a) => a.city)]), [acoes, profile]);
+  const neighborhoods = useMemo(
+    () =>
+      distinct([
+        city === null || city === profile?.city ? profile?.neighborhood : null,
+        ...acoes.filter((a) => inArea(a, city, null)).map((a) => a.neighborhood),
+      ]),
+    [acoes, city, profile],
+  );
+  const visible = acoes.filter((a) => inArea(a, city, neighborhood));
+  const where = [neighborhood, city].filter(Boolean).join(', ') || 'todas as cidades';
 
   return (
     <Screen safeTop
@@ -68,20 +80,64 @@ export default function Acoes() {
       }
     >
       <Row style={{ justifyContent: 'space-between' }}>
-        <Txt variant="title">Ações no seu bairro</Txt>
+        <Txt variant="title">Ações</Txt>
         <Button title="+ Nova" small block={false} onPress={() => router.push('/acoes/nova')} />
       </Row>
 
       {profile ? <ActionsMap actions={visible} area={profile} /> : null}
 
+      <Txt variant="label" muted upper>
+        Cidade
+      </Txt>
       <Row style={{ flexWrap: 'wrap' }} gap={space.sm}>
-        <Chip label="Todas" active={filter === 'all'} onPress={() => setFilter('all')} />
-        {ACTION_TYPES.map((t) => (
-          <Chip key={t.key} label={t.label} active={filter === t.key} onPress={() => setFilter(t.key)} />
+        <Chip
+          label="Todas"
+          active={city === null}
+          onPress={() => {
+            setPicked(true);
+            setCity(null);
+            setNeighborhood(null);
+          }}
+        />
+        {cities.map((c) => (
+          <Chip
+            key={c}
+            label={c}
+            active={city === c}
+            onPress={() => {
+              setPicked(true);
+              setCity(c);
+              setNeighborhood(null);
+            }}
+          />
+        ))}
+      </Row>
+      <Txt variant="label" muted upper>
+        Bairro
+      </Txt>
+      <Row style={{ flexWrap: 'wrap' }} gap={space.sm}>
+        <Chip
+          label="Todos"
+          active={neighborhood === null}
+          onPress={() => {
+            setPicked(true);
+            setNeighborhood(null);
+          }}
+        />
+        {neighborhoods.map((n) => (
+          <Chip
+            key={n}
+            label={n}
+            active={neighborhood === n}
+            onPress={() => {
+              setPicked(true);
+              setNeighborhood(n);
+            }}
+          />
         ))}
       </Row>
 
-      <Section title="Lista" />
+      <Section title={`Lista · ${where}`} />
       {error ? (
         <Txt variant="small" tone="danger">
           {error}
@@ -91,7 +147,11 @@ export default function Acoes() {
       {visible.length === 0 ? (
         <EmptyState
           title="Nenhuma ação por aqui"
-          detail="Panfletagem, mutirão, porta a porta: a primeira ação do bairro pode ser sua."
+          detail={
+            neighborhood === profile?.neighborhood
+              ? 'Panfletagem, mutirão, porta a porta: a primeira ação do bairro pode ser sua.'
+              : 'De outros bairros aparecem só as ações abertas ao público.'
+          }
           action={<Button title="Criar ação" small block={false} onPress={() => router.push('/acoes/nova')} />}
         />
       ) : (
@@ -140,4 +200,9 @@ export default function Acoes() {
       )}
     </Screen>
   );
+}
+
+/** Sem repetidos e sem vazios, em ordem alfabética. */
+function distinct(list: (string | null | undefined)[]): string[] {
+  return [...new Set(list.filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }
