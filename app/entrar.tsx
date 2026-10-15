@@ -4,7 +4,6 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useCaptcha } from '@/features/auth/useCaptcha';
 import { Banner, Button, Field, Screen, Section, Txt } from '@/ui';
 
-/** Login de quem já tem conta (e-mail + senha). */
 export default function Entrar() {
   const router = useRouter();
   const { signIn, mode } = useAuth();
@@ -24,7 +23,7 @@ export default function Entrar() {
       setError(err instanceof Error ? err.message : 'E-mail ou senha não conferem.');
     } finally {
       setBusy(false);
-      // Token do captcha vale uma vez: gera outro para a próxima tentativa.
+      // token do captcha só vale uma vez, gera outro para a próxima tentativa
       captcha.reset();
     }
   }

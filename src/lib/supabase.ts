@@ -6,26 +6,26 @@ import type { Database } from '@/lib/db.types';
 import { env, isBackendConfigured } from '@/lib/env';
 
 /**
- * Render estatico do export web roda em Node, sem `window`: o AsyncStorage
- * web quebra o build ali. Nesse passo nao ha sessao para guardar.
+ * O render estático do export web roda no Node, sem `window`, e o AsyncStorage
+ * web quebra o build ali. Nesse passo não tem sessão para guardar mesmo.
  */
 const isServer = Platform.OS === 'web' && typeof window === 'undefined';
 
-/** `null` quando as chaves nao estao no .env — ver env.ts. */
+/** `null` quando as chaves não estão no .env (ver env.ts). */
 export const supabase: SupabaseClient<Database> | null = isBackendConfigured
   ? createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
       auth: {
         storage: isServer ? undefined : AsyncStorage,
         autoRefreshToken: !isServer,
         persistSession: !isServer,
-        // RN nao tem URL de callback de browser; o fluxo e OTP por telefone/e-mail.
+        // RN não tem URL de callback de navegador, o fluxo é por código no e-mail
         detectSessionInUrl: false,
       },
       global: { headers: { 'x-yvy-client': 'mobile' } },
     })
   : null;
 
-/** Uso em api/*: garante cliente ou estoura erro legivel em vez de `null`. */
+/** Para os api/*: devolve o cliente ou estoura um erro legível em vez de `null`. */
 export function requireSupabase(): SupabaseClient<Database> {
   if (!supabase) {
     throw new Error(

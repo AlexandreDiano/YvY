@@ -21,7 +21,6 @@ import {
   EmptyState,
 } from '@/ui';
 
-/** Fluxo 4.7 — lista de cards de proposta por área. */
 export default function Propostas() {
   const router = useRouter();
   const [cards, setCards] = useState<ProposalCard[] | null>(null);

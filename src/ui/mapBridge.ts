@@ -1,8 +1,7 @@
 /**
- * Ponte entre a página do mapa (Leaflet) e o app, igual no celular (WebView)
- * e no site (iframe). Ver MapFrame.tsx / MapFrame.web.tsx.
- *  - página → app: `send(texto)` no HTML chega em `onMessage`;
- *  - app → página: `ref.post(dado)` chama `window.onHost(dado)` no HTML.
+ * Ponte entre a página do mapa (Leaflet) e o app, igual no celular (WebView) e
+ * no site (iframe). Ver MapFrame.tsx e MapFrame.web.tsx. `send(texto)` no HTML
+ * chega em `onMessage`; `ref.post(dado)` chama `window.onHost(dado)` no HTML.
  */
 export type MapFrameHandle = { post: (data: unknown) => void };
 

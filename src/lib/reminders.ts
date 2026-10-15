@@ -5,9 +5,9 @@ import { Alert, Platform } from 'react-native';
 type NotificationsModule = typeof import('expo-notifications');
 
 /**
- * No Expo Go (Android, SDK 53+) só IMPORTAR expo-notifications já derruba a
- * tela. Carrega o módulo sob demanda e só fora do Expo Go: no APK e no build
- * de desenvolvimento funciona; no Expo Go o aviso simplesmente não é agendado.
+ * No Expo Go (Android, SDK 53+) só importar expo-notifications já derruba a
+ * tela. Então o módulo carrega sob demanda e só fora do Expo Go. No APK e no
+ * build de desenvolvimento funciona; no Expo Go o aviso só não é agendado.
  */
 const IN_EXPO_GO = isRunningInExpoGo();
 let cached: NotificationsModule | null | undefined;
@@ -34,10 +34,10 @@ function notifications(): NotificationsModule | null {
 }
 
 /**
- * Lembretes da ação no próprio celular. Nada passa pelo servidor:
- *  - calendário: abre o formulário do sistema já preenchido (a pessoa salva);
- *  - aviso: notificação local 1h antes, agendada neste aparelho.
- * Push vindo do servidor (OneSignal) segue fora do escopo.
+ * Lembretes da ação no próprio celular, sem passar pelo servidor. O de
+ * calendário abre o formulário do sistema já preenchido (a pessoa salva). O
+ * aviso é uma notificação local 1h antes, agendada no aparelho. Push do
+ * servidor (OneSignal) continua fora do escopo.
  */
 
 type ActionLike = { id: string; title: string; scheduled_at: string; location_name?: string | null };
@@ -59,7 +59,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return asked.granted;
 }
 
-/** Agenda aviso 1h antes (ou no horário, se faltar menos de 1h). Devolve o id. */
+/** Agenda o aviso 1h antes (ou na hora, se faltar menos de 1h). Devolve o id. */
 export async function scheduleActionReminder(action: ActionLike): Promise<string | null> {
   const Notifications = notifications();
   if (!Notifications || !(await ensureNotificationPermission())) return null;

@@ -3,9 +3,9 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { color } from '@/ui/tokens';
 
 /**
- * Icones desenhados em SVG em vez de @expo/vector-icons: evita baixar ~1 MB
- * de fontes de icone num app que precisa abrir em 3G (principio 1.4).
- * Traco de 1.6, sem preenchimento — mesma familia visual em todos.
+ * Ícones em SVG próprio em vez de @expo/vector-icons, que baixaria ~1 MB de
+ * fonte de ícone num app que precisa abrir no 3G. Traço de 1.6 sem
+ * preenchimento, para ficarem todos da mesma família.
  */
 
 type P = { size?: number; color?: ColorValue };

@@ -47,7 +47,6 @@ const PRECISION = [
   { key: '1', label: 'Rua' },
 ] as const;
 
-/** Tela 7.6 — Perfil. */
 export default function Perfil() {
   const router = useRouter();
   const {
@@ -76,7 +75,7 @@ export default function Perfil() {
   const [theme, setTheme] = useState<ThemePref>(themePref);
   const bio = useBiometricLock();
   const install = useInstall();
-  // Recarrega a cada foco: o convidado pode ter entrado com a tela já aberta.
+  // recarrega a cada foco: o convidado pode ter entrado com a tela já aberta
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
@@ -365,8 +364,8 @@ export default function Perfil() {
         onPress={() => router.push('/feedback')}
       />
 
-      {/* Pix só depois da eleição (revisão jurídica de 12/10: arrecadar num
-          app com conteúdo contra candidato pode virar gasto eleitoral). */}
+      {/* Pix só depois da eleição. Arrecadar num app com conteúdo contra
+        candidato pode ser lido como gasto eleitoral (revisão jurídica, 12/10). */}
       {isBaseMember && env.pixKey && Date.now() >= env.electionDate.getTime() + 16 * 3600_000 ? (
         <>
           <Section title="Apoie o YvY" />

@@ -1,9 +1,9 @@
 import { Alert, Platform } from 'react-native';
 
 /**
- * Aviso de um botão só ("OK") que funciona também no site/PWA.
- * `Alert.alert` do react-native-web não faz nada: no navegador a mensagem
- * sumiria calada.
+ * Aviso de um botão só ("OK") que também funciona no site/PWA. O
+ * `Alert.alert` do react-native-web não faz nada, e no navegador a mensagem
+ * sumiria sem ninguém ver.
  */
 export function notify(title: string, message?: string): void {
   if (Platform.OS === 'web') {
@@ -14,8 +14,8 @@ export function notify(title: string, message?: string): void {
 }
 
 /**
- * Pergunta "tem certeza?" com Cancelar + uma ação, também no site/PWA
- * (`window.confirm`; o Alert com botões do react-native-web não abre nada).
+ * Pergunta "tem certeza?" com Cancelar e uma ação, também no site/PWA via
+ * `window.confirm` (o Alert com botões do react-native-web não abre nada).
  */
 export function confirmAction(
   title: string,

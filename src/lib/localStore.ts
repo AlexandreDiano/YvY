@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * Colecoes locais para o modo sem backend (ver lib/env.ts). Nao e banco:
- * e um array em AsyncStorage, suficiente para navegar e testar as telas
- * antes de existir Supabase. Em modo backend nada disto e usado.
+ * Coleções do modo local, sem backend (ver lib/env.ts). Não é banco, é um
+ * array no AsyncStorage, o suficiente para navegar e testar as telas. No modo
+ * backend nada disso é usado.
  */
 const PREFIX = 'yvy:store:';
 

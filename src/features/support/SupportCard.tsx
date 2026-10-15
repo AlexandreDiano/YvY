@@ -8,8 +8,8 @@ import { pixPayload } from '@/lib/pix';
 import { Button, Card, Txt, radius, space } from '@/ui';
 
 /**
- * Apoio por Pix, sem valor sugerido: quem quiser manda quanto quiser.
- * Só para membro confirmado (quem chama decide) e só com EXPO_PUBLIC_PIX_KEY.
+ * Apoio por Pix sem valor sugerido, cada um manda quanto quiser. Só para
+ * membro confirmado (quem chama decide) e só se tiver EXPO_PUBLIC_PIX_KEY.
  */
 export function SupportCard() {
   const [more, setMore] = useState(false);
@@ -69,7 +69,7 @@ const s = StyleSheet.create({
   qr: {
     alignSelf: 'center',
     padding: space.md,
-    backgroundColor: '#FFFFFF', // QR sempre em fundo claro: leitor falha com QR invertido
+    backgroundColor: '#FFFFFF', // QR sempre em fundo claro, leitor falha com QR invertido
     borderRadius: radius.md,
   },
 });

@@ -1,8 +1,8 @@
 import type { CheckResult, FactCheck } from '@/lib/db.types';
 
 /**
- * Base de checagem inicial — secao 6.2 de docs/CONTEXT.md.
- * Mesma regra editorial de cards.ts: transcricao literal, com fonte.
+ * Base inicial de checagem, seção 6.2 do docs/CONTEXT.md. Vale a mesma regra
+ * do cards.ts: transcrição literal, com fonte.
  */
 
 export type SeedCheck = Omit<FactCheck, 'id' | 'created_at' | 'is_active'>;
@@ -58,7 +58,7 @@ export const SEED_CHECKS: SeedCheck[] = [
   },
 ];
 
-/** Selo visual de cada resultado (tela 7.8). */
+/** Selo de cada resultado. */
 export const CHECK_LABEL: Record<CheckResult, string> = {
   true: 'Verdade',
   half_true: 'Meio verdade',

@@ -21,11 +21,11 @@ import {
 import { IconBallot, IconSearch } from '@/ui/icons';
 
 /**
- * Área pública — sem conta, sem sessão.
+ * Área pública, sem conta nem sessão.
  *
- * É o que o app oferece a quem não tem convite: as propostas com fonte e a
- * checagem de boato, que é justamente o material feito para circular no
- * WhatsApp (seção 10.2). Estrutura de mobilização não aparece aqui.
+ * É o que tem para quem não recebeu convite: propostas com fonte e a checagem
+ * de boato, que é o material feito para circular no WhatsApp. Nada da
+ * estrutura de mobilização aparece aqui.
  */
 export default function Publico() {
   const router = useRouter();

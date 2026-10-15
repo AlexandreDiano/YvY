@@ -19,7 +19,6 @@ import {
 } from '@/ui';
 import { IconShare } from '@/ui/icons';
 
-/** Tela 7.7 — detalhe do card de proposta. */
 export default function DetalheProposta() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();

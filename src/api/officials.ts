@@ -4,19 +4,17 @@ import { readCache, withCache } from '@/lib/cache';
 /**
  * Transparência: o que quem foi eleito está votando e propondo.
  *
- * Fonte única: APIs oficiais de dados abertos da Câmara e do Senado, chamadas
- * direto do aparelho (CORS liberado nas duas). Não passa pelo Supabase, então
- * modo local e modo Supabase usam o mesmo caminho — não há "segundo caminho"
- * para manter aqui.
+ * Tudo vem das APIs de dados abertos da Câmara e do Senado, chamadas direto
+ * do aparelho (as duas liberam CORS, menos o e-Cidadania no navegador). Não
+ * passa pelo Supabase, então modo local e modo Supabase usam o mesmo caminho.
  *
- * Regra editorial: o app só repete campos da API — identificação,
- * ementa, data, situação, placar — e aponta o link oficial. Nada de resumo,
- * adjetivo ou seleção de "destaques"; a ordem é sempre por data.
+ * Do ponto de vista editorial o app só repete campos da API (identificação,
+ * ementa, data, situação, placar) e aponta o link oficial. Nada de resumo,
+ * adjetivo ou "destaques", e a ordem é sempre por data.
  *
- * Cache: são atos públicos de agentes públicos no exercício do mandato, não
- * dado pessoal de cidadão. Por isso podem ir para o cache de disco
- * (src/lib/cache.ts) — diferente de eleitor. Nada além de nome parlamentar,
- * partido e UF é guardado sobre a pessoa.
+ * Pode ir para o cache de disco (src/lib/cache.ts) porque são atos públicos de
+ * agente público no mandato, não dado pessoal de cidadão. Da pessoa só se
+ * guarda nome parlamentar, partido e UF.
  */
 
 const CAMARA = 'https://dadosabertos.camara.leg.br/api/v2';
@@ -25,9 +23,9 @@ const HOUR = 1000 * 60 * 60;
 const DAY = 24 * HOUR;
 
 /**
- * Cache primeiro: dentro de `freshMs` nem vai à rede — cada abertura da tela
- * de votações custaria ~45 requisições em 3G. Depois disso, rede com o cache
- * como reserva quando ela cai.
+ * Cache primeiro: dentro de `freshMs` nem vai à rede, porque cada abertura da
+ * tela de votações custaria umas 45 requisições em 3G. Passado isso, vai à
+ * rede e usa o cache de reserva se ela cair.
  */
 async function cached<T>(
   key: string,
@@ -41,14 +39,14 @@ async function cached<T>(
 }
 
 /**
- * Só o mandato vigente: quem não está mais no cargo não aparece, e o que
- * aparece é do mandato atual.
- *   Congresso (legislatura 57, eleitos em 2022)   2023-02-01 → 2027-01-31
- *   Presidente e governador (eleitos em 2022)     2023-01-01 → 2026-12-31
- *   Prefeito e vereador (eleitos em 2024)         2025-01-01 → 2028-12-31
- * Senador eleito em 2018 está no 2º tempo do mandato (2019–2027): mostramos
- * o que fez nesta legislatura, a mesma janela dos deputados.
- * Trocar estas datas quando os eleitos de 2026 tomarem posse.
+ * Só o mandato atual: quem saiu do cargo não aparece, e o que aparece é do
+ * mandato atual.
+ *   Congresso (legislatura 57, eleitos em 2022)   2023-02-01 a 2027-01-31
+ *   Presidente e governador (eleitos em 2022)     2023-01-01 a 2026-12-31
+ *   Prefeito e vereador (eleitos em 2024)         2025-01-01 a 2028-12-31
+ * Senador eleito em 2018 está na segunda metade do mandato (2019 a 2027), e
+ * mostramos o que fez nesta legislatura, a mesma janela dos deputados.
+ * Trocar essas datas quando os eleitos de 2026 tomarem posse.
  */
 export const MANDATE = {
   congress: '2023-02-01',
@@ -56,7 +54,7 @@ export const MANDATE = {
   municipal: '2025-01-01',
 } as const;
 
-/** Tipos que viram lei ou mudam a Constituição. Requerimento fica de fora: é ruído. */
+/** Tipos que viram lei ou mudam a Constituição. Requerimento fica de fora, é ruído. */
 const BILL_TYPES = ['PL', 'PLP', 'PEC', 'PDL'];
 
 export type House = 'camara' | 'senado';
@@ -109,7 +107,7 @@ export type Bill = {
   date: string;
   status: string | null;
   url: string;
-  /** Situação resumida + data da situação ("Aprovado", "2017-07-26"). */
+  /** Situação resumida e data da situação ("Aprovado", "2017-07-26"). */
   outcome?: BillOutcome | null;
 };
 
@@ -141,7 +139,7 @@ export function outcomeOf(raw: string | null | undefined, date: string | null | 
 
 type CamaraStatus = { dados: { statusProposicao: { dataHora: string | null; descricaoSituacao: string | null } } };
 
-/** Situação atual de cada projeto da Câmara (uma consulta por projeto, em paralelo, com cache). */
+/** Situação atual de cada projeto da Câmara, uma consulta por projeto, em paralelo e com cache. */
 async function withCamaraOutcomes(bills: Bill[]): Promise<Bill[]> {
   const res = await Promise.allSettled(
     bills.map((b) => getJson<CamaraStatus>(`${CAMARA}/proposicoes/${b.id}`)),
@@ -177,7 +175,7 @@ function asList<T>(v: T | T[] | undefined | null): T[] {
   return Array.isArray(v) ? v : [v];
 }
 
-/** URLs do Senado vêm em http://; Android e PWA bloqueiam. */
+/** URLs do Senado vêm em http://, que Android e PWA bloqueiam. */
 function https(url: string): string {
   return url.replace(/^http:\/\//, 'https://');
 }
@@ -209,8 +207,8 @@ async function camaraVotes(): Promise<Vote[]> {
   const { dados } = await getJson<{ dados: CamaraVote[] }>(
     `${CAMARA}/votacoes?idOrgao=180&ordem=DESC&ordenarPor=dataHoraRegistro&itens=15`,
   );
-  // A lista não diz qual proposição foi votada ("Aprovada a Redação Final."):
-  // o detalhe diz. Só para estas 15, em paralelo; falha num não derruba os outros.
+  // A lista não diz qual proposição foi votada ("Aprovada a Redação Final."),
+  // o detalhe diz. Só para essas 15, em paralelo, e se uma falha as outras seguem.
   const details = await Promise.allSettled(
     dados.map((v) => getJson<{ dados: CamaraVoteDetail }>(`${CAMARA}/votacoes/${v.id}`)),
   );
@@ -232,7 +230,7 @@ async function camaraVotes(): Promise<Vote[]> {
       detail: prop ? v.descricao : null,
       author: by?.name ?? null,
       coauthors: by?.coauthors ?? 0,
-      // Ficha da proposição lista as votações dela; sem proposição, a sessão.
+      // a ficha da proposição lista as votações dela; sem proposição, usa a sessão
       url: prop
         ? `https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=${prop.id}`
         : eventId
@@ -243,9 +241,9 @@ async function camaraVotes(): Promise<Vote[]> {
 }
 
 /**
- * Primeiro signatário de cada proposição. A lista de autores não vem
- * ordenada: ordena por `ordemAssinatura`. Partido e UF são os ATUAIS do
- * deputado (a API não guarda o da época da autoria).
+ * Primeiro signatário de cada proposição. A lista de autores vem fora de
+ * ordem, então ordena por `ordemAssinatura`. Partido e UF são os atuais do
+ * deputado, a API não guarda os da época.
  */
 async function camaraAuthors(propIds: number[]): Promise<Map<number, { name: string; coauthors: number }>> {
   const lists = await Promise.allSettled(
@@ -329,10 +327,10 @@ async function senadoVotes(): Promise<Vote[]> {
   const authors = await senadoAuthors([
     ...new Set(list.flatMap((v) => (v.codigoMateria ? [v.codigoMateria] : []))),
   ]);
-  // Projeto que veio da Câmara tem como autor formal "Câmara dos Deputados".
-  // Quem propôs de fato está na Câmara: busca lá pela mesma sigla/número/ano.
-  // Só vale de 2019 em diante, quando as duas casas passaram a usar numeração
-  // única; antes disso o mesmo número pode ser outro projeto.
+  // Projeto que veio da Câmara tem "Câmara dos Deputados" como autor formal.
+  // Quem propôs de fato está na Câmara, então busca lá pela sigla/número/ano.
+  // Só vale de 2019 em diante, quando as casas passaram a usar numeração única;
+  // antes disso o mesmo número pode ser outro projeto.
   const fromCamara = new Map<string, number>(); // "PLP 74/2026" -> id na Câmara
   const origin = [
     ...new Set(
@@ -447,8 +445,8 @@ export async function getVote(id: string): Promise<Vote | null> {
 }
 
 /**
- * Como cada parlamentar votou. Senado vem junto da votação; Câmara é uma
- * consulta à parte. Lista vazia = votação simbólica ou secreta.
+ * Como cada parlamentar votou. No Senado vem junto da votação; na Câmara é
+ * outra consulta. Lista vazia quer dizer votação simbólica ou secreta.
  */
 export async function listBallots(vote: Vote, stepId?: string): Promise<Ballot[]> {
   const step = vote.steps?.find((s) => s.id === stepId);
@@ -603,8 +601,8 @@ export async function listBills(
         const { dados } = (await res.json()) as { dados: CamaraBill[] };
         return { bills: await withCamaraOutcomes(dados.map(camaraBill)), total: total || dados.length };
       }
-      // Sem filtro de data nem de tipo na API (~300 KB tramitando, ~1 MB com
-      // a carreira toda). Por isso só busca quando a pessoa toca no senador.
+      // A API não filtra por data nem por tipo (~300 KB só o que tramita, ~1 MB
+      // com a carreira toda), por isso só busca quando a pessoa toca no senador.
       const list = await getJson<SenadoProcesso[]>(
         `${SENADO}/processo?codigoParlamentarAutor=${official.id}` + (scope === 'mandate' ? '&tramitando=S' : ''),
       );
@@ -659,11 +657,10 @@ const isPlenarySession = (e: CamaraEvent) =>
   e.descricaoTipo === 'Sessão Deliberativa' && e.situacao === 'Encerrada' && e.orgaos.some((o) => o.sigla === 'PLEN');
 
 /**
- * Presença no Plenário neste mandato: sessões deliberativas em que o
- * deputado registrou presença ÷ sessões deliberativas realizadas. Conta só
- * desde o primeiro registro dele (suplente que assumiu depois não é
- * cobrado pelo período em que não era deputado). Ausência justificada não é
- * separada: a API não informa.
+ * Presença no Plenário neste mandato: sessões deliberativas com presença
+ * registrada dividido pelas sessões realizadas. Conta só a partir do primeiro
+ * registro do deputado, para suplente que assumiu depois não ser cobrado pelo
+ * tempo em que não era deputado. A API não separa falta justificada.
  */
 export async function deputyPresence(id: string): Promise<Presence | null> {
   const today = isoDay(new Date());
@@ -691,7 +688,7 @@ export async function deputyPresence(id: string): Promise<Presence | null> {
   return data ?? null;
 }
 
-/** Medidas provisórias: o ato com força de lei que a Presidência edita sozinha. */
+/** Medidas provisórias, o ato com força de lei que a Presidência edita sozinha. */
 export async function listPresidentialMeasures(): Promise<{ bills: Bill[]; stale: boolean }> {
   const { data, stale } = await cached(
     'bills:v2:presidencia',
@@ -711,10 +708,10 @@ export async function listPresidentialMeasures(): Promise<{ bills: Bill[]; stale
 // ------------------------------------------------------------ estado e cidade
 
 /**
- * Assembleias legislativas. Não há API comum entre as 27; o app só aponta o
- * site oficial. Conferidas em 11/10/2026 — AP, MG, PB e RR não responderam
- * do ambiente de teste (provável bloqueio/instabilidade), domínios mantidos
- * por serem os oficiais conhecidos. Conferir de novo antes do lançamento.
+ * Assembleias legislativas. As 27 não têm API em comum, então o app só aponta
+ * o site oficial. Conferidas em 11/10/2026: AP, MG, PB e RR não responderam do
+ * ambiente de teste (provavelmente bloqueio ou instabilidade), mas os domínios
+ * ficaram porque são os oficiais. Conferir de novo antes do lançamento.
  */
 export const ASSEMBLEIA: Record<string, string> = {
   AC: 'https://www.al.ac.leg.br',
@@ -749,7 +746,7 @@ export const ASSEMBLEIA: Record<string, string> = {
 export const UFS = Object.keys(ASSEMBLEIA);
 
 const QD = 'https://api.queridodiario.org.br';
-/** Querido Diário é projeto da sociedade civil e responde devagar (10–30 s). */
+/** O Querido Diário é projeto da sociedade civil e demora para responder (10 a 30 s). */
 const QD_TIMEOUT = 40000;
 
 export type Gazette = { date: string; edition: string | null; extra: boolean; url: string };
@@ -758,7 +755,7 @@ export type CityGazettes = {
   city: string;
   /** Site oficial onde a prefeitura publica o diário. */
   officialUrl: string | null;
-  /** Edições recentes indexadas pelo Querido Diário. Vazio = cidade sem cobertura. */
+  /** Edições recentes indexadas pelo Querido Diário. Vazio quer dizer cidade sem cobertura. */
   gazettes: Gazette[];
 };
 
@@ -771,9 +768,9 @@ function fold(s: string): string {
 }
 
 /**
- * Diário oficial do município — onde saem decretos, nomeações e contratos da
- * prefeitura. Fonte: Querido Diário (Open Knowledge Brasil), que indexa parte
- * dos 5.570 municípios; para os demais, devolve só o link oficial do diário.
+ * Diário oficial do município, onde saem decretos, nomeações e contratos da
+ * prefeitura. Vem do Querido Diário (Open Knowledge Brasil), que cobre parte
+ * dos 5.570 municípios. Para os outros devolve só o link oficial do diário.
  */
 export async function cityGazettes(city: string, uf: string): Promise<{ data: CityGazettes | null; stale: boolean }> {
   return cached(
@@ -806,9 +803,9 @@ export async function cityGazettes(city: string, uf: string): Promise<{ data: Ci
 
 const ECIDADANIA = 'https://www12.senado.leg.br/ecidadania';
 /**
- * De onde a lista é lida. O Senado não libera CORS: no site, o pedido vai
- * para o próprio domínio e a Vercel repassa ao e-Cidadania (rewrite em
- * vercel.json). Link de votar continua apontando direto para o Senado.
+ * De onde a lista é lida. O Senado não libera CORS, então no site o pedido vai
+ * para o nosso domínio e a Vercel repassa ao e-Cidadania (rewrite no
+ * vercel.json). O link de votar continua indo direto para o Senado.
  */
 const ECIDADANIA_FETCH = Platform.OS === 'web' ? '/ecidadania' : ECIDADANIA;
 
@@ -862,10 +859,10 @@ export function parseConsultations(html: string): Consultation[] {
 }
 
 /**
- * Consultas públicas abertas no e-Cidadania (Senado), na ordem da página.
- * O Senado não tem API para isso: o app lê a página pública. Se o layout do
- * site mudar, a lista vem vazia e a tela oferece o link direto.
- * No navegador passa pelo rewrite da Vercel (ECIDADANIA_FETCH).
+ * Consultas públicas abertas no e-Cidadania, na ordem da página. O Senado não
+ * tem API para isso e o app lê a página pública. Se o layout mudar a lista
+ * vem vazia e a tela mostra o link direto. No navegador passa pelo rewrite da
+ * Vercel (ECIDADANIA_FETCH).
  */
 export async function listConsultations(page = 1): Promise<{ list: Consultation[]; stale: boolean }> {
   const { data, stale } = await cached(
@@ -874,7 +871,7 @@ export async function listConsultations(page = 1): Promise<{ list: Consultation[
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 20000);
       try {
-        // 100 por página; o e-Cidadania tem dezenas de páginas.
+        // 100 por página, e o e-Cidadania tem dezenas de páginas
         const res = await fetch(`${ECIDADANIA_FETCH}/pesquisamateria?p=${page}`, { signal: ctrl.signal });
         if (!res.ok) throw new Error(`e-Cidadania respondeu ${res.status}.`);
         const list = parseConsultations(await res.text());

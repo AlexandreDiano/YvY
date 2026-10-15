@@ -4,11 +4,11 @@ import { CHECK_LABEL } from '@/data/factChecks';
 import { SEVERITY } from '@/ui/Badge';
 
 /**
- * Compartilhamento por texto (WhatsApp e o canal principal, secao 10.2).
+ * Compartilhamento por texto, pensando no WhatsApp.
  *
- * O contexto pede imagem gerada do card. Imagem exige render off-screen
- * (react-native-view-shot) e sobe o custo do bundle; texto com fonte funciona
- * em qualquer aparelho e em 3G. Trocar aqui quando a fase de polimento chegar.
+ * O contexto pede imagem gerada do card, mas isso exige render fora da tela
+ * (react-native-view-shot) e pesa no bundle. Texto com fonte funciona em
+ * qualquer aparelho e no 3G. Se um dia der tempo, é aqui que troca.
  */
 
 export async function shareCard(card: ProposalCard): Promise<void> {
@@ -30,9 +30,9 @@ export async function shareCard(card: ProposalCard): Promise<void> {
 }
 
 /**
- * Compartilha checagem APROVADA PELA EQUIPE (fact_checks). Checagem por IA
- * não passa por aqui (revisão jurídica de 12/10): no WhatsApp quase ninguém
- * lê o aviso "feita por IA" no fim, e o print corta.
+ * Compartilha checagem aprovada pela equipe (fact_checks). Checagem só da IA
+ * não passa por aqui (revisão jurídica de 12/10): no WhatsApp quase ninguém lê
+ * o aviso de "feita por IA" no fim, e o print corta.
  */
 export async function shareCheck(check: {
   claim: string;
@@ -48,7 +48,7 @@ export async function shareCheck(check: {
     '',
     check.explanation,
     check.source_name ? `Fonte: ${check.source_name}` : null,
-    // Link cru: WhatsApp transforma em clicavel e quem recebe confere sozinho.
+    // link cru: o WhatsApp deixa clicável e quem recebe confere sozinho
     check.source_url,
     '',
     'Checado pela equipe do YvY.',

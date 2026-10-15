@@ -1,9 +1,9 @@
 /**
- * Gera os seeds SQL do conteúdo editorial a partir dos arquivos TypeScript.
+ * Gera os seeds SQL do conteúdo editorial a partir dos .ts.
  *
- * src/data/cards.ts e src/data/factChecks.ts são a fonte única de verdade: o
- * app embute esse conteúdo para funcionar offline, e o banco recebe a mesma
- * coisa. Gerar evita as duas cópias divergirem.
+ * src/data/cards.ts e src/data/factChecks.ts são a fonte: o app embute esse
+ * conteúdo para funcionar offline e o banco recebe a mesma coisa. Gerando
+ * daqui as duas cópias não divergem.
  *
  *   node --experimental-strip-types scripts/gen-seed-sql.mjs
  */
@@ -15,7 +15,6 @@ import { SEED_CHECKS } from '../src/data/factChecks.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Literal SQL com escape de aspas simples. */
 const q = (v) => (v === null || v === undefined || v === '' ? 'null' : `'${String(v).replaceAll("'", "''")}'`);
 
 const header = (what, section) => `-- Yvy — ${what}.

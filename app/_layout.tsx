@@ -20,12 +20,11 @@ import { OfflineBanner } from "@/ui/OfflineBanner";
 import { initMonitoring, withMonitoring } from "@/lib/monitoring";
 import { installWebAlert } from "@/lib/webAlert";
 
-// Antes de qualquer tela: erro no carregamento também precisa chegar.
+// antes de qualquer tela, porque erro no carregamento também tem que chegar
 initMonitoring();
-// No site, Alert.alert vira caixa do navegador (senão "Sair" etc. ficam mudos).
+// no site o Alert.alert vira caixa do navegador (sem isso o "Sair" e outros não fazem nada)
 installWebAlert();
 
-/** Tema da navegação com as cores do Yvy (claro ou escuro, ver src/ui/theme.ts). */
 const NAV_THEME = {
   ...(isDark ? DarkTheme : DefaultTheme),
   colors: {
@@ -141,12 +140,11 @@ function RootLayout() {
 }
 
 /**
- * Enquanto o admin vê o app como visitante, uma faixa EMBAIXO leva de volta à
- * conta. Embaixo porque visitante não tem barra de abas, e porque no topo o
- * cabeçalho nativo do Android somava a altura da barra de status de novo
- * (espaço grande entre a faixa e o título). As telas recebem inset de baixo
- * zero: a faixa já ocupa a área segura. A árvore é a mesma nos dois modos
- * para não remontar a navegação.
+ * Quando o admin está vendo o app como visitante aparece uma faixa embaixo
+ * para voltar à conta. Fica embaixo porque visitante não tem barra de abas, e
+ * no topo o cabeçalho do Android somava de novo a altura da barra de status.
+ * As telas recebem inset de baixo zero porque a faixa já ocupa a área segura.
+ * A árvore é a mesma nos dois modos para não remontar a navegação.
  */
 function VisitorViewFrame({ children }: { children: ReactNode }) {
   const { visitorView, setVisitorView } = useAuth();

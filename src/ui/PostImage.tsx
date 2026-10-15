@@ -6,8 +6,8 @@ import { Txt } from '@/ui/Text';
 import { radius, space } from '@/ui/tokens';
 
 /**
- * Foto de post: no feed aparece inteira (proporção real, sem cortar); tocar
- * abre em tela cheia com zoom de pinça e arrastar. Toque duplo volta ao normal.
+ * Foto de post. No feed aparece inteira, na proporção real. O toque abre em
+ * tela cheia com zoom de pinça e arrastar, e toque duplo volta ao normal.
  */
 export function PostImage({ uri }: { uri: string }) {
   const [ratio, setRatio] = useState(4 / 3);

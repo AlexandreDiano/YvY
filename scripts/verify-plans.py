@@ -3,8 +3,8 @@
 Confere os itens dos planos de governo (tabela government_plans, migration
 0027) palavra a palavra contra o texto do PDF oficial.
 
-A IA só localiza trechos; o que aparece no app tem que estar LITERALMENTE no
-plano (regra editorial: transcrição, nunca resumo). Item que não bate com o
+A IA só localiza trechos. O que aparece no app tem que estar literalmente no
+plano, porque é transcrição e nunca resumo. Item que não bate com o
 texto do PDF (na página indicada ou nas vizinhas) é descartado; a página é
 corrigida para onde o trecho de fato está.
 

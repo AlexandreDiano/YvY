@@ -2,11 +2,11 @@ import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/lib/db.types';
 
 /**
- * Papéis pelo app (migration 0032). Admin e quem tem a permissão de "mudar
- * papéis" alternam membro ↔ moderador; só admin dá ou tira essa permissão.
- * Tudo por RPC: `role` não tem UPDATE para o cliente.
+ * Papéis pelo app (migration 0032). Admin e quem tem a permissão de mudar
+ * papéis alternam membro e moderador; só admin dá ou tira essa permissão. É
+ * tudo por RPC porque `role` não tem UPDATE para o cliente.
  *
- * Convite (0036): por padrão só moderador/admin convida. Admin, quem muda
+ * Convite (0036): por padrão só moderador e admin convidam. Admin, quem muda
  * papéis e o moderador do bairro liberam membro por membro.
  */
 export type Member = {
@@ -46,7 +46,7 @@ export async function setRoleManager(userId: string, enabled: boolean): Promise<
   if (error) throw error;
 }
 
-/** Quem está logado pode gerar convite? Modo local: todo membro (para testar). */
+/** A pessoa logada pode gerar convite? No modo local todo membro pode, para testar. */
 export async function canInvite(isBaseMember: boolean): Promise<boolean> {
   if (!supabase) return isBaseMember;
   const { data, error } = await supabase.rpc('can_invite' as never);

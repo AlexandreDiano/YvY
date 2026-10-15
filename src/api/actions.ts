@@ -2,7 +2,7 @@ import type { ActionListed, ActionParticipant, ActionStatus, ActionType, Profile
 import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
 
-/** Acoes de mobilizacao (fluxo 4.3 / tela 7.3). */
+/** Ações de mobilização. */
 
 export const ACTION_TYPES: { key: ActionType; label: string }[] = [
   { key: 'panfletagem', label: 'Panfletagem' },
@@ -178,7 +178,7 @@ export async function cancelPresence(actionId: string, userId: string): Promise<
   if (res.error) throw res.error;
 }
 
-/** "Estou aqui" no dia da acao (fluxo 4.3, passo 8). */
+/** "Estou aqui" no dia da ação. */
 export async function checkIn(actionId: string, userId: string): Promise<void> {
   const at = new Date().toISOString();
   if (!supabase) {

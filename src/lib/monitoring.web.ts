@@ -5,13 +5,13 @@ import { safeUrl, scrubDeep } from '@/lib/monitoring.shared';
 export { scrub } from '@/lib/monitoring.shared';
 
 /**
- * Versão site/PWA do relatório de erros (ver monitoring.ts). Mesmas regras de
+ * Relatório de erros no site/PWA (ver monitoring.ts), com as mesmas regras de
  * anonimato do APK.
  *
- * O Sentry entra DEPOIS de o app abrir (import dinâmico = arquivo separado):
- * o Metro não descarta código não usado e o SDK somava ~180 KB comprimidos ao
- * JS inicial — peso demais para quem abre no 3G. Até ele chegar, erros ficam
- * numa fila e são enviados quando carregar.
+ * O Sentry só carrega depois que o app abre (import dinâmico, arquivo
+ * separado). O Metro não descarta código não usado e o SDK somava ~180 KB
+ * comprimidos ao JS inicial, pesado demais para quem abre no 3G. Até ele
+ * chegar os erros ficam numa fila.
  */
 type SentryBrowser = typeof import('@sentry/browser');
 
@@ -30,9 +30,9 @@ async function load() {
   const S = await import('@sentry/browser');
   S.init({
     dsn: env.sentryDsn,
-    // Bloqueador de anúncio/rastreador barra *.sentry.io: o relatório vai para
-    // o próprio site (/monitoring) e a Vercel repassa ao Sentry (vercel.json).
-    // Em localhost não há esse repasse.
+    // Bloqueador de anúncio barra *.sentry.io, então o relatório vai para o
+    // próprio site (/monitoring) e a Vercel repassa ao Sentry (vercel.json).
+    // Em localhost esse repasse não existe.
     tunnel: /^(localhost|127\.)/.test(location.hostname) ? undefined : '/monitoring',
     environment: __DEV__ ? 'development' : 'production',
     sendDefaultPii: false,
@@ -41,7 +41,7 @@ async function load() {
       S.globalHandlersIntegration(),
       S.linkedErrorsIntegration(),
       S.dedupeIntegration(),
-      // Sem console e sem DOM (texto de tela pode ter nome/telefone).
+      // sem console e sem DOM (texto de tela pode ter nome ou telefone)
       S.breadcrumbsIntegration({ console: false, dom: false, fetch: true, xhr: true, history: true }),
     ],
     tracesSampleRate: 0,
@@ -72,7 +72,7 @@ export function initMonitoring(): void {
   window.addEventListener('error', onError);
   window.addEventListener('unhandledrejection', onRejection);
   const start = () => void load().catch(() => undefined);
-  // Depois que a página carregou e o navegador está livre.
+  // depois que a página carregou e o navegador está livre
   const idle = () =>
     'requestIdleCallback' in window ? window.requestIdleCallback(start, { timeout: 5000 }) : setTimeout(start, 2000);
   if (document.readyState === 'complete') idle();
@@ -86,8 +86,8 @@ export function withMonitoring<P extends object>(Root: ComponentType<P>): Compon
 
 export function sendTestError(): boolean {
   if (!wanted) return false;
-  // Cada teste único: erro igual ao anterior é descartado pela deduplicação
-  // e, no painel, entraria no mesmo issue (só o contador sobe).
+  // Cada teste tem que ser único: erro igual ao anterior é descartado pela
+  // deduplicação e no painel cairia no mesmo issue (só o contador sobe).
   const stamp = new Date().toLocaleString('pt-BR');
   const err = new Error(`Erro de teste do YvY (Perfil › Admin) — ${stamp}`);
   if (sdk) sdk.captureException(err, { fingerprint: ['yvy-test', stamp] });
@@ -97,7 +97,7 @@ export function sendTestError(): boolean {
 
 export const monitoringEnabled = () => wanted;
 
-/** Problema esperado mas que a equipe precisa ver (sem dado pessoal). */
+/** Problema esperado que a equipe precisa ver (sem dado pessoal). */
 export function reportIssue(message: string, tags: Record<string, string> = {}): void {
   if (!wanted) return;
   if (sdk) sdk.captureMessage(message, { level: 'warning', tags });

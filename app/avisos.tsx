@@ -6,7 +6,6 @@ import type { AppNotification } from '@/lib/db.types';
 import { relativeTime } from '@/lib/format';
 import { Button, Card, EmptyState, Loading, Row, Screen, Txt, color } from '@/ui';
 
-/** Avisos da pessoa: post publicado ou recusado, com o motivo da moderação. */
 export default function Avisos() {
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -14,7 +13,7 @@ export default function Avisos() {
   const load = useCallback(async () => {
     const list = await listNotifications();
     setItems(list);
-    // Abriu a tela = leu. O contador da Base zera na próxima vez.
+    // abriu a tela, leu. O contador da Base zera na próxima vez
     if (list.some((n) => !n.read_at)) await markAllRead();
   }, []);
 

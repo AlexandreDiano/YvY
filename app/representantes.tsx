@@ -24,13 +24,13 @@ import { brDate } from '@/lib/format';
 import { Badge, Button, Card, Chip, Field, Loading, Row, Screen, Section, Txt, color, space } from '@/ui';
 
 /**
- * Quem foi eleito e o que está fazendo — do país à cidade da pessoa.
+ * Quem foi eleito e o que está fazendo, do país até a cidade da pessoa.
  *
- * UF e cidade vêm do perfil (o CEP do cadastro) e só servem para montar as
- * consultas neste aparelho; nada sobre o que a pessoa consultou vai para o
+ * UF e cidade vêm do perfil (do CEP do cadastro) e só servem para montar as
+ * consultas aqui no aparelho. O que a pessoa consulta não vai para o nosso
  * servidor. Sem perfil, ela escolhe a UF.
  *
- * Ordem e conteúdo são os das fontes oficiais. Todo parlamentar da UF aparece,
+ * Ordem e conteúdo são os das fontes oficiais: todo parlamentar da UF aparece,
  * em ordem alfabética, sem destaque.
  */
 export default function Representantes() {
@@ -147,8 +147,8 @@ function UfSections({ uf, city }: { uf: string; city: string | null }) {
 }
 
 /**
- * Brasil todo: 81 senadores e 513 deputados. Lista longa demais para rolar,
- * então busca por nome, partido ou UF e mostra no máximo 30 por vez.
+ * Brasil todo dá 81 senadores e 513 deputados, comprido demais para rolar.
+ * Então é busca por nome, partido ou UF, no máximo 30 por vez.
  */
 function NationalSections() {
   const [all, setAll] = useState<Official[] | null>(null);
@@ -196,10 +196,10 @@ function NationalSections() {
 }
 
 /**
- * Eleitos em 2026, do TSE. Quem já está no Congresso (reeleito ou mudando
- * de casa) é ligado ao cadastro da Câmara/Senado pelo nome e UF, e aí dá
- * para ver o que já fez. Quem nunca teve mandato federal não tem histórico
- * nessas bases — a tela diz isso.
+ * Eleitos em 2026, pelo TSE. Quem já está no Congresso (reeleito ou trocando
+ * de casa) é ligado ao cadastro da Câmara/Senado por nome e UF, e aí dá para
+ * ver o que já fez. Quem nunca teve mandato federal não tem histórico nessas
+ * bases, e a tela fala isso.
  */
 function ElectedSections({ uf }: { uf: string | null }) {
   const [list, setList] = useState<Elected[] | null>(null);
@@ -233,7 +233,7 @@ function ElectedSections({ uf }: { uf: string | null }) {
 
   const byName = new Map(current.map((o) => [`${fold(o.name)}|${o.uf}`, o]));
   const byNameAnyUf = new Map(current.map((o) => [fold(o.name), o]));
-  // Presidente concorre pelo Brasil (UF "BR"): casa só pelo nome.
+  // presidente concorre pelo Brasil (UF "BR"), casa só pelo nome
   const match = (e: Elected) =>
     byName.get(`${fold(e.nome_urna)}|${e.uf}`) ?? (e.uf === 'BR' ? byNameAnyUf.get(fold(e.nome_urna)) : null) ?? null;
   const term = fold(q);
@@ -307,9 +307,9 @@ function ElectedCard({ e, official }: { e: Elected; official: Official | null })
 }
 
 /**
- * Presidente e governador não apresentam projetos de lei como parlamentar:
- * mostram plano de governo (registrado no TSE) e, se já têm cargo no
- * Congresso, o que fizeram nele.
+ * Presidente e governador não apresentam projeto de lei como parlamentar.
+ * Mostra o plano de governo do TSE e, se já tiveram cargo no Congresso, o
+ * que fizeram lá.
  */
 function ExecutiveCard({ e, status, official }: { e: Elected; status: string; official: Official | null }) {
   const router = useRouter();
@@ -470,7 +470,7 @@ function OfficialCard({ official, note }: { official: Official; note?: string })
   );
 }
 
-/** Presença no Plenário e salário (deputado federal), das fontes da Câmara. */
+/** Presença no Plenário e salário (deputado federal), dados da Câmara. */
 function DeputyFacts({ id }: { id: string }) {
   const [presence, setPresence] = useState<Presence | null | undefined>(undefined);
 

@@ -39,8 +39,8 @@ import { IconCamera, IconFlag } from '@/ui/icons';
 const SCOPES: FeedScope[] = ['bairro', 'estado', 'regiao', 'brasil'];
 
 /**
- * Tela 7.4 — Base. Quatro níveis de feed (bairro, estado, região, Brasil).
- * Post de bairro passa pelo moderador do bairro; dos outros níveis, pelo admin.
+ * Feed da Base em quatro níveis: bairro, estado, região e Brasil. Post de
+ * bairro passa pelo moderador do bairro; o resto passa pelo admin.
  */
 export default function Base() {
   useNoScreenshots('base');
@@ -69,7 +69,7 @@ export default function Base() {
     [profile, scope],
   );
 
-  // Recarrega sempre que a aba ganha foco: post aprovado aparece sem puxar a tela.
+  // recarrega a cada foco, assim post aprovado aparece sem precisar puxar a tela
   useFocusEffect(
     useCallback(() => {
       setPage(0);
@@ -99,8 +99,8 @@ export default function Base() {
         : await ImagePicker.launchImageLibraryAsync({ ...opts, allowsMultipleSelection: false });
     const asset = picked.canceled ? null : picked.assets[0];
     if (!asset) return;
-    // No site: diminui e tira o EXIF (GPS) antes de subir. No celular o
-    // seletor já fez isso.
+    // No site a imagem chega original, então diminui e tira o EXIF (que tem GPS).
+    // No celular o seletor já faz isso.
     const img = await shrinkImage(asset, { maxSide: 1280, quality: 0.7 });
     if (img) setImage(img);
   }

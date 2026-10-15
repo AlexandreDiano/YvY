@@ -4,12 +4,12 @@ import { Platform } from 'react-native';
 /**
  * Instalação do PWA (só web).
  *
- * O Chrome do Android dispara `beforeinstallprompt` uma vez, cedo, às vezes
- * antes do React montar. Por isso quem segura o evento é o script em
- * app/+html.tsx (guarda em `window.__yvyInstall`); aqui só lemos.
+ * O Chrome do Android dispara `beforeinstallprompt` uma vez só, cedo, às
+ * vezes antes do React montar. Por isso quem segura o evento é o script do
+ * app/+html.tsx (guarda em `window.__yvyInstall`) e aqui a gente só lê.
  *
- * iPhone não tem evento nem API: o único caminho é Compartilhar → "Adicionar
- * à Tela de Início", então lá a gente mostra os passos.
+ * No iPhone não tem evento nem API. O único jeito é Compartilhar >
+ * "Adicionar à Tela de Início", então lá mostramos o passo a passo.
  */
 export type InstallKind =
   | 'none' // celular nativo, ou já aberto como app instalado
@@ -38,8 +38,8 @@ function detect(): InstallKind {
 }
 
 /**
- * Começa em 'none' e decide depois de montar: o HTML vem do build estático,
- * e decidir na renderização daria HTML diferente do que o navegador recebeu.
+ * Começa em 'none' e decide depois de montar. O HTML vem do build estático, e
+ * decidir na renderização geraria HTML diferente do que o navegador recebeu.
  */
 export function useInstall(): { kind: InstallKind; install: () => Promise<void>; url: string } {
   const [kind, setKind] = useState<InstallKind>('none');
@@ -62,7 +62,7 @@ export function useInstall(): { kind: InstallKind; install: () => Promise<void>;
     if (!ev) return;
     await ev.prompt();
     await ev.userChoice;
-    // O evento só vale uma vez, aceito ou não.
+    // o evento só vale uma vez, aceito ou não
     w.__yvyInstall = null;
     setKind(detect());
   }

@@ -11,7 +11,7 @@ type Props = TextInputProps & {
 };
 
 export function Field({ label, hint, error, style, multiline, secureTextEntry, ...rest }: Props) {
-  // Campo de senha ganha o "olhinho": conferir o que digitou antes de enviar.
+  // campo de senha ganha o "olhinho" para conferir o que digitou antes de enviar
   const [show, setShow] = useState(false);
   return (
     <View style={{ gap: space.xs }}>

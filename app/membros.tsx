@@ -26,10 +26,10 @@ const ROLE_COLOR: Record<string, string> = {
 
 /**
  * Membros e papéis. Admin e quem tem a permissão promovem a moderador e tiram;
- * só admin dá a permissão de mudar papéis. Convite (0036): admin, quem muda
- * papéis e o moderador do bairro liberam membro por membro — moderador só vê
- * os bairros que modera. O banco confere tudo de novo (RPCs da 0032/0036) —
- * esconder botão aqui é só conforto.
+ * só admin dá a permissão de mudar papel. Para convidar, admin, quem muda
+ * papéis e o moderador do bairro liberam membro por membro (o moderador só vê
+ * os bairros dele). O banco confere tudo de novo nas RPCs da 0032/0036,
+ * esconder botão aqui é só para não confundir.
  */
 export default function Membros() {
   const { profile, isAdmin, isModerator } = useAuth();

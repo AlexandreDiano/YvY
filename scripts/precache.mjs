@@ -1,7 +1,7 @@
-// Depois do `expo export -p web`: grava dist/precache.json com o que o
-// service worker (public/sw.js) baixa ao instalar — páginas de entrada,
-// todo JS/CSS de _expo/static e os ícones. Assim o PWA abre sem internet já
-// depois da primeira visita, sem depender de adivinhar nome de arquivo com hash.
+// Roda depois do `expo export -p web`. Grava dist/precache.json com o que o
+// service worker (public/sw.js) baixa na instalação: páginas de entrada, todo
+// JS/CSS de _expo/static e os ícones. Assim o PWA abre sem internet já depois
+// da primeira visita, sem ter que adivinhar nome de arquivo com hash.
 //
 //   node scripts/precache.mjs [pasta]   (padrão: dist)
 
@@ -28,7 +28,7 @@ const assets = walk(join(root, '_expo', 'static'))
 
 const files = [...PAGES, '/manifest.json', ...assets];
 
-// Versão muda quando qualquer arquivo muda: o SW novo apaga o cache velho.
+// a versão muda quando qualquer arquivo muda, e o SW novo apaga o cache velho
 const hash = createHash('sha256');
 for (const f of assets.sort()) hash.update(f).update(readFileSync(join(root, f)));
 

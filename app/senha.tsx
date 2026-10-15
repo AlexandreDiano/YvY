@@ -6,11 +6,11 @@ import { notify } from '@/lib/notify';
 import { Button, Field, Screen, Section, Txt } from '@/ui';
 
 /**
- * Esqueci a senha: código por e-mail, sem link.
+ * Esqueci a senha, com código por e-mail em vez de link.
  *
- * Link de recuperação dependeria de deep link (yvy:// no APK, exp:// no Expo
+ * Link de recuperação precisaria de deep link (yvy:// no APK, exp:// no Expo
  * Go) e de Redirect URL no Supabase. Código digitado funciona igual em todo
- * lugar — exige o template "Reset Password" com {{ .Token }}.
+ * lugar. Precisa do template "Reset Password" com {{ .Token }}.
  */
 export default function Senha() {
   const router = useRouter();
@@ -83,7 +83,7 @@ export default function Senha() {
         </>
       ) : (
         <>
-          {/* Mesma resposta exista ou não a conta: a tela não revela quem tem cadastro. */}
+          {/* Mesma resposta com ou sem conta, para a tela não revelar quem tem cadastro. */}
           <Txt variant="small" muted>
             Se existir uma conta com esse e-mail, chegou um código. Olhe também o spam. O código vale por pouco
             tempo.

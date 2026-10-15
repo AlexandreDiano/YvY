@@ -6,9 +6,9 @@ import { Txt } from '@/ui/Text';
 import { isDark } from '@/ui/theme';
 
 /**
- * Captcha (Cloudflare Turnstile) no site/PWA, desenhado direto na tela.
- * O script do Cloudflare só é baixado nas telas que pedem verificação
- * (entrar, cadastro, recuperar senha) — não pesa no resto do app.
+ * Captcha (Cloudflare Turnstile) no site/PWA, desenhado direto na tela. O
+ * script da Cloudflare só baixa nas telas que pedem verificação (entrar,
+ * cadastro, recuperar senha), então não pesa no resto do app.
  */
 type Turnstile = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
@@ -47,8 +47,8 @@ function loadTurnstile(): Promise<Turnstile> {
 
 export function Captcha({ onToken }: { onToken: (token: string | null) => void }) {
   const box = useRef<View>(null);
-  // Motivo da falha, mostrado na tela e mandado ao Sentry: 'script' = o
-  // arquivo da Cloudflare não carregou; número = código de erro do Turnstile.
+  // Motivo da falha, mostrado na tela e mandado ao Sentry. 'script' quer dizer
+  // que o arquivo da Cloudflare não carregou; número é código de erro do Turnstile.
   const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,13 +57,13 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
     loadTurnstile().then(
       (t) => {
         if (gone || !box.current) return;
-        // No react-native-web a ref de View é o próprio elemento do DOM.
+        // no react-native-web a ref de View é o próprio elemento do DOM
         id = t.render(box.current as unknown as HTMLElement, {
           sitekey: env.turnstileSiteKey,
           theme: isDark ? 'dark' : 'light',
           language: 'pt-br',
-          // Erro passageiro: o próprio Turnstile tenta de novo; token vencido
-          // é renovado sozinho.
+          // erro passageiro, o próprio Turnstile tenta de novo; token vencido
+          // renova sozinho
           retry: 'auto',
           'refresh-expired': 'auto',
           callback: (token: string) => {
@@ -74,8 +74,8 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
           'error-callback': (code: string) => {
             onToken(null);
             setFailed(String(code || 'desconhecido'));
-            // Domínio do site (não é dado pessoal): 110200 = domínio fora da lista
-            // de hostnames do widget no Cloudflare.
+            // domínio do site (não é dado pessoal). 110200 é domínio fora da lista
+            // de hostnames do widget no Cloudflare
             reportIssue('Turnstile falhou', {
               code: String(code || ''),
               standalone: String(isStandalone()),

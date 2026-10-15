@@ -6,11 +6,11 @@ import { supabase } from '@/lib/supabase';
 import { requestClaimCheck } from '@/api/claims';
 
 /**
- * Conteudo publico: cards de proposta e checagem de fatos.
+ * Conteúdo público: cards de proposta e checagem de fatos.
  *
- * Sempre tem resposta. Sem backend ou sem rede, cai no seed embutido no
- * bundle — este conteudo e identico ao de supabase/seed e nao muda sozinho,
- * entao servir a copia local e correto, nao um atalho.
+ * Sempre tem resposta. Sem backend ou sem rede usa o seed embutido no bundle,
+ * que é idêntico ao de supabase/seed e não muda sozinho, então servir a cópia
+ * local está certo e não é gambiarra.
  */
 
 const localCards: ProposalCard[] = SEED_CARDS.map((c, i) => ({
@@ -29,10 +29,10 @@ const localChecks: FactCheck[] = SEED_CHECKS.map((c, i) => ({
 }));
 
 /**
- * Card só vai ao ar com link para a fonte (decisão de 12/10, revisão
- * jurídica): "o que ele disse" sem link é a parte mais fácil de contestar
- * (direito de resposta, Lei 9.504 art. 58). Card sem `source_url` fica
- * guardado, mas não aparece, até a equipe editorial colocar o link.
+ * Card só vai ao ar com link para a fonte (revisão jurídica de 12/10). "O que
+ * ele disse" sem link é a parte mais fácil de contestar (direito de resposta,
+ * Lei 9.504 art. 58). Card sem `source_url` continua no banco, só não aparece
+ * até a equipe editorial colocar o link.
  */
 const publishable = (c: ProposalCard) => Boolean(c.source_url?.trim());
 
@@ -84,8 +84,8 @@ export async function listChecks(): Promise<FactCheck[]> {
 
 export type CheckOutcome = {
   /**
-   * editorial = base revisada pela equipe; auto = checagem automática (IA)
-   * já guardada; queued = entrou na fila agora; none = sem resposta.
+   * editorial: base revisada pela equipe. auto: checagem da IA já guardada.
+   * queued: acabou de entrar na fila. none: sem resposta.
    */
   kind: 'editorial' | 'auto' | 'queued' | 'none';
   result: CheckResult;
@@ -108,11 +108,11 @@ const NOT_FOUND = (claim: string): CheckOutcome => ({
 });
 
 /**
- * Checagem de um texto colado pelo usuario (fluxo 4.6).
+ * Checa um texto colado.
  *
- * No backend: RPC `search_fact_checks` usando pg_trgm (threshold 0.7).
- * Sem backend: similaridade por sobreposicao de palavras sobre o seed local —
- * mais fraca que trigram, mas suficiente para os 6 itens iniciais.
+ * Com backend usa a RPC `search_fact_checks` (pg_trgm, limiar 0.7). Sem
+ * backend compara sobreposição de palavras com o seed local, que é bem mais
+ * fraco que trigram mas dá conta dos poucos itens iniciais.
  */
 export async function checkFact(input: string): Promise<CheckOutcome> {
   const claim = input.trim();
@@ -136,10 +136,10 @@ export async function checkFact(input: string): Promise<CheckOutcome> {
       }
       if (!res.error) editorialMiss = true;
     } catch {
-      // rede caiu: cai no seed local abaixo
+      // rede caiu, cai no seed local lá embaixo
     }
-    // Fora do try: erro da fila ("fila cheia hoje") tem que chegar à tela,
-    // não virar o "não verificamos" do seed local.
+    // Fora do try porque erro da fila ("fila cheia hoje") tem que chegar na
+    // tela, não pode virar o "não verificamos" do seed local.
     if (editorialMiss) return fromQueue(claim);
   }
 
@@ -159,8 +159,8 @@ export async function checkFact(input: string): Promise<CheckOutcome> {
 }
 
 /**
- * Base editorial não cobre: pede à fila de checagem automática. Se o mesmo
- * texto já foi checado nos últimos 7 dias, a resposta vem na hora.
+ * A base editorial não cobre, então pede para a fila de checagem automática.
+ * Se o mesmo texto já foi checado nos últimos 7 dias a resposta vem na hora.
  */
 async function fromQueue(claim: string): Promise<CheckOutcome> {
   const c = await requestClaimCheck(claim);

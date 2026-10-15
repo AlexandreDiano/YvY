@@ -21,8 +21,8 @@ export function Screen({
   children: ReactNode;
   scroll?: boolean;
   /**
-   * Tela sem header de navegacao (abas, welcome): afasta o conteudo da barra
-   * de status. Telas com header do Stack nao usam — o header ja faz isso.
+   * Tela sem header de navegação (abas, boas-vindas): afasta o conteúdo da
+   * barra de status. Tela com header do Stack não precisa, o header já faz isso.
    */
   safeTop?: boolean;
   refreshControl?: ScrollViewProps['refreshControl'];
@@ -30,7 +30,7 @@ export function Screen({
 }) {
   const insets = useSafeAreaInsets();
   const pad = { paddingBottom: insets.bottom + space.xxl };
-  // depois de contentStyle: padding proprio da tela nao pode esconder a barra de status
+  // depois do contentStyle, senão o padding da tela esconde a barra de status
   const top = safeTop ? { paddingTop: insets.top + space.lg } : null;
 
   if (!scroll) {
@@ -48,7 +48,7 @@ export function Screen({
   );
 }
 
-/** Rotulo de secao com regua, como nos wireframes (secao 7 do contexto). */
+/** Rótulo de seção com régua, como nos wireframes. */
 export function Section({ title, right }: { title: string; right?: ReactNode }) {
   return (
     <View style={s.section}>

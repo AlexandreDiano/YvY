@@ -17,18 +17,16 @@ import {
 } from '@/ui';
 
 /**
- * Fluxo 4.2, passos 4–6: ler o QRCode do convite.
+ * Leitura do convite.
  *
- * O código digitado é o convite à distância (só moderador/admin gera, 0015).
- * Também serve a quem está na web, onde não há leitura de QRCode.
+ * O código digitado é o convite à distância (só moderador/admin gera). O link
+ * do QRCode abre esta tela no site com `#t=<token>`; o APK aceita também
+ * `?t=` (yvy://cadastro/convite?t=).
  *
- * Link do QRCode (inviteDeepLink): a câmera do celular abre esta tela no site
- * com `#t=<token>`; o APK aceita também `?t=` (yvy://cadastro/convite?t=).
- *
- * Ler o convite = reservar a vaga (claimInvite, 0035). Pela câmera do app e
- * pelo código digitado, a reserva sai na hora. Pelo link, só depois do toque
- * em "Aceitar convite": pré-visualização de link (WhatsApp, navegador
- * embutido) ou página carregada duas vezes não pode gastar o convite.
+ * Ler o convite já reserva a vaga (claimInvite, migration 0035). Pela câmera
+ * do app ou pelo código, reserva na hora. Pelo link, só depois do toque em
+ * "Aceitar convite", porque pré-visualização do WhatsApp ou página carregada
+ * duas vezes não pode gastar o convite.
  */
 export default function EntrarComConvite() {
   const router = useRouter();
@@ -45,7 +43,7 @@ export default function EntrarComConvite() {
     if (!token && Platform.OS === 'web' && typeof window !== 'undefined') {
       token = new URLSearchParams(window.location.hash.slice(1)).get('t');
       // Tira o token da barra de endereço (histórico, print, compartilhar).
-      // Mantém o state do roteador (sem ele o botão voltar se perde).
+      // O state do roteador vai junto, senão o botão voltar se perde.
       if (token) window.history.replaceState(window.history.state, '', window.location.pathname);
     }
     if (token) setLinked(token);
@@ -61,7 +59,7 @@ export default function EntrarComConvite() {
     setBusy(true);
     setError(null);
     try {
-      // O segredo da reserva fica no aparelho; a tela de cadastro lê de lá.
+      // o segredo da reserva fica no aparelho, a tela de cadastro lê de lá
       await claimInvite(token);
       setLinked(null);
       router.push('/cadastro/militante');
@@ -73,8 +71,8 @@ export default function EntrarComConvite() {
     }
   }
 
-  // Também no site/PWA: o expo-camera lê QRCode no navegador (BarcodeDetector
-  // do Chrome ou, no Safari, a biblioteca barcode-detector). Precisa de HTTPS.
+  // No site também funciona: o expo-camera usa o BarcodeDetector do Chrome ou,
+  // no Safari, a lib barcode-detector. Precisa de HTTPS.
   const canScan = Boolean(permission?.granted);
 
   return (
@@ -140,8 +138,8 @@ export default function EntrarComConvite() {
 }
 
 const s = StyleSheet.create({
-  // Sem overflow/borda arredondada no Android: recortar a pré-visualização da
-  // câmera ali deixa a tela preta.
+  // Nada de overflow/borda arredondada aqui: no Android, recortar a prévia da
+  // câmera deixa a tela preta.
   cameraBox: {
     height: 320,
     backgroundColor: '#000',

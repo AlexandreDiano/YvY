@@ -5,9 +5,9 @@ import { Txt } from '@/ui/Text';
 import { color, space } from '@/ui/tokens';
 
 /**
- * Faixa "sem internet" no site/PWA. O app continua abrindo (service worker)
- * e o conteúdo público sai do cache/seed; a faixa explica por que o resto
- * não carrega. No APK não aparece: lá não há evento de rede sem lib nativa.
+ * Faixa de "sem internet" no site/PWA. O app continua abrindo (service worker)
+ * e o conteúdo público sai do cache ou do seed; a faixa explica por que o resto
+ * não carrega. No APK não aparece, lá não tem evento de rede sem lib nativa.
  */
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);

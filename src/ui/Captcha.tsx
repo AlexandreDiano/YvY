@@ -7,9 +7,9 @@ import { space } from '@/ui/tokens';
 import { isDark } from '@/ui/theme';
 
 /**
- * Captcha (Cloudflare Turnstile) no APK: WebView abrindo /captcha do site.
- * Precisa de EXPO_PUBLIC_SITE_URL no build — a chave só vale nos domínios
- * cadastrados no Cloudflare. Versão web: Captcha.web.tsx.
+ * Captcha (Cloudflare Turnstile) no APK, numa WebView que abre /captcha do
+ * site. Precisa de EXPO_PUBLIC_SITE_URL no build porque a chave só vale nos
+ * domínios cadastrados no Cloudflare. A versão web é Captcha.web.tsx.
  */
 export function Captcha({ onToken }: { onToken: (token: string | null) => void }) {
   const [failed, setFailed] = useState(false);

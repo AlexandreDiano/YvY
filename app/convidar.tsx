@@ -44,16 +44,16 @@ import {
 type Kind = 'personal' | 'table' | 'remote';
 
 /**
- * Fluxo 4.2 — gerar convite.
+ * Gerar convite.
  *
- * Membro: só QRCode, mostrado na tela, olho no olho. Não existe código de
- * texto para membro — é isso que impede o convite de circular em grupo.
- * Moderador/admin: também o convite à distância, um código de texto de 1 uso
- * para quem está longe (outro estado). Quem gera ainda confirma a pessoa.
+ * Membro só tem QRCode, mostrado na tela, cara a cara. Não existe código de
+ * texto para membro justamente para o convite não sair rodando em grupo.
+ * Moderador e admin também geram o convite à distância (código de 1 uso) para
+ * quem está longe. Em todo caso quem gerou ainda confirma a pessoa.
  *
- * Janela de leitura curta (0035): QRCode pessoal vale 2 min; o de mesa troca
- * sozinho a cada 5 min enquanto esta tela está aberta (mesmo evento, mesmas
- * 20 vagas). Foto do QRCode vence junto.
+ * QRCode pessoal vale 2 min. O de mesa troca sozinho a cada 5 min enquanto
+ * a tela está aberta (mesmo evento, mesmas 20 vagas), então foto do QRCode
+ * perde a validade junto.
  */
 export default function Convidar() {
   useNoScreenshots('convidar');
@@ -79,16 +79,16 @@ export default function Convidar() {
     }
   }
 
-  /** QR grande na tela inteira com brilho no máximo, para o outro celular ler fácil. */
+  /** QR na tela inteira com brilho no máximo, para o outro celular ler fácil. */
   async function openBig() {
     setBig(true);
     if (Platform.OS === 'web') return;
     try {
-      // Android: brilho só desta tela. iOS: brilho da tela toda — guarda o anterior.
+      // No Android o brilho é só desta tela. No iOS é da tela toda, então guarda o anterior.
       prevBrightness.current = await Brightness.getBrightnessAsync();
       await Brightness.setBrightnessAsync(1);
     } catch {
-      // sem permissão de brilho: o QR grande já ajuda
+      // sem permissão de brilho, o QR grande já ajuda
     }
   }
 
@@ -99,7 +99,6 @@ export default function Convidar() {
       if (Platform.OS === 'android') await Brightness.restoreSystemBrightnessAsync();
       else if (prevBrightness.current !== null) await Brightness.setBrightnessAsync(prevBrightness.current);
     } catch {
-      // ignora
     }
   }
   const [kind, setKind] = useState<Kind>('personal');
@@ -110,7 +109,7 @@ export default function Convidar() {
   const [now, setNow] = useState(() => Date.now());
   const [focused, setFocused] = useState(true);
   const rotating = useRef(false);
-  // Falhou (sem rede na mesa)? Tenta de novo a cada 15 s, não a cada segundo.
+  // falhou (mesa sem rede)? tenta de novo a cada 15 s
   const retryAt = useRef(0);
 
   useFocusEffect(
@@ -120,7 +119,7 @@ export default function Convidar() {
     }, []),
   );
 
-  // Mesa: cadastros x reservas pendentes, a cada 15 s com a tela aberta (0037).
+  // mesa: cadastros x reservas pendentes, a cada 15 s enquanto a tela está aberta
   const [stats, setStats] = useState<{ redeemed: number; pending: number } | null>(null);
   const tableId = invite && kind === 'table' ? invite.id : null;
   useEffect(() => {
@@ -149,7 +148,7 @@ export default function Convidar() {
     );
   }
 
-  // Relógio da contagem: só com QRCode na tela.
+  // relógio da contagem, só com QRCode na tela
   const showingQr = Boolean(invite) && kind !== 'remote';
   useEffect(() => {
     if (!showingQr || !focused) return;
@@ -157,7 +156,7 @@ export default function Convidar() {
     return () => clearInterval(t);
   }, [showingQr, focused]);
 
-  // Mesa: troca o QRCode quando a janela de 5 min acaba, só com a tela aberta.
+  // mesa: troca o QRCode quando acabam os 5 min, só com a tela aberta
   useEffect(() => {
     if (!invite || kind !== 'table' || !focused || rotating.current) return;
     if (now < new Date(invite.scanExpiresAt).getTime()) return;
@@ -426,7 +425,6 @@ export default function Convidar() {
   );
 }
 
-/** Tempo restante em m:ss (nunca negativo). */
 function mmss(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
@@ -443,7 +441,7 @@ const s = StyleSheet.create({
   qr: {
     alignSelf: 'center',
     padding: space.md,
-    backgroundColor: '#FFFFFF', // QR sempre em fundo claro: leitor falha com QR invertido
+    backgroundColor: '#FFFFFF', // QR sempre em fundo claro, leitor falha com QR invertido
     borderRadius: radius.md,
   },
 });

@@ -5,11 +5,11 @@ import { getGovernmentPlan, planPageUrl, type GovernmentPlan, type PlanItem } fr
 import { Button, Card, EmptyState, Field, Loading, Screen, Section, Txt, space } from '@/ui';
 
 /**
- * Plano de governo oficial (registrado no TSE), dentro do app.
+ * Plano de governo registrado no TSE.
  *
- * Os itens são trechos COPIADOS do plano, com a página — conferidos palavra a
+ * Cada item é trecho copiado do plano, com a página, e conferido palavra por
  * palavra contra o PDF (scripts/verify-plans.py). Nada aqui é resumo nosso.
- * "Ver na íntegra" abre o PDF oficial completo.
+ * "Ver na íntegra" abre o PDF oficial.
  */
 export default function Plano() {
   const { sq } = useLocalSearchParams<{ sq: string }>();

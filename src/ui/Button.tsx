@@ -11,7 +11,7 @@ type Props = {
   kind?: Kind;
   loading?: boolean;
   disabled?: boolean;
-  /** Ocupa a largura toda. Padrao em formularios. */
+  /** Ocupa a largura toda. Padrão em formulário. */
   block?: boolean;
   small?: boolean;
   left?: ReactNode;

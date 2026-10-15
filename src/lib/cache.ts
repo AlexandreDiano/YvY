@@ -1,10 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * Cache offline-first. Principio do contexto (secao 1.4 / risco "internet no
- * dia 25"): o app mostra o ultimo conteudo conhecido quando a rede cai.
- *
- * Dado pessoal de terceiro nao entra aqui.
+ * Cache para quando a rede cai: o app mostra o último conteúdo que conhecia.
+ * Dado pessoal de terceiro não entra aqui.
  */
 const PREFIX = 'yvy:cache:';
 
@@ -26,7 +24,7 @@ export async function writeCache<T>(key: string, data: T): Promise<void> {
   try {
     await AsyncStorage.setItem(PREFIX + key, JSON.stringify({ at: Date.now(), data } satisfies Entry<T>));
   } catch {
-    // cache cheio ou storage bloqueado: seguir sem cache, nunca quebrar a tela
+    // cache cheio ou storage bloqueado: segue sem cache, a tela não pode quebrar
   }
 }
 
@@ -37,7 +35,7 @@ export async function clearCache(): Promise<void> {
 }
 
 /**
- * Busca na rede e cai no cache quando falha. Devolve tambem a origem, para a
+ * Busca na rede e usa o cache se falhar. Devolve também de onde veio, para a
  * tela poder avisar "mostrando dados salvos".
  */
 export async function withCache<T>(

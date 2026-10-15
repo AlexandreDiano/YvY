@@ -3,7 +3,7 @@ import { env } from '@/lib/env';
 const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 const DIAS_CURTO = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-/** Dias cheios restantes para a votacao. Nunca negativo. */
+/** Dias cheios até a votação. Nunca negativo. */
 export function daysToElection(now = new Date()): number {
   const diff = env.electionDate.getTime() - now.getTime();
   return Math.max(0, Math.ceil(diff / 86400000));
@@ -14,14 +14,14 @@ export function electionLabel(): string {
   return `${DIAS_CURTO[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
-/** "Sáb 18/10, 9h" — formato dos wireframes. */
+/** "Sáb 18/10, 9h", o formato dos wireframes. */
 export function shortDateTime(iso: string): string {
   const d = new Date(iso);
   const h = d.getMinutes() === 0 ? `${d.getHours()}h` : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return `${DIAS_CURTO[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}, ${h}`;
 }
 
-/** "2026-09-03" -> "03/09/2026", sem passar por Date (evita virar o dia por fuso). */
+/** "2026-09-03" vira "03/09/2026" sem passar por Date, que pode virar o dia por causa do fuso. */
 export function brDate(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-');
   return `${d}/${m}/${y}`;
@@ -48,7 +48,7 @@ export function relativeTime(iso: string, now = new Date()): string {
   return `${pad(then.getDate())}/${pad(then.getMonth() + 1)}`;
 }
 
-/** Agrupador do feed: "Hoje" / "Ontem" / data. */
+/** Separador do feed: "Hoje", "Ontem" ou a data. */
 export function dayBucket(iso: string, now = new Date()): string {
   const d = new Date(iso);
   const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
@@ -60,8 +60,8 @@ export function dayBucket(iso: string, now = new Date()): string {
 }
 
 /**
- * "José da Silva Santos" -> "J.S." — regra de anonimato (secao 5.2): o
- * apelido sugerido nunca carrega nome completo.
+ * "José da Silva Santos" vira "J.S.". O apelido sugerido nunca carrega o nome
+ * completo.
  */
 export function suggestDisplayName(fullName: string): string {
   const parts = fullName
@@ -76,8 +76,8 @@ export function suggestDisplayName(fullName: string): string {
 
 /** Como o app exibe qualquer pessoa: "Camarada J.S.". */
 /**
- * Nome de exibição com o tratamento "Camarada" uma vez só. O apelido salvo
- * pode já vir com o prefixo ("Camarada A.D."); não repetir.
+ * Nome de exibição com "Camarada" uma vez só. O apelido salvo pode já vir com
+ * o prefixo ("Camarada A.D.").
  */
 export function camarada(displayName?: string | null): string {
   const n = (displayName ?? '').trim();

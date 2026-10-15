@@ -1,9 +1,10 @@
-// Yvy — agrupa feedback parecido dos membros (migration 0031).
+// Agrupa feedback parecido dos membros (migration 0031).
 //
-// Quem chama: pg_cron de hora em hora (x-cron-key do Vault) ou moderador/admin
-// pelo app ("Agrupar agora", token de sessão). Pega os feedbacks sem grupo e
-// os títulos dos grupos recentes; o Gemini diz em qual grupo cada um entra ou
-// dá um título para um grupo novo. O texto do membro não muda: só ganha grupo.
+// Quem chama é o pg_cron de hora em hora (x-cron-key do Vault) ou
+// moderador/admin pelo app ("Agrupar agora", com o token da sessão). Pega os
+// feedbacks sem grupo e os títulos dos grupos recentes, e o Gemini diz em qual
+// grupo cada um entra ou dá título para um grupo novo. O texto do membro não
+// muda, só ganha grupo.
 //
 // Segredo: GEMINI_API_KEY. Opcional: FEEDBACK_MODEL.
 
@@ -118,11 +119,11 @@ Deno.serve(async (req) => {
     items = await ask(prompt);
   } catch (err) {
     console.error(err);
-    // Fica sem grupo e o próximo cron tenta de novo.
+    // fica sem grupo e o próximo cron tenta de novo
     return json({ error: "IA indisponível agora" }, 503);
   }
 
-  // Confere tudo que voltou: índice fora da lista vira grupo próprio.
+  // confere tudo que voltou; índice fora da lista vira grupo próprio
   const created = new Map<string, string>();
   let grouped = 0;
   for (let i = 0; i < fresh.length; i++) {

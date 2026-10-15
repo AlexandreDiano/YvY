@@ -8,7 +8,7 @@ type Props = TextProps & {
   muted?: boolean;
   tone?: 'default' | 'primary' | 'accent' | 'danger' | 'onPrimary';
   center?: boolean;
-  /** Caixa alta + tracking, para rotulos de secao ("O QUE ELE VAI CORTAR"). */
+  /** Caixa alta com espaçamento, para rótulo de seção ("O QUE ELE VAI CORTAR"). */
   upper?: boolean;
 };
 

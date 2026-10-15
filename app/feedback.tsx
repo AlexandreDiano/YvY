@@ -34,8 +34,8 @@ const STATUS_COLOR: Record<FeedbackStatus, string> = {
 };
 
 /**
- * Ideias e problemas para a equipe. Membro envia e acompanha os próprios;
- * moderador e admin veem todos e marcam a situação.
+ * Ideias e problemas para a equipe. Membro manda e acompanha os seus;
+ * moderador e admin veem tudo e marcam a situação.
  */
 export default function FeedbackScreen() {
   const { profile, isModerator } = useAuth();
@@ -140,7 +140,7 @@ export default function FeedbackScreen() {
           </Row>
           {shown.map((g) => {
             const expanded = open.has(g.key) || g.items.length === 1;
-            // Feito e descartado são finais (trigger da 0034): só mexe no que ainda está aberto.
+            // feito e descartado são finais (trigger da 0034), então só mexe no que está aberto
             const ids = g.items.filter((f) => f.status === 'novo' || f.status === 'visto').map((f) => f.id);
             const next = (['visto', 'feito', 'descartado'] as const).filter(
               (s) => ids.length > 0 && s !== g.status && !(g.status === 'visto' && s === 'visto'),

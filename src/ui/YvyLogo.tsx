@@ -3,15 +3,15 @@ import Svg, { Path, Rect } from 'react-native-svg';
 import { isDark } from '@/ui/theme';
 
 /**
- * Marca do Yvy, vinda de assets/yvy-logo.svg.
+ * Marca do YvY, gerada de assets/yvy-logo.svg.
  *
- * Vetor em vez do PNG: fica nitido em qualquer tamanho, nao precisa de
- * @2x/@3x e pesa ~3 KB dentro do bundle. O PNG continua existindo para o que
- * exige raster — icone de loja, splash e favicon (ver scripts/gen-icons.py).
+ * Vetor em vez do PNG porque fica nítido em qualquer tamanho, não precisa de
+ * @2x/@3x e pesa uns 3 KB no bundle. O PNG continua existindo para o que exige
+ * raster: ícone de loja, splash e favicon (ver scripts/gen-icons.py).
  *
- * Nao recolorir a marca: as cores sao do logo, nao dos tokens da interface.
- * Modo escuro tem versao propria da marca (assets/yvy-logo-dark.svg, 11/10):
- * letras creme, broto verde, terra cor de barro, fundo verde-noite.
+ * Não recolorir a marca, as cores são do logo e não dos tokens da interface.
+ * O modo escuro tem versão própria (assets/yvy-logo-dark.svg): letras creme,
+ * broto verde, terra cor de barro e fundo verde-noite.
  */
 
 export const BRAND = {
@@ -47,7 +47,7 @@ type Props = {
   size?: number;
   /** 'full' traz o fundo creme do logo; 'glyph' sai transparente. */
   variant?: 'full' | 'glyph';
-  /** So para o fundo do variant 'full'. */
+  /** Só para o fundo do variant 'full'. */
   background?: ColorValue;
 };
 
@@ -74,7 +74,7 @@ export function YvyLogo({ size = 120, variant = 'glyph', background = isDark ? B
 }
 
 /**
- * Versao recortada para espacos estreitos (cabecalho): corta a margem morta do
+ * Versão recortada para lugar apertado (cabeçalho). Corta a margem sobrando do
  * viewBox e deixa a marca ocupar a altura toda.
  */
 export function YvyMark({ size = 32 }: { size?: number }) {

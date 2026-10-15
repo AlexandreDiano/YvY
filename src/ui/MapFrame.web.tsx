@@ -8,8 +8,8 @@ type Props = { html: string; onMessage?: (data: string) => void; onReady?: () =>
 /**
  * Versão site/PWA: iframe com `srcdoc` e `sandbox="allow-scripts"`, sem
  * allow-same-origin. Sem isso o HTML do mapa rodaria com a origem do YvY e
- * enxergaria o localStorage (sessão do Supabase); títulos de ação vêm de
- * membros. Conversa só por postMessage, conferindo de qual iframe veio.
+ * enxergaria o localStorage (onde está a sessão do Supabase), e título de ação
+ * vem de membro. A conversa é só por postMessage, conferindo de qual iframe veio.
  */
 export const MapFrame = forwardRef<MapFrameHandle, Props>(function MapFrame({ html, onMessage, onReady }, ref) {
   const frame = useRef<HTMLIFrameElement>(null);

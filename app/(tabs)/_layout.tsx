@@ -6,16 +6,15 @@ import { color, space, type } from '@/ui';
 import { IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
 
 /**
- * Bottom tabs (tela 7.1). "Aberto por fora, fechado por dentro": Ações e Base
- * só existem para membro confirmado — e cada módulo ainda respeita sua
- * feature flag, para poder ser desligado sem rebuild.
+ * Abas de baixo. Ações e Base só aparecem para membro confirmado, e cada
+ * módulo ainda obedece a própria feature flag (dá para desligar sem build novo).
  */
 export default function TabsLayout() {
   const { isBaseMember, flags, profile, ready } = useAuth();
   const insets = useSafeAreaInsets();
 
-  // Sem conta (ou admin na visão de visitante) não há abas: perfil vazio e
-  // área interna não aparecem. Vai para a área pública.
+  // Sem conta, ou admin olhando como visitante: não tem aba nenhuma, vai
+  // direto para a área pública.
   if (ready && !profile) return <Redirect href="/welcome" />;
 
   return (
@@ -24,9 +23,8 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: color.primary,
         tabBarInactiveTintColor: color.textMuted,
-        // A altura padrão (49, do iOS) conta com rótulo de 10px; o nosso `label`
-        // tem 12/16 e era cortado embaixo. Altura definida aqui substitui a da
-        // biblioteca, então a margem do gesto/home indicator entra na conta.
+        // A altura padrão (49, do iOS) conta com rótulo de 10px e o nosso tem 12/16,
+        // então cortava embaixo. Definindo aqui, a margem do home indicator entra na conta.
         tabBarStyle: {
           backgroundColor: color.surface,
           borderTopColor: color.border,

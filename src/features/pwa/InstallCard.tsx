@@ -4,14 +4,14 @@ import { Button, Card, Txt, space } from '@/ui';
 import { useInstall } from '@/features/pwa/install';
 
 /**
- * Convite para instalar o app, só na web e só quando ainda não está
- * instalado. No celular nativo e no app já instalado não desenha nada.
+ * Convite para instalar o app. Só aparece na web e só se ainda não estiver
+ * instalado; no app nativo ou no PWA já instalado não desenha nada.
  *
- * - Computador: QRCode para /instalar, que abre no celular.
- * - Android: botão que chama a instalação do Chrome.
- * - iPhone: os dois toques no Safari (a Apple não deixa site instalar).
+ * No computador mostra um QRCode para /instalar, que abre no celular. No
+ * Android é um botão que chama a instalação do Chrome. No iPhone mostra os
+ * dois toques no Safari, porque a Apple não deixa site se instalar sozinho.
  *
- * `compact` é para dentro de outras telas (boas-vindas, perfil); sem ele,
+ * `compact` é para usar dentro de outras telas (boas-vindas, perfil). Sem ele
  * é o conteúdo da página /instalar.
  */
 export function InstallCard({ compact }: { compact?: boolean }) {

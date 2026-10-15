@@ -13,9 +13,9 @@ import { Button, Card, Chip, Row, Section, Txt, space } from '@/ui';
 /**
  * Comparação por tema entre os planos de governo dos candidatos a presidente.
  *
- * Imparcial por construção: mesmo tema, mesma quantidade de trechos para cada
- * candidato, ordem alfabética, e o texto é copiado do plano registrado no TSE
- * (conferido palavra a palavra contra o PDF) — sem resumo nem comentário.
+ * É imparcial pela forma como é montada: mesmo tema, mesmo número de trechos
+ * para cada um, ordem alfabética, e o texto é copiado do plano registrado no
+ * TSE (conferido palavra por palavra contra o PDF), sem resumo nem comentário.
  */
 export function PlanCompare() {
   const router = useRouter();

@@ -7,24 +7,22 @@ import { safeUrl, scrubDeep } from '@/lib/monitoring.shared';
 export { scrub } from '@/lib/monitoring.shared';
 
 /**
- * Relatório de erros (Sentry, YVY-52). Liga só com EXPO_PUBLIC_SENTRY_DSN e
- * backend configurado — modo local não manda nada.
+ * Relatório de erros (Sentry). Só liga com EXPO_PUBLIC_SENTRY_DSN e backend
+ * configurado; no modo local não manda nada.
  *
- * Anonimato vem antes do diagnóstico:
- *  - sem usuário, sem IP (sendDefaultPii: false), sem print nem árvore de
- *    tela (mostrariam nome/telefone de eleitor);
- *  - sem tracing nem replay;
- *  - breadcrumb de console sai inteiro; de rede fica só método + host +
- *    caminho (a query do Supabase carrega filtro, texto de checagem etc.);
- *  - todo texto do evento passa por `scrub`: e-mail, telefone/CPF, CEP e
- *    UUID viram marcadores.
+ * Anonimato vem antes do diagnóstico. Não vai usuário, IP (sendDefaultPii:
+ * false), print nem árvore de tela, que mostrariam dado de outras pessoas.
+ * Sem tracing e sem replay. Breadcrumb de console não vai; de rede vai só
+ * método, host e caminho (a query do Supabase leva filtro, texto de checagem
+ * etc.). Todo texto do evento passa pelo `scrub`, que troca e-mail,
+ * telefone/CPF, CEP e UUID por marcadores.
  */
 const DSN = env.sentryDsn;
 let enabled = false;
 
 export function initMonitoring(): void {
   if (!DSN || !isBackendConfigured) return;
-  // Export estático do site roda este arquivo no Node: lá não há o que reportar.
+  // o export estático do site roda este arquivo no Node, e lá não tem o que reportar
   if (Platform.OS === 'web' && typeof window === 'undefined') return;
 
   Sentry.init({
@@ -52,18 +50,18 @@ export function initMonitoring(): void {
   enabled = true;
 }
 
-/** Envolve a raiz do app (captura erro de renderização). Sem Sentry, nada muda. */
+/** Envolve a raiz do app para pegar erro de renderização. Sem Sentry não muda nada. */
 export function withMonitoring<P extends object>(Root: ComponentType<P>): ComponentType<P> {
   if (!enabled) return Root;
-  // Sentry.wrap tipa as props como Record<string, unknown>; a raiz não tem props.
+  // Sentry.wrap tipa as props como Record<string, unknown> e a raiz não tem props
   return Sentry.wrap(Root as unknown as ComponentType<Record<string, unknown>>) as unknown as ComponentType<P>;
 }
 
 /** Erro de teste, para conferir o painel (Perfil › Admin). */
 export function sendTestError(): boolean {
   if (!enabled) return false;
-  // Cada teste único: erro igual ao anterior é descartado pela deduplicação
-  // e, no painel, entraria no mesmo issue (só o contador sobe).
+  // Cada teste tem que ser único: erro igual ao anterior é descartado pela
+  // deduplicação e no painel cairia no mesmo issue (só o contador sobe).
   const stamp = new Date().toLocaleString('pt-BR');
   Sentry.captureException(new Error(`Erro de teste do YvY (Perfil › Admin) — ${stamp}`), {
     fingerprint: ['yvy-test', stamp],
@@ -73,7 +71,7 @@ export function sendTestError(): boolean {
 
 export const monitoringEnabled = () => enabled;
 
-/** Problema esperado mas que a equipe precisa ver (sem dado pessoal). */
+/** Problema esperado que a equipe precisa ver (sem dado pessoal). */
 export function reportIssue(message: string, tags: Record<string, string> = {}): void {
   if (!enabled) return;
   Sentry.captureMessage(message, { level: 'warning', tags });

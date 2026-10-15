@@ -7,22 +7,22 @@ Rodar de novo sempre que o logo mudar:
     python3 scripts/gen-icons.py
 
 O que sai:
-  icon.png                     1024, fundo creme — ícone de loja (iOS não aceita alfa)
-  splash-icon.png              1024, glifo transparente — o creme vem do app.json
-  favicon.png                   196, fundo creme — aba do navegador
-  android-icon-background.png   512, creme chapado — camada de fundo do adaptive icon
-  android-icon-foreground.png   512, glifo transparente a 62% — respeita a máscara do Android
-  android-icon-monochrome.png   432, silhueta branca — modo monocromático do Android 13+
+  icon.png                     1024, fundo creme, ícone de loja (iOS não aceita alfa)
+  splash-icon.png              1024, glifo transparente, o creme vem do app.json
+  favicon.png                   196, fundo creme, aba do navegador
+  android-icon-background.png   512, creme chapado, camada de fundo do adaptive icon
+  android-icon-foreground.png   512, glifo transparente a 62%, respeita a máscara do Android
+  android-icon-monochrome.png   432, silhueta branca, modo monocromático do Android 13+
 
 Versão escura (de assets/yvy-logo-dark.png: letras creme, broto verde, terra
 cor de barro, fundo verde-noite #13251A):
-  icon-dark.png                1024, glifo transparente — ícone escuro do iOS 18
-  splash-icon-dark.png         1024, glifo transparente — splash com o celular no escuro
+  icon-dark.png                1024, glifo transparente, ícone escuro do iOS 18
+  splash-icon-dark.png         1024, glifo transparente, splash com o celular no escuro
 
-PWA (servidos pelo site, em public/icons/ — ver public/manifest.json):
-  icon-192.png, icon-512.png   fundo creme — ícone "any" do manifest
-  maskable-512.png             glifo a 60% sobre creme — o Android recorta em círculo
-  apple-touch-icon.png          180, fundo creme — "Adicionar à Tela de Início" do iOS
+PWA (servidos pelo site, em public/icons/, ver public/manifest.json):
+  icon-192.png, icon-512.png   fundo creme, ícone "any" do manifest
+  maskable-512.png             glifo a 60% sobre creme, o Android recorta em círculo
+  apple-touch-icon.png          180, fundo creme, "Adicionar à Tela de Início" do iOS
 """
 
 from pathlib import Path
@@ -30,7 +30,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
-CREAM = (251, 243, 223)  # #FBF3DF — fundo do logo original
+CREAM = (251, 243, 223)  # #FBF3DF, fundo do logo original
 TOLERANCE = 12  # pixels quase-creme (antialias da borda) contam como fundo
 
 src = Image.open(ASSETS / "yvy-logo.png").convert("RGBA")

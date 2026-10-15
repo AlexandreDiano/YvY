@@ -3,7 +3,7 @@ import { Txt } from '@/ui/Text';
 import { IconCheck } from '@/ui/icons';
 import { TOUCH, color, radius, space } from '@/ui/tokens';
 
-/** Caixa de marcar: aceite de termos, "confirmou voto", notificacoes. */
+/** Caixa de marcar: aceite de termos, notificações. */
 export function Toggle({
   label,
   detail,
@@ -40,7 +40,7 @@ export function Toggle({
   );
 }
 
-/** Escolha unica em lista vertical (tipo de ação, precisão de localização). */
+/** Escolha única em lista vertical (tipo de ação, precisão de localização). */
 export function Options<T extends string>({
   label,
   value,

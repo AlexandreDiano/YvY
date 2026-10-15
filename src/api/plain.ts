@@ -1,12 +1,13 @@
 import { supabase } from '@/lib/supabase';
 
 /**
- * Versão simplificada de textos oficiais (ementas, descrições de votação e
- * consulta), escrita por IA na Edge Function `simplify` e guardada no banco
- * (migration 0019): cada texto é simplificado uma vez só, para todo mundo.
+ * Versão simplificada de textos oficiais (ementas, descrições de votação e de
+ * consulta). A IA escreve na Edge Function `simplify` e o resultado fica no
+ * banco (migration 0019), então cada texto é simplificado uma vez para todo
+ * mundo.
  *
- * Pedidos de uma mesma tela são juntados em lotes de 10 (uma chamada à IA
- * por lote) e o resultado fica em memória durante a sessão.
+ * Pedidos da mesma tela são juntados em lotes de 10 (uma chamada à IA por
+ * lote) e o resultado fica em memória durante a sessão.
  */
 const memo = new Map<string, string | null>();
 const waiting = new Map<string, ((v: string | null) => void)[]>();
@@ -25,7 +26,7 @@ async function flush() {
         const items = (data as { items?: { simple: string | null }[] })?.items ?? [];
         results = batch.map((_, i) => items[i]?.simple ?? null);
       } catch {
-        // IA fora do ar: fica o texto original
+        // IA fora do ar, fica o texto original
       }
       batch.forEach((t, i) => {
         if (results[i]) memo.set(t, results[i]!);
@@ -36,7 +37,7 @@ async function flush() {
   );
 }
 
-/** Versão simplificada do texto (ou null se não deu). Junta pedidos próximos num lote. */
+/** Versão simplificada do texto, ou null se não deu. Junta pedidos próximos num lote. */
 export function simplified(text: string): Promise<string | null> {
   const key = text.trim();
   if (!supabase || key.length < 12) return Promise.resolve(null);

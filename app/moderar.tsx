@@ -31,9 +31,8 @@ const QUICK_REASONS = [
 ];
 
 /**
- * Fila de moderação (fluxo 4.4): bairro para o moderador do bairro; estado,
- * região e Brasil para o admin. Recusar exige motivo — ele chega ao autor na
- * tela de Avisos.
+ * Fila de moderação. Moderador vê o bairro dele; admin vê estado, região e
+ * Brasil. Recusar pede motivo, que aparece para o autor em Avisos.
  */
 export default function Moderar() {
   useNoScreenshots('moderar');

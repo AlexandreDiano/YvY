@@ -2,10 +2,8 @@ import { RESPONSAVEL } from '@/data/responsavel';
 import { Banner, Card, Screen, Section, Txt } from '@/ui';
 
 /**
- * Politica de privacidade — RASCUNHO TECNICO.
- *
- * Descreve o que o codigo de fato faz hoje. Antes do lancamento precisa de
- * revisao juridica (LGPD + legislacao eleitoral), ver secao 12 do contexto.
+ * Política de privacidade, ainda rascunho técnico. Descreve o que o código faz
+ * hoje e precisa passar pelo jurídico (LGPD e lei eleitoral) antes do lançamento.
  */
 export default function Privacidade() {
   return (

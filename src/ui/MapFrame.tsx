@@ -5,10 +5,10 @@ import type { MapFrameHandle } from '@/ui/mapBridge';
 export { MAP_BRIDGE, type MapFrameHandle } from '@/ui/mapBridge';
 
 /**
- * Moldura do mapa Leaflet (HTML próprio). No celular é uma WebView; no site,
- * um iframe isolado (MapFrame.web.tsx). Mesma ponte nos dois:
- *  - página → app: `send(texto)` no HTML (MAP_BRIDGE) chega em `onMessage`;
- *  - app → página: `ref.post(dado)` chama `window.onHost(dado)` no HTML.
+ * Moldura do mapa Leaflet (HTML nosso). No celular é uma WebView; no site, um
+ * iframe isolado (MapFrame.web.tsx). A ponte é a mesma nos dois: `send(texto)`
+ * no HTML (MAP_BRIDGE) chega em `onMessage`, e `ref.post(dado)` chama
+ * `window.onHost(dado)` no HTML.
  */
 
 type Props = { html: string; onMessage?: (data: string) => void; onReady?: () => void };

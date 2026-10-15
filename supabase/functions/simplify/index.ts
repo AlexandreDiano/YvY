@@ -1,12 +1,12 @@
-// Yvy — "versão simples" de textos oficiais (ementas e descrições de
-// votação/consulta), com cache em `plain_texts` (migration 0019).
+// "Versão simples" de textos oficiais (ementas e descrições de votação e
+// consulta), com cache na tabela `plain_texts` (migration 0019).
 //
-// Chamada direto pelo app: POST {"texts": ["...", ...]} (até 10, até 2.000
-// caracteres cada). Devolve {"items": [{"hash", "simple"}]} na mesma ordem.
-// Texto já simplificado antes vem do cache, sem chamar a IA.
+// O app chama direto: POST {"texts": ["...", ...]} com até 10 textos de até
+// 2.000 caracteres. Devolve {"items": [{"hash", "simple"}]} na mesma ordem.
+// Texto que já foi simplificado vem do cache, sem chamar a IA.
 //
-// Sem login (o app é público aqui). Limites contra abuso da cota gratuita:
-// 10 textos por chamada, teto global de versões novas por dia.
+// Não pede login (essa parte do app é pública). Para ninguém esgotar a cota
+// grátis: 10 textos por chamada e um teto global de versões novas por dia.
 //
 // Segredo: GEMINI_API_KEY. Opcional: SIMPLIFY_MODEL (padrão gemini-3.5-flash-lite).
 

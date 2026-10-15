@@ -4,17 +4,17 @@
  * Só guarda arquivo do próprio site (HTML, JS, ícones). Nada que vem do
  * Supabase, da Câmara/Senado ou dos tiles do mapa passa por aqui: pedido de
  * outra origem segue direto para a rede. Assim nenhum dado de pessoa entra no
- * cache do navegador (regra 5 do anonimato). Conteúdo público (cards,
- * checagem) já tem cache próprio no app (src/lib/cache.ts) + seed embutido.
+ * cache do navegador. Conteúdo público (cards, checagem) já tem cache
+ * próprio no app (src/lib/cache.ts) e o seed embutido.
  *
- * - Instalação: baixa tudo de /precache.json (gerado na build por
- *   scripts/precache.mjs) — o app abre sem internet já na visita seguinte.
- * - /_expo/static e /assets: nome tem hash, nunca muda → cache primeiro.
- * - Páginas: rede primeiro; sem rede, a última versão guardada ou o início.
- * - Resto (ícones, manifest): devolve o guardado e atualiza por trás.
+ * Na instalação baixa tudo de /precache.json (gerado na build pelo
+ * scripts/precache.mjs), então o app abre sem internet já na visita seguinte.
+ * /_expo/static e /assets têm hash no nome e nunca mudam: cache primeiro.
+ * Páginas vão na rede primeiro e, sem rede, usam a última versão guardada ou
+ * o início. O resto (ícones, manifest) devolve o guardado e atualiza por trás.
  *
- * VERSION é trocada a cada build pelo scripts/precache.mjs: arquivo novo =
- * service worker novo = cache velho apagado no activate.
+ * O scripts/precache.mjs troca o VERSION a cada build. Arquivo novo vira
+ * service worker novo, que apaga o cache velho no activate.
  */
 const VERSION = 'yvy-__PRECACHE_VERSION__';
 
@@ -30,8 +30,8 @@ self.addEventListener('install', (event) => {
         // sem lista (dev local): fica o mínimo
       }
       // Um arquivo que falhe não derruba a instalação inteira.
-      // Arquivo com hash (_expo/static) nunca muda: pode vir do cache HTTP —
-      // a página acabou de baixar o JS principal, baixar de novo dobraria o
+      // Arquivo com hash (_expo/static) nunca muda e pode vir do cache HTTP.
+      // A página acabou de baixar o JS principal, e baixar de novo dobraria o
       // custo da primeira visita no 3G. Página e manifest vêm frescos.
       await Promise.all(
         files.map((f) =>

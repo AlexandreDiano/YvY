@@ -5,10 +5,9 @@ import { Txt } from '@/ui/Text';
 import { space } from '@/ui/tokens';
 
 /**
- * Texto oficial mostrado, por padrão, na versão simplificada (gerada por IA
- * uma vez e guardada). Rótulo deixa claro que é simplificado; "Ver original"
- * mostra o texto oficial como publicado. Sem versão simplificada, fica o
- * original.
+ * Texto oficial mostrado, por padrão, na versão simplificada (feita pela IA
+ * uma vez e guardada). O rótulo avisa que é simplificado e "Ver original"
+ * mostra o texto como foi publicado. Se não tiver versão simples, fica o original.
  */
 export function SimpleText({ text, lines }: { text: string; lines?: number }) {
   const [simple, setSimple] = useState<string | null>(null);

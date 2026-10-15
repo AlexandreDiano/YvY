@@ -46,7 +46,6 @@ const SEAL: Record<CheckResult, string> = {
   unverified: color.neutral,
 };
 
-/** Tela 7.8 — checagem de fatos (fluxo 4.6). */
 export default function Checar() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -56,7 +55,7 @@ export default function Checar() {
   const { isModerator } = useAuth();
   const [reading, setReading] = useState(false);
 
-  /** Foto ou print: o Gemini lê o texto, a pessoa revisa e pede a checagem. */
+  /** Foto ou print: o Gemini lê o texto, a pessoa confere e pede a checagem. */
   async function fromImage(source: 'camera' | 'library') {
     const perm =
       source === 'camera'
@@ -74,7 +73,7 @@ export default function Checar() {
     setReading(true);
     setError(null);
     try {
-      // Texto pequeno de print precisa de resolução: lado maior até 2000 px.
+      // texto pequeno de print precisa de resolução, por isso até 2000 px no lado maior
       const img = await shrinkImage(asset, { maxSide: 2000, quality: 0.8 });
       if (!img) {
         setError('Não deu para abrir essa imagem. Tente outra.');
@@ -134,7 +133,7 @@ export default function Checar() {
   async function loadMine() {
     const list = await myClaimChecks();
     setMine(list);
-    // abriu a tela = viu: o aviso do Início some
+    // abriu a tela, viu: some o aviso do Início
     await markClaimsSeen(list.filter((c) => c.unseen).map((c) => c.id));
   }
 
@@ -358,7 +357,6 @@ export default function Checar() {
   );
 }
 
-/** Uma checagem automática (minha ou de outra pessoa), com compartilhar. */
 function ClaimCard({
   c,
   unseen,
@@ -369,10 +367,10 @@ function ClaimCard({
 }: {
   c: ClaimCheck;
   unseen?: boolean;
-  /** O que a pessoa colou (só no aparelho dela). */
+  /** O que a pessoa colou. Só existe no aparelho dela. */
   asked?: string;
   onDelete?: () => void;
-  /** Minha checagem: na fila = cancelar; pronta = tirar da minha lista. */
+  /** Na fila, cancela o pedido. Pronta, só tira da lista. */
   onCancel?: () => void;
   onPublish?: (edits: Parameters<typeof publishClaimCheck>[1]) => Promise<void>;
 }) {
@@ -431,7 +429,6 @@ function ClaimCard({
   );
 }
 
-/** Checagem que a equipe já conferiu: ganha selo e pode ser compartilhada. */
 function ReviewedCard({ c, onCancel }: { c: ClaimCheck; onCancel?: () => void }) {
   const result = c.result!;
   return (
@@ -478,9 +475,9 @@ type Published = Exclude<CheckResult, 'unverified'>;
 const PUBLISHABLE: Published[] = ['true', 'half_true', 'exaggeration', 'false'];
 
 /**
- * Revisão antes de ir a público. Quem publica responde pelo texto, então dá
- * para corrigir a afirmação, o resultado e a explicação. A fonte não muda: é
- * a que a busca trouxe, e é ela que as pessoas vão abrir.
+ * Revisão antes de ir a público. Quem publica responde pelo que está escrito,
+ * então dá para corrigir afirmação, resultado e explicação. A fonte não muda:
+ * é a que a busca trouxe e é ela que as pessoas vão abrir.
  */
 function ReviewForm({
   c,
@@ -530,10 +527,9 @@ function ReviewForm({
 }
 
 /**
- * Checagem por IA, para quem pediu (revisão jurídica de 12/10): sem selo de
- * veredito nem botão de compartilhar — a IA mostra o que achou e a fonte, e
- * a pessoa tira a conclusão. Só a checagem aprovada pela equipe ganha selo e
- * pode ser compartilhada.
+ * Resultado da IA para quem pediu: sem selo de veredito e sem compartilhar.
+ * Mostra o que achou e a fonte, e a pessoa tira a conclusão. Selo e
+ * compartilhar só depois que a equipe confere (revisão jurídica de 12/10).
  */
 const AUTO_HINT: Record<Exclude<CheckResult, 'unverified'>, string> = {
   true: 'Indício: parece verdade.',
@@ -574,9 +570,8 @@ const STATUS_LABEL: Record<ClaimCheck['status'], string> = {
 };
 
 /**
- * Rótulo de checagem por IA. Precaução diante das regras do TSE sobre
- * conteúdo gerado por IA no período eleitoral (confirmar com o jurídico) e
- * porque a equipe ainda não revisou.
+ * Aviso de que foi IA e ninguém revisou ainda. É precaução por causa das
+ * regras do TSE sobre conteúdo de IA na eleição (falta confirmar com o jurídico).
  */
 function AutoLabel({ checkedAt }: { checkedAt: string | null }) {
   return (
@@ -587,7 +582,7 @@ function AutoLabel({ checkedAt }: { checkedAt: string | null }) {
   );
 }
 
-/** Fonte com link: toque abre o original, para a pessoa conferir sozinha. */
+/** Toque abre o original, para a pessoa conferir sozinha. */
 function Source({ name, url }: { name: string | null; url: string | null }) {
   if (!name && !url) return null;
   return url ? (

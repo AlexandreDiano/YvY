@@ -5,13 +5,13 @@ import { supabase } from '@/lib/supabase';
 /**
  * Checagem automática em fila (supabase/migrations/0012_claim_checks.sql).
  *
- * O texto que a base editorial não cobre vai para a fila; a cada 15 min uma
- * rotina checa um lote com IA + busca na web. Quem pediu vê o resultado na
- * tela de checagem e um aviso no Início — dentro do app, porque visitante
+ * Texto que a base editorial não cobre vai para a fila, e a cada 15 min uma
+ * rotina checa um lote com IA e busca na web. Quem pediu vê o resultado na
+ * tela de checagem e um aviso no Início. Fica dentro do app porque visitante
  * não tem conta para receber push.
  *
- * Este aparelho guarda só os ids que ele mesmo pediu. Sem conta, sem
- * vínculo com perfil: é o que permite avisar o visitante.
+ * O aparelho guarda só os ids que ele mesmo pediu, sem vínculo com perfil.
+ * É isso que deixa avisar o visitante.
  */
 
 export type ClaimStatus = 'queued' | 'processing' | 'done' | 'failed';
@@ -25,11 +25,11 @@ export type ClaimCheck = {
   source_name: string | null;
   source_url: string | null;
   checked_at: string | null;
-  /** A equipe conferiu e publicou: o conteúdo acima já é o da versão validada. */
+  /** A equipe conferiu e publicou, então os campos acima já são da versão validada. */
   reviewed?: boolean;
 };
 
-/** `text`: o que a pessoa colou, só neste aparelho — o servidor não devolve o texto colado. */
+/** `text` é o que a pessoa colou. Fica só aqui, o servidor não devolve o texto colado. */
 type Mine = { id: string; seen: boolean; at: number; text?: string };
 
 const KEY = 'yvy:my-claims';
@@ -53,7 +53,7 @@ async function writeMine(list: Mine[]): Promise<void> {
   }
 }
 
-/** Pede a checagem. Sem backend (modo local) não existe fila: devolve null. */
+/** Pede a checagem. No modo local não tem fila e devolve null. */
 export async function requestClaimCheck(text: string): Promise<ClaimCheck | null> {
   if (!supabase) return null;
   const res = await supabase.rpc('request_claim_check', { p_text: text });
@@ -61,7 +61,7 @@ export async function requestClaimCheck(text: string): Promise<ClaimCheck | null
   const check = res.data as unknown as ClaimCheck;
   const mine = await readMine();
   if (!mine.some((m) => m.id === check.id)) {
-    // já pronto na hora = já visto; na fila = avisar quando ficar pronto
+    // se já veio pronta conta como vista; se foi pra fila, avisa quando ficar pronta
     mine.push({ id: check.id, seen: check.status === 'done', at: Date.now(), text: text.trim().slice(0, 300) });
     await writeMine(mine);
   }
@@ -105,7 +105,7 @@ export type QueueItem = {
   checked_at: string | null;
 };
 
-/** Fila inteira, para moderador/admin (RPC list_claim_queue, 0022). */
+/** Fila inteira, para moderador/admin (RPC list_claim_queue). */
 export async function listClaimQueue(): Promise<QueueItem[]> {
   if (!supabase) return [];
   const res = await supabase.rpc('list_claim_queue' as never);
@@ -113,7 +113,7 @@ export async function listClaimQueue(): Promise<QueueItem[]> {
   return res.data as unknown as QueueItem[];
 }
 
-/** "Checar agora": a Edge Function processa este item na hora (moderador/admin). */
+/** "Checar agora": a Edge Function processa este item na hora. Só moderador/admin. */
 export async function runClaimNow(id: string): Promise<{ ok: boolean; error?: string }> {
   if (!supabase) return { ok: false, error: 'Sem servidor configurado.' };
   const { data, error } = await supabase.functions.invoke('process-claim-checks', { body: { id } });
@@ -124,8 +124,8 @@ export async function runClaimNow(id: string): Promise<{ ok: boolean; error?: st
 
 /**
  * Moderador/admin confere a checagem da IA e publica em `fact_checks`
- * (RPC promote_claim_check, 0041). Dá para corrigir o texto antes; a fonte
- * é sempre a que a busca achou.
+ * (promote_claim_check, migration 0041). Dá para corrigir o texto antes; a
+ * fonte é sempre a que a busca achou.
  */
 export async function publishClaimCheck(
   id: string,
@@ -139,7 +139,7 @@ export async function publishClaimCheck(
   if (res.error) throw new Error(res.error.message);
 }
 
-/** Apagar item com problema (texto sem sentido, teste, abuso). Moderador/admin. */
+/** Apaga item com problema (texto sem sentido, teste, abuso). Moderador/admin. */
 export async function deleteClaimCheck(id: string): Promise<void> {
   if (!supabase) return;
   const res = await supabase.rpc('delete_claim_check' as never, { p_id: id } as never);
@@ -147,8 +147,8 @@ export async function deleteClaimCheck(id: string): Promise<void> {
 }
 
 /**
- * Desiste de uma checagem que ainda está na fila. Sai da lista deste aparelho;
- * no servidor, o pedido só some se ninguém mais pediu o mesmo texto.
+ * Desiste de uma checagem que ainda está na fila. Sai da lista deste aparelho,
+ * e no servidor o pedido só some se mais ninguém pediu o mesmo texto.
  */
 export async function cancelClaimRequest(id: string, queued: boolean): Promise<void> {
   if (supabase && queued) {
@@ -159,7 +159,7 @@ export async function cancelClaimRequest(id: string, queued: boolean): Promise<v
   await writeMine(mine.filter((m) => m.id !== id));
 }
 
-/** Lê o texto de um print (Edge Function `ocr`, Gemini). A imagem não é guardada. */
+/** Lê o texto de um print pela Edge Function `ocr` (Gemini). A imagem não fica guardada. */
 export async function readTextFromImage(base64: string, mime: string): Promise<{ text: string; error?: string }> {
   if (!supabase) return { text: '', error: 'Disponível só com o servidor configurado.' };
   const { data, error } = await supabase.functions.invoke('ocr', { body: { image: base64, mime } });

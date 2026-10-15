@@ -9,8 +9,8 @@ const label = (d: Date) =>
   `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 /**
- * Data + hora com o seletor nativo (sem digitar). `minimum` impede escolher
- * antes dela. No navegador usa o campo datetime-local do próprio browser.
+ * Data e hora pelo seletor nativo, sem digitar. `minimum` não deixa escolher
+ * antes dele. No navegador usa o datetime-local do próprio browser.
  */
 export function DateTimeField({
   label: title,

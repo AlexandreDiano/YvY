@@ -5,9 +5,9 @@ import { color, radius, space } from '@/ui/tokens';
 export type Severity = 'low' | 'medium' | 'high' | 'critical';
 
 /**
- * Severidade dos cards de proposta. O contexto usa emoji (🟡/🔴/🔴🔴);
- * aqui a cor carrega o sinal e o texto carrega o significado — emoji sozinho
- * nao e lido por leitor de tela.
+ * Severidade dos cards de proposta. O contexto usa emoji (🟡/🔴/🔴🔴), aqui a
+ * cor dá o sinal e o texto dá o significado, porque leitor de tela não lê
+ * emoji sozinho.
  */
 export const SEVERITY: Record<Severity, { label: string; color: string }> = {
   low: { label: 'Baixo', color: color.neutral },
@@ -31,7 +31,7 @@ export function Badge({ label, color: c = color.neutral }: { label: string; colo
   );
 }
 
-/** Chip de filtro (lista de acoes, areas de proposta). */
+/** Chip de filtro (lista de ações, áreas de proposta). */
 export function Chip({
   label,
   active,

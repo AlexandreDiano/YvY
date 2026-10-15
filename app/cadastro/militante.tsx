@@ -7,10 +7,9 @@ import { notify } from '@/lib/notify';
 import { Banner, Button, Loading, Screen } from '@/ui';
 
 /**
- * Fluxo 4.2, passo 7: cadastro depois do QRCode lido.
- *
- * A reserva do convite (claimInvite) fica no aparelho, não na rota: no site,
- * parâmetro de rota vira URL — histórico, print, log do servidor.
+ * Cadastro depois do QRCode lido. A reserva do convite fica guardada no
+ * aparelho, não na rota, porque no site parâmetro de rota vira URL e vai
+ * parar em histórico, print e log de servidor.
  */
 export default function CadastroMilitante() {
   const { signUpWithInvite } = useAuth();
@@ -53,7 +52,7 @@ export default function CadastroMilitante() {
     <SignupForm
       onSubmit={async (input) => {
         const status = await signUpWithInvite(claim.claim, input);
-        // Reserva usada (ou guardada no cadastro pendente de e-mail): sai daqui.
+        // reserva usada (ou guardada no cadastro que espera o e-mail): pode apagar
         await clearClaim();
         if (status === 'email_pending') {
           router.replace('/entrar');

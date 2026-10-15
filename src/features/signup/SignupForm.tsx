@@ -19,14 +19,14 @@ import type { SignUpInput } from '@/features/auth/AuthProvider';
 import { useCaptcha } from '@/features/auth/useCaptcha';
 
 /**
- * Cadastro de membro (fluxo 4.2, passo 7).
+ * Cadastro de membro.
  *
- * Só se chega aqui com um convite válido já lido — o QRCode é o portão. Quem
- * não tem convite não cria conta: lê o conteúdo público e pronto.
+ * Só chega aqui quem já leu um convite válido. Quem não tem convite não cria
+ * conta, só lê o conteúdo público.
  *
- * Anonimato (seção 5.2): o nome completo fica com a pessoa e com a
- * coordenação; o que circula na base é o apelido. A rua nunca é pedida — o
- * endereço para no CEP, que vira só bairro/cidade/UF.
+ * O nome completo fica com a pessoa e com a coordenação; o que circula na
+ * base é o apelido. Rua nunca é pedida: o endereço para no CEP, que vira só
+ * bairro, cidade e UF.
  */
 
 const PRECISION = [
@@ -138,7 +138,7 @@ export function SignupForm({
       setError(err instanceof Error ? err.message : 'Não foi possível concluir o cadastro.');
     } finally {
       setBusy(false);
-      // Token do captcha vale uma vez: gera outro para a próxima tentativa.
+      // token do captcha só vale uma vez, gera outro para a próxima tentativa
       captcha.reset();
     }
   }
@@ -220,8 +220,8 @@ export function SignupForm({
       />
 
       <Section title="Termos" />
-      {/* Separado dos termos, de propósito: dado sensível (LGPD, art. 11)
-          exige consentimento específico e destacado, não um aceite genérico. */}
+      {/* Separado dos termos de propósito: dado sensível (LGPD, art. 11) pede
+        consentimento específico e destacado, não um aceite genérico. */}
       <Toggle
         value={sensitive}
         onChange={setSensitive}
@@ -252,7 +252,7 @@ export function SignupForm({
       ) : null}
 
       <View style={{ height: space.sm }} />
-      {/* Logo acima do botão: o token vence em ~5 min, e o formulário é longo. */}
+      {/* Logo acima do botão porque o token vence em uns 5 min e o formulário é longo. */}
       {captcha.widget}
       <Button title="Criar conta" onPress={submit} loading={busy} disabled={!captcha.ready} />
     </Screen>

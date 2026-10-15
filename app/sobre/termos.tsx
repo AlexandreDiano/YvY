@@ -1,6 +1,6 @@
 import { Banner, Card, Screen, Section, Txt } from '@/ui';
 
-/** Termos de uso — RASCUNHO TECNICO, pendente de revisao juridica. */
+/** Termos de uso. Rascunho técnico, falta revisão jurídica. */
 export default function Termos() {
   return (
     <Screen>

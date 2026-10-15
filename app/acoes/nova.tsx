@@ -19,7 +19,7 @@ import {
 
 const HOUR = 60 * 60 * 1000;
 
-/** Mínimo: daqui a 1h. Padrão: daqui a ~2h, arredondado para a meia hora. */
+// no mínimo daqui a 1h; por padrão ~2h, arredondado pra meia hora
 function minStart(): Date {
   return new Date(Date.now() + HOUR);
 }
@@ -29,7 +29,6 @@ function defaultStart(): Date {
   return d;
 }
 
-/** Fluxo 4.3 — criar ação de mobilização. */
 export default function NovaAcao() {
   const router = useRouter();
   const { profile } = useAuth();

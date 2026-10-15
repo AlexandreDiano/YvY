@@ -3,8 +3,8 @@ import { withCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Feature flags (secao 2.1 / risco "bug critico no dia 25"): permitem
- * desligar um modulo inteiro sem rebuild do app.
+ * Feature flags. Servem para desligar um módulo inteiro sem build novo, caso
+ * algo quebre perto da eleição.
  */
 export const FLAG = {
   acoes: 'module_acoes',
@@ -16,7 +16,7 @@ export const FLAG = {
 
 export type FlagKey = (typeof FLAG)[keyof typeof FLAG];
 
-/** Padrao local: o que fica ligado quando nao ha backend ou a rede caiu. */
+/** O que fica ligado quando não tem backend ou a rede caiu. */
 export const DEFAULT_FLAGS: Record<FlagKey, boolean> = {
   module_acoes: true,
   module_feed: true,

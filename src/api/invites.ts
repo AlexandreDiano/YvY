@@ -6,19 +6,20 @@ import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Convites por QRCode presencial (fluxo 4.2), em duas etapas (0035):
+ * Convite por QRCode presencial, em duas etapas (migration 0035).
  *
- *  1. Escanear: `claimInvite` reserva uma vaga e devolve um segredo que fica
- *     só neste aparelho (AsyncStorage, nunca na URL). Janela curta:
- *       pessoal 2 min · mesa 5 min por QRCode (troca sozinho, até 20 pessoas
- *       e 4h no evento) · distância 24h (código de texto).
- *  2. Cadastrar: `redeem_invite` com o segredo, em até 24h — dá tempo de
- *     preencher o formulário e confirmar o e-mail.
+ * 1. Escanear: `claimInvite` reserva uma vaga e devolve um segredo que fica só
+ *    neste aparelho (AsyncStorage, nunca na URL). A janela é curta: pessoal
+ *    2 min, mesa 5 min por QRCode (troca sozinho, até 20 pessoas e 4h de
+ *    evento), à distância 24h (código de texto).
+ * 2. Cadastrar: `redeem_invite` com o segredo em até 24h, que dá tempo de
+ *    preencher o formulário e confirmar o e-mail.
  *
- * Prazos saem do relógio do servidor (trigger da 0035); os daqui são só para
- * o modo local e para os textos da tela.
- *  - o token NUNCA aparece como texto legivel na tela sem aviso explicito;
- *  - quem confirma e o convidador, nunca o convidado (sem auto-confirmacao).
+ * Os prazos valem pelo relógio do servidor (trigger da 0035). Os daqui só
+ * servem para o modo local e para os textos da tela.
+ *
+ * O token nunca aparece como texto na tela sem aviso, e quem confirma é sempre
+ * quem convidou, nunca o próprio convidado.
  */
 
 const COL_INVITES = 'invites';
@@ -92,7 +93,7 @@ export async function generateInvite(
     return { id: row.id, token: row.token, ...w, skewMs: 0 };
   }
 
-  // Prazos e vagas: quem define é o trigger do banco, pelo relógio do servidor.
+  // prazo e vagas quem define é o trigger do banco, pelo relógio do servidor
   const res = await supabase
     .from('invites')
     .insert({
@@ -108,7 +109,7 @@ export async function generateInvite(
     .single();
   if (res.error) throw res.error;
   const row = res.data as Pick<Invite, 'id' | 'token' | 'expires_at' | 'scan_expires_at' | 'max_uses'>;
-  // O servidor abriu a janela agora; quanto ela "sobra" além do esperado é a
+  // O servidor abriu a janela agora. O quanto ela sobra além do esperado é a
   // diferença de relógio (mais a latência, que é de segundos).
   const skewMs = new Date(row.scan_expires_at).getTime() - new Date(w.scanExpiresAt).getTime();
   return {
@@ -122,8 +123,8 @@ export async function generateInvite(
 }
 
 /**
- * QRCode de mesa: token novo a cada 5 min, mesma linha no banco — as 20 vagas
- * e as 4h valem para o evento inteiro. Foto do QRCode morre na troca.
+ * QRCode de mesa: token novo a cada 5 min na mesma linha do banco, então as
+ * 20 vagas e as 4h valem para o evento inteiro. Foto do QRCode morre na troca.
  */
 export async function rotateTableInvite(inv: GeneratedInvite): Promise<GeneratedInvite> {
   if (!supabase) {
@@ -140,7 +141,7 @@ export async function rotateTableInvite(inv: GeneratedInvite): Promise<Generated
   return { ...inv, token: row.token, scanExpiresAt: toLocal(row.scan_expires_at, inv.skewMs) };
 }
 
-/** Convites que o usuario gerou, para ele acompanhar quem entrou. */
+/** Convites que a pessoa gerou, para acompanhar quem entrou. */
 export async function myInvites(profile: Profile): Promise<Invite[]> {
   if (!supabase) {
     return (await all<Invite>(COL_INVITES)).filter((i) => i.created_by === profile.id);
@@ -155,15 +156,15 @@ export async function myInvites(profile: Profile): Promise<Invite[]> {
 }
 
 /**
- * O QRCode codifica um link, nao o token cru (fluxo 4.2).
+ * O QRCode carrega um link, não o token cru.
  *
- * Com o site configurado, é https://<site>/cadastro/convite#t=<token>: a
- * câmera de qualquer celular abre, no navegador, a tela de convite do PWA; o
- * leitor do APK entende o mesmo link. O token vai depois do `#` de propósito:
- * fragmento não é enviado ao servidor, então não fica em log da Vercel nem em
- * Referer.
+ * Com o site configurado é https://<site>/cadastro/convite#t=<token>: a câmera
+ * de qualquer celular abre a tela de convite do PWA no navegador, e o leitor
+ * do APK entende o mesmo link. O token fica depois do `#` de propósito, porque
+ * fragmento não vai para o servidor e assim não aparece em log da Vercel nem
+ * em Referer.
  *
- * Sem site configurado (modo local, APK sem EXPO_PUBLIC_SITE_URL), cai no
+ * Sem site configurado (modo local, APK sem EXPO_PUBLIC_SITE_URL) usa o
  * yvy://invite/<token> antigo, que só o app lê.
  */
 export function inviteDeepLink(token: string): string {
@@ -215,10 +216,10 @@ export type InviteClaim = { claim: string; expiresAt: string };
 const CLAIM_KEY = 'yvy:invite-claim';
 
 /**
- * Etapa 1: reserva a vaga na hora do scan. Roda sem conta (`anon`), por isso
- * só devolve o segredo — nada sobre quem convidou nem sobre o convite.
- * O segredo vai para o AsyncStorage, nunca para a URL: no site, parâmetro de
- * rota acaba na barra de endereço, no histórico e no log do servidor.
+ * Etapa 1, reserva a vaga na hora do scan. Roda sem conta (`anon`), por isso
+ * só devolve o segredo e nada sobre quem convidou ou sobre o convite. O
+ * segredo vai pro AsyncStorage, nunca pra URL: no site, parâmetro de rota
+ * acaba na barra de endereço, no histórico e no log do servidor.
  */
 export async function claimInvite(token: string): Promise<InviteClaim> {
   let result: InviteClaim;
@@ -260,18 +261,19 @@ export async function clearClaim(): Promise<void> {
 }
 
 /**
- * Confirmacao/rejeicao do convidado pelo convidador (fluxo 4.2, passo 10).
+ * Quem convidou confirma ou recusa o convidado.
  *
- * Vai por RPC, nao por UPDATE: `role` e `membership_status` nao tem privilegio
- * de escrita para o cliente — senao qualquer um se promovia a admin com a anon
- * key do bundle. A RPC e SECURITY DEFINER e confere `invited_by = auth.uid()`.
+ * Vai por RPC e não por UPDATE porque `role` e `membership_status` não têm
+ * privilégio de escrita para o cliente. Se tivessem, qualquer um virava admin
+ * com a anon key do bundle. A RPC é SECURITY DEFINER e confere
+ * `invited_by = auth.uid()`.
  */
 export async function decideInvitee(
   inviteeId: string,
   decision: 'active' | 'rejected',
 ): Promise<void> {
   if (!supabase) {
-    // Modo local nao tem segundo aparelho, logo nao ha convidado para decidir.
+    // modo local não tem segundo aparelho, então não tem convidado para decidir
     return;
   }
   const { error } = await supabase.rpc('decide_invitee', {
@@ -282,11 +284,11 @@ export async function decideInvitee(
 }
 
 /**
- * Convidados aguardando confirmacao deste membro.
+ * Convidados esperando a confirmação desta pessoa.
  *
- * Tambem por RPC: `profiles` so deixa a pessoa ler a propria linha. A funcao
- * devolve apenas apelido e area — o convidador nao precisa do nome completo
- * de quem convidou para decidir.
+ * Também por RPC, porque em `profiles` cada um só lê a própria linha. A função
+ * devolve só apelido e área: quem convidou não precisa do nome completo para
+ * decidir.
  */
 export async function pendingInvitees(_profile: Profile) {
   if (!supabase) return [];
@@ -312,7 +314,7 @@ export type Invitee = {
   created_at: string;
 };
 
-/** Todos que esta pessoa convidou, com a situação de cada um (RPC my_invitees, 0024). */
+/** Todos que esta pessoa convidou e a situação de cada um (RPC my_invitees). */
 export async function myInvitees(): Promise<Invitee[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('my_invitees' as never);
@@ -320,7 +322,7 @@ export async function myInvitees(): Promise<Invitee[]> {
   return (data ?? []) as unknown as Invitee[];
 }
 
-/** UUID v4 sem dependencia extra (modo local apenas). */
+/** UUID v4 sem dependência extra, só para o modo local. */
 function cryptoToken(): string {
   const hex = [...Array(32)].map(() => Math.floor(Math.random() * 16).toString(16));
   hex[12] = '4';

@@ -8,11 +8,10 @@ import { color, radius, space } from '@/ui/tokens';
 export type Point = { lat: number; lng: number };
 
 /**
- * Ponto de encontro da ação num mapa leve: Leaflet + OpenStreetMap dentro de
- * uma WebView no celular ou de um iframe isolado no site (MapFrame; sem build
- * nativo nem token). Toque marca o
- * ponto. Começa centrado no bairro da pessoa (Nominatim/OSM). É lugar
- * público de encontro, não endereço de ninguém.
+ * Ponto de encontro da ação num mapa leve: Leaflet + OpenStreetMap numa
+ * WebView no celular ou num iframe isolado no site (MapFrame), sem build
+ * nativo nem token. O toque marca o ponto, e o mapa começa no bairro da pessoa
+ * (Nominatim/OSM). É lugar público de encontro, não endereço de ninguém.
  */
 export function MeetingPointPicker({
   value,
@@ -21,12 +20,12 @@ export function MeetingPointPicker({
 }: {
   value: Point | null;
   onChange: (p: Point | null) => void;
-  /** Onde a pessoa mora, do cadastro: centraliza o mapa ali. */
+  /** Onde a pessoa mora, pelo cadastro. O mapa centraliza ali. */
   area: { cep?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null };
 }) {
   const [center, setCenter] = useState<Point | null>(value);
-  // O alfinete anda dentro da página (toque); só recarrega ao "Tirar ponto".
-  // Recarregar a cada toque piscava o mapa e perdia o zoom.
+  // O alfinete anda dentro da página no toque; só recarrega no "Tirar ponto".
+  // Recarregar a cada toque fazia o mapa piscar e perder o zoom.
   const [gen, setGen] = useState(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const page = useMemo(() => (center ? html(center, value) : ''), [center, gen]);
@@ -81,15 +80,15 @@ export function MeetingPointPicker({
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br';
 
 /**
- * Nominatim pede identificação. No celular vai no User-Agent; no navegador
- * o cabeçalho próprio dispara preflight de CORS (e o Nominatim recusa), então
- * lá vale o User-Agent e o Referer do próprio navegador.
+ * O Nominatim pede identificação. No celular vai no User-Agent. No navegador
+ * um cabeçalho nosso dispara preflight de CORS (que o Nominatim recusa), então
+ * lá valem o User-Agent e o Referer do próprio navegador.
  */
 export const OSM_HEADERS: Record<string, string> =
   Platform.OS === 'web' ? {} : { 'User-Agent': 'Yvy/1.0 (app de organizacao de base)' };
 
 /**
- * Centro do mapa a partir do cadastro, do mais preciso ao mais amplo: CEP,
+ * Centro do mapa pelo cadastro, do mais preciso ao mais amplo: CEP,
  * bairro+cidade, cidade, estado. Para no primeiro que o OpenStreetMap achar.
  */
 export async function locate(

@@ -9,20 +9,20 @@ import { useAuth } from '@/features/auth/AuthProvider';
 /**
  * Entrar com a digital (ou com a senha/padrão do celular).
  *
- * A sessão do Supabase já fica salva no aparelho depois do primeiro login com
- * e-mail e senha; a digital não troca a conta, ela tranca a tela. Ligado em
+ * A sessão do Supabase já fica salva depois do primeiro login com e-mail e
+ * senha. A digital não troca de conta, ela só tranca a tela. Ligada no
  * Perfil, o app pede a digital ao abrir e ao voltar depois de LOCK_AFTER_MS
  * fora. "Sair" pode só trancar (volta com a digital) ou sair de vez.
  *
- * Nada de senha nem token extra guardado: a preferência é só um "ligado" neste
- * aparelho. A trava é de tela — protege de quem pega o celular desbloqueado,
- * não substitui as regras do banco.
+ * Não guarda senha nem token extra, a preferência é só um "ligado" neste
+ * aparelho. É trava de tela: protege de quem pega o celular desbloqueado, não
+ * substitui as regras do banco.
  */
 const KEY = 'yvy:bio-lock';
 const LOCK_AFTER_MS = 60_000;
 
 type Ctx = {
-  /** Celular tem digital/rosto cadastrado (ou senha de tela, como reserva). */
+  /** O celular tem digital/rosto cadastrado (ou senha de tela, de reserva). */
   available: boolean;
   enabled: boolean;
   setEnabled: (on: boolean) => Promise<boolean>;
@@ -57,8 +57,8 @@ export function BiometricLockProvider({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(Platform.OS === 'web');
   const [busy, setBusy] = useState(false);
   const leftAt = useRef<number | null>(null);
-  // O próprio diálogo da digital tira o app do primeiro plano em alguns
-  // Androids: sem isso, desbloquear trancaria de novo.
+  // Em alguns Androids o próprio diálogo da digital tira o app do primeiro
+  // plano, e sem isso desbloquear trancaria de novo.
   const authenticating = useRef(false);
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export function BiometricLockProvider({ children }: { children: ReactNode }) {
 
   const showLock = enabled && locked && !!profile;
 
-  // Abre o pedido da digital sozinho assim que a tela trava.
+  // abre o pedido da digital sozinho assim que a tela tranca
   useEffect(() => {
     if (showLock) void unlock();
   }, [showLock, unlock]);
@@ -130,7 +130,7 @@ export function BiometricLockProvider({ children }: { children: ReactNode }) {
   return (
     <BioContext.Provider value={{ available, enabled, setEnabled, lockNow }}>
       {children}
-      {/* Antes de saber se a trava está ligada, não mostra a conta por um instante. */}
+      {/* Enquanto não sabe se a trava está ligada, não mostra a conta. */}
       {!checked && profile ? <View style={[StyleSheet.absoluteFill, s.cover]} /> : null}
       {showLock ? (
         <View style={[StyleSheet.absoluteFill, s.cover, s.center]}>

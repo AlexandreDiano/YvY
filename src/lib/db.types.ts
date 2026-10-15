@@ -1,8 +1,6 @@
 /**
- * Tipos do banco, espelhando supabase/migrations.
- *
- * Escrito a mao de proposito: o projeto ainda nao tem Supabase provisionado.
- * Quando houver, trocar por geracao automatica e apagar este arquivo:
+ * Tipos do banco, espelhando supabase/migrations. Escritos à mão; quando
+ * alguém tiver tempo dá para trocar pela geração automática:
  *   npx supabase gen types typescript --project-id <id> > src/lib/db.types.ts
  */
 
@@ -22,10 +20,9 @@ export type ActionStatus = 'draft' | 'open' | 'confirmed' | 'completed' | 'cance
 export type PostStatus = 'pending' | 'published' | 'removed' | 'flagged';
 
 /**
- * O enum do contexto (secao 3.1) tem 4 valores, mas a propria base inicial
- * (secao 6.2) traz um item classificado como "Exagero" — que nao e mentira
- * nem meia verdade. Adicionado 'exaggeration' em vez de forcar o conteudo
- * dentro de um selo errado.
+ * O enum do contexto (seção 3.1) tem 4 valores, mas a própria base inicial
+ * (seção 6.2) tem um item marcado como "Exagero", que não é mentira nem meia
+ * verdade. Entrou 'exaggeration' para não enfiar o conteúdo num selo errado.
  */
 export type CheckResult = 'true' | 'half_true' | 'exaggeration' | 'false' | 'unverified';
 
@@ -51,13 +48,13 @@ export type Profile = {
   notify_actions: boolean;
   notify_feed: boolean;
   terms_accepted_at: string | null;
-  /** Consentimento para dado de participação política (LGPD art. 11, 0039). */
+  /** Consentimento para dado de participação política (LGPD art. 11, migration 0039). */
   sensitive_consent_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-/** View publica: o que um militante do bairro pode ver de outro. */
+/** View pública: o que um membro do bairro pode ver de outro. */
 export type ProfilePublic = {
   id: string;
   display_name: string;
@@ -151,7 +148,7 @@ export type ProposalCard = {
   what_they_said: string;
   source_url: string | null;
   source_name: string | null;
-  /** Link achado pela busca automática (0025): a equipe confere. */
+  /** Link achado pela busca automática (0025). A equipe confere. */
   source_auto?: boolean;
   source_date: string | null;
   what_it_means: string;
@@ -171,7 +168,7 @@ export type FactCheck = {
   explanation: string;
   source_url: string | null;
   source_name: string | null;
-  /** Link achado pela busca automática (0025): a equipe confere. */
+  /** Link achado pela busca automática (0025). A equipe confere. */
   source_auto?: boolean;
   is_active: boolean;
   created_at: string;
@@ -188,7 +185,7 @@ export type Invite = {
   /** Até quando o QRCode atual pode ser escaneado (0035). */
   scan_expires_at: string;
   is_table_qr: boolean;
-  /** Convite à distância: código de texto, só moderador/admin gera (0015). */
+  /** Convite à distância, código de texto que só moderador/admin gera (0015). */
   is_remote: boolean;
   event_name: string | null;
   created_at: string;
@@ -242,7 +239,7 @@ export type Database = {
         Args: { q: string; min_score?: number };
         Returns: FactCheck[];
       };
-      // Fila de checagem automática (0012). Devolvem jsonb: tipado em src/api/claims.ts.
+      // fila de checagem automática (0012). Devolvem jsonb, tipado em src/api/claims.ts
       request_claim_check: { Args: { p_text: string }; Returns: unknown };
       get_claim_checks: { Args: { p_ids: string[] }; Returns: unknown[] };
       list_claim_checks: { Args: { p_limit?: number }; Returns: unknown[] };

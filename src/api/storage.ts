@@ -1,23 +1,24 @@
 import { supabase } from '@/lib/supabase';
 
 /**
- * Imagens de post. Bucket PRIVADO `post-images` (criar no painel do Supabase).
+ * Imagens de post, no bucket privado `post-images` (criado no painel do Supabase).
  *
- * O banco guarda o CAMINHO no bucket, nunca uma URL assinada: URL assinada
- * expira (a imagem sumiria do feed antigo) e, se alguém a repassa, ela vale
- * fora do app, por cima do RLS. A assinatura é feita na leitura, curta.
+ * O banco guarda o caminho no bucket e não uma URL assinada. URL assinada
+ * expira (a imagem sumiria do feed antigo) e, se alguém repassa, ela funciona
+ * fora do app passando por cima da RLS. A assinatura é feita na leitura e dura pouco.
  *
- * Sem backend nada sai do aparelho: guardamos a própria URI local.
+ * Sem backend nada sai do aparelho e guardamos a própria URI local.
  */
 const BUCKET = 'post-images';
-const SIGN_TTL_S = 60 * 60; // 1h: tempo de ler o feed, não de circular por aí
+const SIGN_TTL_S = 60 * 60; // 1h dá para ler o feed, não para sair circulando
 
 export type PickedImage = { uri: string; base64?: string | null; mimeType?: string | null };
 
 /**
- * Sobe os BYTES da imagem. Não usar `fetch(uri).blob()`: no React Native esse
- * blob vai vazio para o Storage (o arquivo chegava com 14 bytes, text/plain, e
- * a imagem nunca aparecia). O seletor entrega base64; viramos bytes aqui.
+ * Sobe os bytes da imagem. Não dá para usar `fetch(uri).blob()`: no React
+ * Native esse blob chega vazio no Storage (o arquivo ficava com 14 bytes,
+ * text/plain, e a imagem nunca aparecia). O seletor entrega base64 e a gente
+ * converte para bytes aqui.
  */
 export async function uploadPostImage(image: PickedImage, userId: string): Promise<string> {
   if (!supabase) return image.uri;

@@ -4,7 +4,7 @@ import { InstallCard } from '@/features/pwa/InstallCard';
 import { useInstall } from '@/features/pwa/install';
 import { Button, Screen, Txt, YvyLogo, space } from '@/ui';
 
-/** Onde o QRCode do site leva: instalar o app no celular, e só isso. */
+/** Para onde o QRCode do site leva: instalar o app no celular. */
 export default function Instalar() {
   const router = useRouter();
   const { kind } = useInstall();

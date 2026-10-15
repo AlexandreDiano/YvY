@@ -3,7 +3,7 @@ import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
 import { withSignedImages } from '@/api/storage';
 
-/** Feed local "Fala Camarada" (fluxo 4.4 / tela 7.4). */
+/** Feed do bairro, o "Fala Camarada". */
 
 export const MAX_POST_CHARS = 500;
 
@@ -100,7 +100,7 @@ export async function createPost(
       neighborhood: profile.neighborhood ?? '',
       city: profile.city ?? '',
       state: profile.state ?? '',
-      // Sem moderador no modo local, publica direto (em producao entra como 'pending').
+      // sem moderador no modo local, publica direto (em produção entra como 'pending')
       status: 'published',
       scope,
       moderator_id: null,
@@ -124,13 +124,13 @@ export async function createPost(
   if (res.error) throw res.error;
 }
 
-/** Fila de moderacao do bairro: pendentes + denunciados. */
+/** Fila de moderação do bairro: pendentes e denunciados. */
 export async function listForModeration(profile: Profile): Promise<PostListed[]> {
   if (!supabase) {
     const rows = await all<PostListed>(COL_POSTS);
     return rows.filter((p) => p.status === 'pending' || p.status === 'flagged');
   }
-  // Bairro do moderador + (para admin) estado/região/Brasil. A RLS decide.
+  // bairro do moderador e, para admin, estado/região/Brasil. Quem decide é a RLS
   const res = await supabase
     .from('posts_with_author')
     .select('*')
@@ -198,7 +198,7 @@ export async function flagPost(
     .from('post_flags')
     .insert({ post_id: postId, flagger_id: flaggerId, reason, detail: detail ?? null });
   if (res.error) {
-    // 23505 = unique_violation: ja existe denuncia deste usuario neste post
+    // 23505 = unique_violation, essa pessoa já denunciou este post
     if (res.error.code === '23505') throw new Error('Você já denunciou este post.');
     throw res.error;
   }

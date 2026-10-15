@@ -4,10 +4,10 @@ import { Appearance, Platform } from 'react-native';
 /**
  * Claro, escuro ou igual ao celular.
  *
- * As cores entram nos StyleSheet.create na hora em que cada arquivo é
- * carregado, então o tema tem que estar decidido ANTES — leitura síncrona.
- * AsyncStorage não serve; um arquivinho com expo-file-system (textSync) sim.
- * Trocar o tema vale ao reabrir o app.
+ * As cores entram nos StyleSheet.create na hora em que cada arquivo carrega,
+ * então o tema tem que estar decidido antes, com leitura síncrona. AsyncStorage
+ * não serve; um arquivinho com expo-file-system (textSync) serve. Trocar o
+ * tema só vale quando reabre o app.
  */
 export type ThemePref = 'system' | 'light' | 'dark';
 
@@ -48,7 +48,7 @@ export function saveThemePref(pref: ThemePref): void {
     if (!f.exists) f.create();
     f.write(pref);
   } catch {
-    // sem disco: fica no padrão do celular
+    // sem disco, fica no padrão do celular
   }
 }
 

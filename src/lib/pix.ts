@@ -1,10 +1,10 @@
 /**
  * Pix "copia e cola" estático (BR Code do Banco Central), sem valor: quem
- * paga digita quanto quiser no app do banco. Mesmo texto vira o QRCode Pix.
+ * paga digita quanto quiser no app do banco. O mesmo texto vira o QRCode.
  *
- * Campos (EMV, cada um ID + tamanho com 2 dígitos + valor):
- *   00 formato · 26 conta (GUI br.gov.bcb.pix + chave) · 52 categoria ·
- *   53 moeda 986 (real) · 58 país · 59 nome · 60 cidade · 62 txid "***" ·
+ * Campos EMV, cada um com ID, tamanho em 2 dígitos e valor:
+ *   00 formato, 26 conta (GUI br.gov.bcb.pix + chave), 52 categoria,
+ *   53 moeda 986 (real), 58 país, 59 nome, 60 cidade, 62 txid "***",
  *   63 CRC16-CCITT de tudo, incluindo o "6304".
  */
 function field(id: string, value: string): string {

@@ -13,15 +13,15 @@ import { areaShape, membersByArea, type AreaCount, type AreaShape } from '@/feat
 type Area = { cep?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null };
 
 /**
- * Mapa das ações: Leaflet + OpenStreetMap numa WebView no celular e num
- * iframe isolado no site (MapFrame; sem build nativo nem token), o mesmo
- * esquema do MeetingPointPicker. Cada ação com ponto de
- * encontro vira um alfinete; tocar abre o resumo e "Abrir" leva à ação.
- * Ação sem ponto continua na lista e é contada embaixo do mapa.
+ * Mapa das ações. Leaflet + OpenStreetMap numa WebView no celular e num iframe
+ * isolado no site (MapFrame), sem build nativo nem token, igual ao
+ * MeetingPointPicker. Cada ação com ponto de encontro vira um alfinete; o
+ * toque abre o resumo e "Abrir" leva para a ação. Ação sem ponto fica na
+ * lista e é contada embaixo do mapa.
  *
- * Por baixo dos alfinetes, cada bairro com membros fica pintado (contorno do
- * OpenStreetMap) com quantos membros tem. Seu bairro em terracota, os outros
- * em verde, mais forte quanto mais gente.
+ * Embaixo dos alfinetes cada bairro com membros fica pintado (contorno do
+ * OSM) com quantos membros tem. O seu bairro em terracota, os outros em verde,
+ * mais forte quanto mais gente.
  */
 export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: Area }) {
   const router = useRouter();
@@ -45,14 +45,14 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
   const [areas, setAreas] = useState<(AreaCount & AreaShape)[]>([]);
   const [areaTotal, setAreaTotal] = useState(0);
 
-  // Bairros com membros: contagem do banco, contorno do OSM (um por segundo,
-  // com cache), e cada um entra no mapa assim que chega.
+  // Bairros com membros: a contagem vem do banco e o contorno do OSM (um por
+  // segundo, com cache). Cada um entra no mapa assim que chega.
   useEffect(() => {
     const ctrl = new AbortController();
     void (async () => {
       const list = await membersByArea();
       setAreaTotal(list.length);
-      // O próprio bairro primeiro: é o que a pessoa procura.
+      // o próprio bairro primeiro, que é o que a pessoa procura
       for (const a of [...list].sort((x, y) => Number(y.mine) - Number(x.mine))) {
         if (ctrl.signal.aborted) return;
         const shape = await areaShape(a, ctrl.signal);
@@ -63,10 +63,10 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
   }, []);
 
   const page = useMemo(() => html(pins, center), [pins, center]);
-  // Página nova (ações mudaram): espera carregar de novo antes de mandar os bairros.
+  // página nova (as ações mudaram): espera carregar de novo antes de mandar os bairros
   useEffect(() => setReady(false), [page]);
 
-  // A página do mapa recarrega quando as ações mudam; reenvia os bairros.
+  // a página do mapa recarrega quando as ações mudam, então reenvia os bairros
   useEffect(() => {
     if (!ready || !areas.length) return;
     web.current?.post(
@@ -74,7 +74,7 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
     );
   }, [ready, areas]);
 
-  // Sem alfinete, o mapa abre no bairro do cadastro.
+  // sem alfinete, o mapa abre no bairro do cadastro
   useEffect(() => {
     if (pins.length || center) return;
     const ctrl = new AbortController();
@@ -132,7 +132,7 @@ export function ActionsMap({ actions, area }: { actions: ActionListed[]; area: A
 type Pin = { id: string; lat: number; lng: number; t: string; s: string };
 
 function html(pins: Pin[], center: Point | null): string {
-  // Título vem de membro: vai como dado JSON (com "<" escapado) e entra na
+  // O título vem de membro. Vai como JSON (com "<" escapado) e entra na
   // página por textContent, nunca como HTML.
   const data = JSON.stringify({ pins, center }).replace(/</g, '\\u003c');
   return `<!doctype html><html><head>

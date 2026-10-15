@@ -1,14 +1,14 @@
 import type { ProposalCard, Severity } from '@/lib/db.types';
 
 /**
- * Cards de propostas — conteudo inicial, secao 6.1 de docs/CONTEXT.md.
+ * Cards de propostas, conteúdo inicial da seção 6.1 do docs/CONTEXT.md.
  *
- * REGRA EDITORIAL: transcricao literal do documento, com fonte e data. Nao
- * reescrever, nao resumir, nao acrescentar afirmacao sobre o que o candidato
- * vai fazer. Mudanca de conteudo e decisao da equipe editorial, nao do codigo.
+ * É transcrição literal do documento, com fonte e data. Não reescrever, não
+ * resumir e não acrescentar nada sobre o que o candidato vai fazer: mudar o
+ * conteúdo é decisão da equipe editorial, não do código.
  *
- * Fonte unica de verdade: este arquivo gera supabase/seed/0002_proposal_cards.sql
- * via `node scripts/gen-seed-sql.mjs`.
+ * Este arquivo gera supabase/seed/0002_proposal_cards.sql com
+ * `node scripts/gen-seed-sql.mjs`.
  */
 
 export type SeedCard = Omit<ProposalCard, 'id' | 'created_at' | 'updated_at' | 'is_active'>;

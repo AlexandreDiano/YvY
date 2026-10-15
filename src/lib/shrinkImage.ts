@@ -1,7 +1,7 @@
 /**
- * Imagem pronta para enviar: no celular o seletor já comprimiu (`quality`) e
- * regravou a imagem — o que também tira o EXIF (GPS de onde a foto foi
- * tirada). Aqui não há o que fazer. Versão do site: shrinkImage.web.ts.
+ * No celular o seletor já comprimiu (`quality`) e regravou a imagem, o que
+ * também tira o EXIF (com o GPS de onde a foto foi tirada). Aqui não tem nada
+ * a fazer. A versão do site é shrinkImage.web.ts.
  */
 export type Shrunk = { uri: string; base64: string; mimeType: string };
 

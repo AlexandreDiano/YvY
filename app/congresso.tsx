@@ -35,11 +35,10 @@ const HOUSE: Record<House, { label: string; color: string }> = {
 type Tab = 'consultas' | 'votacoes';
 
 /**
- * Congresso, área pública (sem conta):
- *  - Consultas públicas do Senado (e-Cidadania): a pessoa vota no site do
- *    Senado, com o cadastro dela. O app mostra o placar e leva até lá.
- *  - Votações recentes em plenário da Câmara e do Senado.
- * Texto é o publicado pelas fontes oficiais, sem resumo nosso.
+ * Congresso, área pública. Mostra as consultas públicas do Senado
+ * (e-Cidadania), onde a pessoa vota no site do Senado com o cadastro dela, e
+ * as votações recentes de plenário da Câmara e do Senado. O texto é o que as
+ * fontes oficiais publicam, sem resumo nosso.
  */
 export default function Congresso() {
   const [tab, setTab] = useState<Tab>('consultas');
@@ -87,7 +86,7 @@ function Consultations() {
     );
   }, []);
 
-  /** Próxima página do e-Cidadania (100 por vez), sem repetir consulta. */
+  /** Próxima página do e-Cidadania (100 por vez) sem repetir consulta. */
   async function loadMore() {
     setLoadingMore(true);
     try {

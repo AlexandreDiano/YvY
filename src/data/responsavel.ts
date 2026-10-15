@@ -1,8 +1,7 @@
 /**
- * Quem responde pelo YvY: identificação exigida na internet em período
- * eleitoral (Lei 9.504/97, art. 57-D proíbe o anonimato) e controlador /
- * canal de contato da LGPD (pedidos de acesso, correção e exclusão —
- * inclusive de quem foi cadastrado por um membro e não tem conta).
+ * Quem responde pelo YvY. A Lei 9.504/97 (art. 57-D) proíbe anonimato na
+ * internet durante a eleição, e a LGPD pede um controlador com canal de
+ * contato para pedidos de acesso, correção e exclusão.
  */
 export const RESPONSAVEL = {
   nome: 'Alexandre Diano',

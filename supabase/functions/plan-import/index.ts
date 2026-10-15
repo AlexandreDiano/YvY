@@ -1,13 +1,12 @@
-// Yvy — importa planos de governo do TSE para o app (migration 0027).
+// Importa os planos de governo do TSE para o app (migration 0027).
 //
 // POST {"uf": "BR", "candidates": [{sq, nome_urna, cargo, partido}]} com o
-// x-cron-key do Vault. Para cada candidato:
-//   1. baixa proposta_governo_2026_<UF>.zip dos dados abertos do TSE;
-//   2. guarda o PDF oficial no bucket público `planos-governo`;
-//   3. pede ao Gemini os trechos com propostas COPIADOS LITERALMENTE, com
-//      página. Os itens entram com verified = false: são conferidos palavra a
-//      palavra contra o texto do PDF (scripts/verify-plans.py) antes de
-//      aparecer no app.
+// x-cron-key do Vault. Para cada candidato baixa o
+// proposta_governo_2026_<UF>.zip dos dados abertos do TSE, guarda o PDF
+// oficial no bucket público `planos-governo` e pede ao Gemini os trechos com
+// propostas, copiados literalmente e com a página. Os itens entram com
+// verified = false e só aparecem no app depois de conferidos palavra por
+// palavra contra o PDF (scripts/verify-plans.py).
 
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { unzipSync } from "npm:fflate@0.8.2";
@@ -83,7 +82,7 @@ Deno.serve(async (req) => {
 
   const report: Record<string, unknown> = {};
   for (const c of candidates) {
-    // Plano pode vir em partes (_01, _02...): a primeira é o documento principal.
+    // o plano pode vir em partes (_01, _02...) e a primeira é o documento principal
     const name = Object.keys(files).filter((n) => n.includes(`${c.sq}_`)).sort()[0];
     if (!name) {
       report[c.sq] = "sem PDF no TSE";

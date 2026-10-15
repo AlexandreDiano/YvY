@@ -17,15 +17,15 @@ import { supabase } from '@/lib/supabase';
 /**
  * Sessão do app.
  *
- * Regra de entrada: **o QRCode vem antes da conta**. Sem convite presencial
- * válido ninguém se cadastra — só navega o conteúdo público (propostas e
- * checagem), que não exige sessão nenhuma. Quem tem convite cria conta com
- * e-mail + senha e nasce membro (role 'militant') 'pending' até o convidador confirmar.
+ * O QRCode vem antes da conta. Sem convite presencial válido ninguém se
+ * cadastra, só navega pelo conteúdo público (propostas e checagem), que não
+ * pede sessão. Quem tem convite cria conta com e-mail e senha e entra como
+ * membro (role 'militant') pendente até quem convidou confirmar.
  *
- * Dois modos:
- *  - `backend`: Supabase Auth (e-mail/senha) + RPC redeem_invite.
- *  - `local`: sem chaves no .env. Perfil no AsyncStorage para o app ser
- *    navegável antes de existir backend. Nada sai do aparelho.
+ * Tem dois modos. `backend` usa Supabase Auth (e-mail/senha) e a RPC
+ * redeem_invite. `local` é quando não tem chave no .env: o perfil fica no
+ * AsyncStorage, dá para navegar no app antes de existir backend e nada sai do
+ * aparelho.
  */
 
 const LOCAL_KEY = 'yvy:localProfile';
@@ -54,27 +54,25 @@ type Ctx = {
   profile: Profile | null;
   role: UserRole | null;
   membership: MembershipStatus | null;
-  /** Membro confirmado pelo convidador — porta de entrada da base. */
+  /** Membro confirmado por quem convidou. É o que libera a área da base. */
   isBaseMember: boolean;
   isModerator: boolean;
   isAdmin: boolean;
   flags: Record<string, boolean>;
   /**
-   * Admin vendo o app como visitante sem conta. Só muda a interface: as
-   * requisições continuam saindo com a sessão do admin. Fica em memória de
-   * propósito — fechar o app sempre volta ao normal.
+   * Admin vendo o app como visitante. Só muda a interface, as requisições
+   * continuam saindo com a sessão do admin. Fica só em memória de propósito,
+   * fechou o app voltou ao normal.
    */
   visitorView: boolean;
   /** Admin de verdade, mesmo com a visão de visitante ligada. */
   canPreviewVisitor: boolean;
   setVisitorView: (on: boolean) => void;
-  /** Cria a conta e resgata o convite. Devolve a situação resultante. */
-  /** 'email_pending': conta criada, falta confirmar o e-mail (o convite é usado no 1º login). */
+  /** 'email_pending': a conta existe mas falta confirmar o e-mail (o convite é usado no 1º login). */
   signUpWithInvite: (claim: string, input: SignUpInput) => Promise<MembershipStatus | 'email_pending'>;
   signIn: (email: string, password: string, captchaToken?: string) => Promise<void>;
   /** Manda o código de recuperação para o e-mail (template "Reset Password" com {{ .Token }}). */
   requestPasswordReset: (email: string, captchaToken?: string) => Promise<void>;
-  /** Confere o código do e-mail, entra e troca a senha. */
   resetPassword: (email: string, code: string, password: string) => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
   signOut: () => Promise<void>;
@@ -84,10 +82,11 @@ type Ctx = {
 const AuthContext = createContext<Ctx | null>(null);
 
 /**
- * Cadastro esperando confirmação de e-mail. Fica só neste aparelho, sem senha:
- * o convite é resgatado no primeiro login depois da confirmação (a reserva
- * feita no scan vale 24h — ver claimInvite em src/api/invites.ts). Sem isso, com "Confirm email" ligado no Supabase, o cadastro não
- * teria sessão para usar o convite.
+ * Cadastro esperando a confirmação do e-mail. Fica só neste aparelho, sem
+ * senha, e o convite é resgatado no primeiro login depois de confirmar (a
+ * reserva feita no scan vale 24h, ver claimInvite em src/api/invites.ts). Sem
+ * isso, com "Confirm email" ligado no Supabase, o cadastro não teria sessão
+ * para usar o convite.
  */
 const PENDING_KEY = 'yvy:pending-signup';
 type PendingSignup = { email: string; claim: string; input: Omit<SignUpInput, 'password'> };
@@ -97,7 +96,7 @@ function isCaptchaError(e: { code?: string; message?: string }): boolean {
   return e.code === 'captcha_failed' || /captcha/i.test(e.message ?? '');
 }
 
-/** Troca o erro de captcha por uma frase em português; os outros passam iguais. */
+/** Troca o erro de captcha por uma frase em português. Os outros passam como estão. */
 function captchaError<E extends { code?: string; message?: string }>(e: E): E | Error {
   return isCaptchaError(e) ? new Error('A verificação "não sou robô" falhou ou venceu. Faça de novo e tente outra vez.') : e;
 }
@@ -169,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let res = await client.from('profiles').select('*').eq('id', uid).maybeSingle();
     if (!res.data) {
-      // Primeiro login depois de confirmar o e-mail: usa o convite guardado.
+      // primeiro login depois de confirmar o e-mail: usa o convite guardado
       const raw = await AsyncStorage.getItem(PENDING_KEY);
       const pending = raw ? (JSON.parse(raw) as PendingSignup) : null;
       if (pending && pending.email === sess.session?.user.email?.toLowerCase()) {
@@ -209,9 +208,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!claim) throw new Error('Sem convite não é possível criar conta.');
 
       if (mode === 'local') {
-        // Sem backend não há convite para validar nem convidador para
-        // confirmar. Entra 'active' de propósito, senão as abas da base
-        // ficariam inalcançáveis e não haveria o que testar.
+        // Sem backend não tem convite para validar nem quem confirmar. Entra
+        // 'active' de propósito, senão as abas da base ficariam inacessíveis
+        // e não teria o que testar.
         const next = localProfile(input, 'active');
         await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(next));
         setProfile(next);
@@ -225,10 +224,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: { captchaToken: input.captchaToken },
       });
       if (signUp.error) throw captchaError(signUp.error);
-      // Senha e token do captcha nunca vão para o cadastro guardado no aparelho.
+      // senha e token do captcha nunca vão para o cadastro guardado no aparelho
       const { password: _omit, captchaToken: _token, ...keep } = input;
       if (!signUp.data.session) {
-        // "Confirm email" ligado: guarda o cadastro e usa o convite no 1º login.
+        // "Confirm email" ligado: guarda o cadastro e usa o convite no 1º login
         const pending: PendingSignup = { email: input.email.trim().toLowerCase(), claim, input: keep };
         await AsyncStorage.setItem(PENDING_KEY, JSON.stringify(pending));
         return 'email_pending';
@@ -238,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         status = await redeem(client, claim, keep);
       } catch (error) {
-        // Conta criada mas convite recusado: não deixa usuário órfão logado.
+        // conta criada mas convite recusado, não deixa usuário órfão logado
         await client.auth.signOut();
         throw error;
       }
@@ -253,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mode === 'local') throw new Error('Recuperar senha exige backend configurado.');
       const { error } = await supabase!.auth.resetPasswordForEmail(email.trim().toLowerCase(), { captchaToken });
       if (error && isCaptchaError(error)) throw captchaError(error);
-      // Limite de envio é o único erro que vale mostrar; "e-mail não existe" não
+      // Limite de envio é o único erro que vale mostrar. "E-mail não existe" não
       // é dito por quem chama (a tela responde igual nos dois casos).
       if (error && error.status === 429) throw new Error('Muitos pedidos agora. Tente de novo em alguns minutos.');
     },
@@ -264,9 +263,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, code: string, password: string) => {
       if (mode === 'local') throw new Error('Recuperar senha exige backend configurado.');
       const addr = email.trim().toLowerCase();
-      // O código só vale uma vez: se a troca de senha falhou depois de conferir
-      // (senha igual à antiga, por ex.), a sessão de recuperação já existe e a
-      // nova tentativa vai direto ao updateUser.
+      // O código só vale uma vez. Se a troca de senha falhou depois de conferir
+      // (senha igual à antiga, por exemplo), a sessão de recuperação já existe e
+      // a nova tentativa vai direto pro updateUser.
       const { data: cur } = await supabase!.auth.getSession();
       if (cur.session?.user.email?.toLowerCase() !== addr) {
         const { error } = await supabase!.auth.verifyOtp({ email: addr, token: code.replace(/\D+/g, ''), type: 'recovery' });
@@ -326,7 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => {
     const canPreviewVisitor = profile?.role === 'admin';
-    // Na visão de visitante tudo que deriva do perfil some, como sem sessão.
+    // na visão de visitante tudo que vem do perfil some, como se não tivesse sessão
     const seen = canPreviewVisitor && visitorView ? null : profile;
     const role = seen?.role ?? null;
     const militantish = role === 'militant' || role === 'moderator' || role === 'admin';

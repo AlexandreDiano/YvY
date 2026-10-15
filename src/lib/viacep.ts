@@ -8,8 +8,8 @@ export type CepInfo = {
 };
 
 /**
- * ViaCEP (fluxo 4.1/4.2 do contexto). So devolve bairro/cidade/UF — a rua
- * vem na resposta e e descartada de proposito: o app nunca guarda rua exata.
+ * ViaCEP. Só devolve bairro, cidade e UF. A rua vem na resposta e é jogada
+ * fora de propósito, o app nunca guarda rua.
  */
 export async function lookupCep(rawCep: string): Promise<CepInfo> {
   const cep = onlyDigits(rawCep);

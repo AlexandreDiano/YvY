@@ -1,16 +1,16 @@
 import { Alert, Platform, type AlertButton } from 'react-native';
 
 /**
- * No site/PWA, `Alert.alert` do react-native-web não abre nada: "Sair",
- * "Recusar", "Apagar"… ficavam mudos (YVY-61). Aqui ele passa a usar as
- * caixas do navegador, para todo o app de uma vez:
+ * No site/PWA o `Alert.alert` do react-native-web não abre nada, e "Sair",
+ * "Recusar", "Apagar" etc. ficavam mudos (YVY-61). Aqui ele passa a usar as
+ * caixas do navegador no app todo:
  *
- *  - nenhum ou 1 botão → window.alert, depois o onPress dele;
- *  - Cancelar + 1 ação → window.confirm;
- *  - várias ações → uma confirmação por ação, na ordem, até a pessoa aceitar
- *    uma (ex.: "Tirar foto agora?", depois "Escolher da galeria?").
+ *   nenhum ou 1 botão: window.alert, depois o onPress do botão;
+ *   Cancelar + 1 ação: window.confirm;
+ *   várias ações: uma confirmação por ação, em ordem, até a pessoa aceitar
+ *   uma (ex.: "Tirar foto agora?" e depois "Escolher da galeria?").
  *
- * Chamado uma vez em app/_layout.tsx. No celular não faz nada.
+ * É chamado uma vez no app/_layout.tsx. No celular não faz nada.
  */
 export function installWebAlert(): void {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;

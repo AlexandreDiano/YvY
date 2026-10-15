@@ -29,7 +29,6 @@ import {
   openPoint,
 } from '@/ui';
 
-/** Detalhe da ação: confirmar presença, check-in no dia, cancelar (criador). */
 export default function DetalheAcao() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -124,7 +123,7 @@ export default function DetalheAcao() {
                 if (mine) await cancelPresence(action.id, profile.id);
                 else {
                   await confirmPresence(action.id, profile.id);
-                  // Aviso 1h antes, neste celular. Pede permissão aqui, na hora que faz sentido.
+                  // lembrete 1h antes, neste celular. A permissão é pedida aqui, que é quando faz sentido
                   const reminder = await scheduleActionReminder(action).catch(() => null);
                   if (reminder) Alert.alert('Presença confirmada', 'Você recebe um aviso 1 hora antes.');
                 }

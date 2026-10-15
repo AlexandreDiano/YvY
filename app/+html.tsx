@@ -2,17 +2,16 @@ import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
 /**
- * Casca HTML da versão web (só roda no export estático, nunca no celular).
+ * HTML da versão web. Só roda no export estático, nunca no celular.
  *
- * O que faz dela um PWA instalável:
- * - manifest + ícones de public/icons (gerados por scripts/gen-icons.py);
- * - meta tags do iOS, que ignora boa parte do manifest no "Adicionar à Tela
- *   de Início";
- * - service worker (public/sw.js), registrado fora de localhost para não
- *   servir bundle velho durante o desenvolvimento.
+ * O que transforma o site em PWA instalável: manifest e ícones de public/icons
+ * (saem do scripts/gen-icons.py), as meta tags do iOS (o Safari ignora boa
+ * parte do manifest no "Adicionar à Tela de Início") e o service worker em
+ * public/sw.js. O SW não é registrado em localhost, senão fica servindo
+ * bundle velho enquanto a gente desenvolve.
  *
- * Cores: areia e creme fixos aqui, porque o HTML é gerado no build, antes de
- * saber o tema de quem abre. O tema escuro entra quando o app carrega.
+ * As cores aqui são fixas (areia/creme) porque o HTML sai no build, antes de
+ * saber o tema de quem abre. O escuro entra quando o app carrega.
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -54,8 +53,8 @@ body { background-color: #FAF8F5; }
 @media (prefers-color-scheme: dark) { body { background-color: #141513; } }
 `;
 
-// O Chrome dispara beforeinstallprompt cedo, às vezes antes do React montar:
-// guardamos aqui para o botão "Instalar o YvY" (src/features/pwa/install.ts).
+// O Chrome dispara o beforeinstallprompt cedo, às vezes antes do React montar.
+// Fica guardado aqui para o botão "Instalar o YvY" (src/features/pwa/install.ts).
 const REGISTER_SW = `
 window.__yvyInstall = null;
 window.addEventListener('beforeinstallprompt', function (e) {

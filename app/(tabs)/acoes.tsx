@@ -25,7 +25,6 @@ import {
   space,
 } from '@/ui';
 
-/** Tela 7.3 — Ações (mapa + lista + filtro). */
 export default function Acoes() {
   const router = useRouter();
   const { profile } = useAuth();
@@ -46,7 +45,7 @@ export default function Acoes() {
     }
   }, [profile]);
 
-  // Recarrega ao voltar para a tela (ex.: depois de criar uma ação).
+  // recarrega quando volta pra tela (ex.: depois de criar uma ação)
   useFocusEffect(
     useCallback(() => {
       void load();

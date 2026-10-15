@@ -24,9 +24,9 @@ import {
 const GROUP_COLOR: Record<string, string> = { 'Sim': color.primary, 'Não': color.accent };
 
 /**
- * Uma votação e como cada parlamentar votou. Lista e placar vêm da fonte
+ * Uma votação e o voto de cada parlamentar. Lista e placar vêm da fonte
  * oficial; o app só agrupa por voto e filtra por UF. Votação simbólica ou
- * secreta não tem registro individual — a tela diz isso em vez de inventar.
+ * secreta não tem voto individual registrado, e a tela diz isso.
  */
 export default function Votacao() {
   const { id } = useLocalSearchParams<{ id: string }>();

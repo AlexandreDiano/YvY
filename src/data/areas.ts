@@ -1,4 +1,4 @@
-/** Areas editoriais dos cards (fluxo 4.7). Ordem fixa de exibicao. */
+/** Áreas dos cards, na ordem em que aparecem. */
 export const AREAS = [
   { key: 'trabalho', label: 'Trabalho' },
   { key: 'saude', label: 'Saúde' },

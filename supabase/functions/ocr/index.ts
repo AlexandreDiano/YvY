@@ -1,10 +1,10 @@
-// Yvy — lê o texto de um print (OCR) para a checagem de fatos.
+// Lê o texto de um print para a checagem de fatos.
 //
-// POST {"image": "<base64>", "mime": "image/jpeg"} → {"text": "..."}.
-// A imagem não é guardada: vai ao Gemini, volta só o texto, e a pessoa revisa
-// antes de pedir a checagem. Leitura de imagem SEM busca entra na cota grátis
-// do Gemini. No plano gratuito o Google pode usar o conteúdo para melhorar os
-// produtos dele (ver privacidade).
+// POST {"image": "<base64>", "mime": "image/jpeg"} devolve {"text": "..."}.
+// A imagem não é guardada: vai pro Gemini, volta só o texto e a pessoa confere
+// antes de pedir a checagem. Leitura de imagem sem busca entra na cota grátis
+// do Gemini, e no plano gratuito o Google pode usar o conteúdo para melhorar
+// os produtos dele (está na política de privacidade).
 //
 // Segredo: GEMINI_API_KEY. Opcional: OCR_MODEL (padrão gemini-3.5-flash-lite).
 

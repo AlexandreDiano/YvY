@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { Loading, color } from '@/ui';
 
-/** Porteiro: manda para o onboarding ou para as abas. */
+/** Decide se vai para o onboarding ou para as abas. */
 export default function Index() {
   const { ready, profile } = useAuth();
 

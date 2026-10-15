@@ -22,20 +22,19 @@ import {
 } from '@/ui';
 import { IconBallot, IconFlag, IconSearch } from '@/ui/icons';
 
-/** Tela 7.2 — Início. */
 export default function Home() {
   const router = useRouter();
   const { profile, isBaseMember, membership, flags, mode } = useAuth();
   const [readyChecks, setReadyChecks] = useState(0);
 
-  // Checagem pedida que ficou pronta enquanto a pessoa estava fora: avisa aqui
-  // (visitante não tem push). Volta a contar sempre que a tela ganha foco.
+  // Checagem que ficou pronta enquanto a pessoa estava fora. Visitante não tem
+  // push, então o aviso fica aqui e recarrega a cada foco.
   useFocusEffect(
     useCallback(() => {
       void myClaimChecks().then((list) => setReadyChecks(list.filter((c) => c.unseen).length));
     }, []),
   );
-  // Convidado esperando confirmação: avisa na Início, não só em Perfil.
+  // convidado esperando confirmação: avisa aqui também, não só no Perfil
   const [waiting, setWaiting] = useState(0);
   useFocusEffect(
     useCallback(() => {
@@ -58,7 +57,7 @@ export default function Home() {
     }
   }, [profile, isBaseMember, flags]);
 
-  // Recarrega ao voltar para a tela (ex.: depois de criar uma ação).
+  // recarrega quando volta pra tela (ex.: depois de criar uma ação)
   useFocusEffect(
     useCallback(() => {
       void load();

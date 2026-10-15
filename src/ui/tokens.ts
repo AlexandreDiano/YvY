@@ -1,22 +1,21 @@
 import { isDark } from '@/ui/theme';
 
 /**
- * Design tokens do Yvy.
+ * Tokens de design do YvY.
  *
- * Paleta fixada em docs/CONTEXT.md secao 1.5. Nao inventar cor nova:
- * se precisar de um tom, derive aqui e de nome semantico.
+ * A paleta vem do docs/CONTEXT.md (seção 1.5). Não inventar cor solta: se
+ * precisar de um tom, derive aqui e dê um nome que diga para que serve.
  *
- * Tipografia: fonte do sistema. O doc especifica Inter, mas o principio
- * "performance > estetica" (secao 1.4) pesa mais num celular de R$ 800 em
- * 3G — baixar duas TTF custa ~200 KB e trava o primeiro frame. Trocar por
- * @expo-google-fonts/inter e um unico ponto: `font` abaixo.
+ * A fonte é a do sistema. O documento pede Inter, mas num celular de R$ 800 no
+ * 3G baixar duas TTF custa uns 200 KB e trava o primeiro frame. Se mudar, é
+ * um ponto só: `font` aqui embaixo.
  */
 
 const light = {
   // identidade
-  primary: '#2D5A27', // verde-terra: raiz, chao, crescimento
+  primary: '#2D5A27', // verde-terra
   primarySoft: '#E8EEE7', // fundo de destaque derivado do primary
-  accent: '#C45D3A', // terracota: acao, urgencia, barro
+  accent: '#C45D3A', // terracota
   accentSoft: '#F7E9E3',
 
   // estado
@@ -39,9 +38,8 @@ const light = {
 };
 
 /**
- * Modo escuro: mesma familia de cor, terra a noite. Verde e terracota sobem
- * de luminosidade para manter contraste no fundo escuro (texto branco em
- * botao continua legivel).
+ * Modo escuro, mesma família de cor. Verde e terracota ficam mais claros para
+ * manter contraste no fundo escuro (texto branco no botão continua legível).
  */
 const dark: typeof light = {
   primary: '#4F8F46',
@@ -67,7 +65,7 @@ const dark: typeof light = {
 
 export const color = isDark ? dark : light;
 
-/** Escala de espaco em multiplos de 4. Use so estes valores. */
+/** Espaçamento em múltiplos de 4. Use só estes valores. */
 export const space = {
   xs: 4,
   sm: 8,
@@ -84,7 +82,7 @@ export const radius = {
   pill: 999,
 } as const;
 
-/** Escala tipografica curta. Minimalismo = poucos tamanhos, muito contraste de peso. */
+/** Poucos tamanhos de texto, o contraste vem do peso. */
 export const type = {
   display: { fontSize: 28, lineHeight: 34, fontWeight: '700' },
   title: { fontSize: 20, lineHeight: 26, fontWeight: '700' },
@@ -96,5 +94,5 @@ export const type = {
 
 export const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
-/** Altura minima de alvo de toque (acessibilidade). */
+/** Altura mínima de alvo de toque (acessibilidade). */
 export const TOUCH = 44;
