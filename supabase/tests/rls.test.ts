@@ -44,6 +44,21 @@ if (!URL_ || !ANON || !SERVICE) {
   process.exit(0);
 }
 
+// O .env do app aponta para produção e tem a service_role. Sem esta trava,
+// `npm run test:rls` criaria e apagaria usuários de teste lá. Projeto remoto
+// de teste só com YVY_RLS_REMOTE=1, e nunca o de produção.
+const PROD_REF = 'qbxdoprekyynzcwdtvuw';
+const host = new URL(URL_).hostname;
+const local = host === '127.0.0.1' || host === 'localhost';
+if (URL_.includes(PROD_REF) || (!local && env.YVY_RLS_REMOTE !== '1')) {
+  console.error(
+    `test:rls recusado: ${host} não é o Supabase local.\n` +
+      'Use `npm run test:rls:local` (sobe o Supabase local e roda contra ele).\n' +
+      'Para outro projeto de teste remoto: YVY_RLS_REMOTE=1 com as chaves dele no ambiente.',
+  );
+  process.exit(1);
+}
+
 const admin = createClient(URL_, SERVICE, { auth: { persistSession: false } });
 
 /** Sem sessão: é o que o app oferece a quem não tem convite. */
@@ -71,17 +86,24 @@ async function expectRows(
   expected: number,
 ): Promise<void> {
   const { data, error } = await query;
+  // Sem privilégio nenhum na tabela (42501) também é "não lê nada".
+  if (expected === 0 && (error as { code?: string } | null)?.code === '42501') return check(name, true);
   const rows = Array.isArray(data) ? data.length : 0;
   check(name, !error && rows === expected, error ? JSON.stringify(error) : `recebeu ${rows}, esperava ${expected}`);
 }
 
-/** Espera que a escrita seja barrada (erro, tipicamente 42501). */
+/**
+ * Espera que a escrita seja barrada. Insert barrado dá erro (42501); update
+ * ou delete barrado pela RLS não dá erro, só não acha a linha. Por isso a
+ * escrita tem que vir com `.select()`: zero linhas devolvidas também conta.
+ */
 async function expectDenied(
   name: string,
   query: PromiseLike<{ data: unknown; error: unknown }>,
 ): Promise<void> {
-  const { error } = await query;
-  check(name, Boolean(error), error ? '' : 'a escrita passou');
+  const { data, error } = await query;
+  const touched = Array.isArray(data) ? data.length : data ? 1 : 0;
+  check(name, Boolean(error) || touched === 0, error ? '' : `a escrita passou (${touched} linha(s))`);
 }
 
 // ---------------------------------------------------------------- cenário
@@ -166,7 +188,9 @@ async function main(): Promise<void> {
   const postPend = (
     await admin
       .from('posts')
-      .insert({ author_id: milA.id, content: 'post pendente do bairro A', status: 'pending', ...AREA_A })
+      // autor vê o próprio post pendente (posts_select_author); o pendente é de
+      // outra pessoa para testar que militante comum não lê a fila
+      .insert({ author_id: adm.id, content: 'post pendente do bairro A', status: 'pending', ...AREA_A })
       .select('id')
       .single()
   ).data as { id: string };
@@ -281,6 +305,7 @@ async function main(): Promise<void> {
           p_neighborhood: AREA_A.neighborhood,
           p_city: AREA_A.city,
           p_state: AREA_A.state,
+          p_sensitive_consent: true,
         });
         check('token inventado não vira perfil', Boolean(error), error ? '' : 'a RPC aceitou');
       }
@@ -329,6 +354,7 @@ async function main(): Promise<void> {
           p_neighborhood: AREA_A.neighborhood,
           p_city: AREA_A.city,
           p_state: AREA_A.state,
+          p_sensitive_consent: true,
         });
         check('token do QRCode sem reserva não vira perfil', Boolean(raw.error), raw.error ? '' : 'aceitou token cru');
       }
@@ -341,6 +367,7 @@ async function main(): Promise<void> {
         p_neighborhood: AREA_A.neighborhood,
         p_city: AREA_A.city,
         p_state: AREA_A.state,
+        p_sensitive_consent: true,
       });
       check('convite válido cria perfil', !error, error?.message);
       check(
@@ -369,6 +396,7 @@ async function main(): Promise<void> {
             p_neighborhood: AREA_A.neighborhood,
             p_city: AREA_A.city,
             p_state: AREA_A.state,
+            p_sensitive_consent: true,
           });
           check('reserva usada não serve para outra conta', Boolean(again.error), again.error ? '' : 'aceitou de novo');
         }
@@ -421,7 +449,7 @@ async function main(): Promise<void> {
   );
   await expectDenied(
     'militante comum não modera',
-    milA.client.from('posts').update({ status: 'published' }).eq('id', postPend.id),
+    milA.client.from('posts').update({ status: 'published' }).eq('id', postPend.id).select('id'),
   );
 
   console.log('\nações');
@@ -455,11 +483,20 @@ async function main(): Promise<void> {
       expires_at: new Date(Date.now() + 3600000).toISOString(),
     }),
   );
+  // 0036: militante comum só convida se alguém liberar
+  await expectDenied(
+    'militante sem liberação não gera convite',
+    milA.client.from('invites').insert({ created_by: milA.id, expires_at: new Date(Date.now() + 3600000).toISOString() }),
+  );
   {
+    const other = await milB.client.rpc('set_invite_permission', { p_user: milA.id, p_enabled: true });
+    check('militante não libera convite para outro', Boolean(other.error), other.error ? '' : 'liberou');
+    const grant = await adm.client.rpc('set_invite_permission', { p_user: milA.id, p_enabled: true });
+    check('admin libera convite para militante', !grant.error, grant.error?.message);
     const { error } = await milA.client
       .from('invites')
       .insert({ created_by: milA.id, expires_at: new Date(Date.now() + 3600000).toISOString() });
-    check('militante confirmado gera convite', !error, error?.message);
+    check('militante liberado gera convite', !error, error?.message);
   }
   await expectRows(
     'militante não lê convite de outro',
@@ -483,7 +520,7 @@ async function main(): Promise<void> {
   }
   await expectDenied(
     'militante não liga feature flag',
-    milA.client.from('feature_flags').update({ is_enabled: true }).eq('key', 'module_checagem'),
+    milA.client.from('feature_flags').update({ is_enabled: false }).eq('key', 'module_checagem').select('key'),
   );
   await expectRows(
     'militante não lê audit_log',
