@@ -55,10 +55,11 @@ body { background-color: #FAF8F5; }
 
 // O Chrome dispara o beforeinstallprompt cedo, às vezes antes do React montar.
 // Fica guardado aqui para o botão "Instalar o YvY" (src/features/pwa/install.ts).
+// Sem preventDefault: ele esconderia a faixa "Instalar app" que o próprio
+// Chrome mostra no Android.
 const REGISTER_SW = `
 window.__yvyInstall = null;
 window.addEventListener('beforeinstallprompt', function (e) {
-  e.preventDefault();
   window.__yvyInstall = e;
   window.dispatchEvent(new Event('yvy-installable'));
 });
