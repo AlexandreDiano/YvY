@@ -58,12 +58,9 @@ export default function Checar() {
 
   /** Foto ou print: o Gemini lê o texto, a pessoa confere e pede a checagem. */
   async function fromImage(source: 'camera' | 'library') {
-    const perm =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      setError(source === 'camera' ? 'Libere a câmera para fotografar.' : 'Libere o acesso às fotos.');
+    // galeria não pede permissão: o seletor do sistema só entrega a foto escolhida
+    if (source === 'camera' && !(await ImagePicker.requestCameraPermissionsAsync()).granted) {
+      setError('Libere a câmera para fotografar.');
       return;
     }
     const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.6, base64: true };

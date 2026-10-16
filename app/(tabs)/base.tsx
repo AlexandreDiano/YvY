@@ -109,17 +109,9 @@ export default function Base() {
   );
 
   async function pickImage(source: 'camera' | 'library') {
-    const perm =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert(
-        'Sem permissão',
-        source === 'camera'
-          ? 'Libere a câmera para tirar a foto.'
-          : 'Libere o acesso às fotos para anexar uma imagem.',
-      );
+    // galeria não pede permissão: o seletor do sistema só entrega a foto escolhida
+    if (source === 'camera' && !(await ImagePicker.requestCameraPermissionsAsync()).granted) {
+      Alert.alert('Sem permissão', 'Libere a câmera para tirar a foto.');
       return;
     }
     const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.5, base64: true };
