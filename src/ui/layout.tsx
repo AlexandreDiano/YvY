@@ -41,6 +41,7 @@ export function Screen({
       style={s.screen}
       contentContainerStyle={[s.pad, pad, contentStyle, top]}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       refreshControl={refreshControl}
     >
       {children}

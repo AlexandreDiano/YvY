@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { Txt } from '@/ui/Text';
 import { TOUCH, color, radius, space } from '@/ui/tokens';
 
@@ -33,7 +33,12 @@ export function Button({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // a tela deixa o toque passar com o teclado aberto (keyboardShouldPersistTaps),
+        // então quem fecha o teclado ao tocar num botão é o próprio botão
+        Keyboard.dismiss();
+        onPress?.();
+      }}
       disabled={off}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!off, busy: !!loading }}

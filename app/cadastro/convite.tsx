@@ -124,6 +124,10 @@ export default function EntrarComConvite() {
         onChangeText={setManual}
         autoCapitalize="none"
         placeholder="00000000-0000-0000-0000-000000000000"
+        returnKeyType="go"
+        onSubmitEditing={() => {
+          if (!busy && manual.trim()) void accept(manual.trim());
+        }}
         hint="Para quem foi convidado à distância por um moderador. Vale 1 uso e expira em 24h."
       />
       <Button title="Validar código" kind="outline" loading={busy} onPress={() => void accept(manual.trim())} />

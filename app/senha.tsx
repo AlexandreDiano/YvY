@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { TextInput } from 'react-native';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useCaptcha } from '@/features/auth/useCaptcha';
 import { notify } from '@/lib/notify';
@@ -25,7 +26,11 @@ export default function Senha() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
+
   async function send() {
+    if (busy || !email.includes('@') || !captcha.ready) return;
     setError(null);
     setBusy(true);
     try {
@@ -40,6 +45,7 @@ export default function Senha() {
   }
 
   async function save() {
+    if (busy || code.replace(/\D+/g, '').length < 6 || !password) return;
     setError(null);
     if (password.length < 8) return setError('A senha nova precisa de pelo menos 8 caracteres.');
     if (password !== confirm) return setError('As duas senhas não são iguais.');
@@ -70,6 +76,10 @@ export default function Senha() {
         autoCapitalize="none"
         keyboardType="email-address"
         placeholder="voce@exemplo.com"
+        returnKeyType="send"
+        onSubmitEditing={() => {
+          if (!sent) void send();
+        }}
       />
       {!sent ? (
         <>
@@ -95,9 +105,29 @@ export default function Senha() {
             keyboardType="number-pad"
             maxLength={10}
             placeholder="123456"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
-          <Field label="Senha nova" value={password} onChangeText={setPassword} secureTextEntry />
-          <Field label="Repita a senha nova" value={confirm} onChangeText={setConfirm} secureTextEntry />
+          <Field
+            ref={passwordRef}
+            label="Senha nova"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => confirmRef.current?.focus()}
+          />
+          <Field
+            ref={confirmRef}
+            label="Repita a senha nova"
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry
+            returnKeyType="go"
+            onSubmitEditing={() => void save()}
+          />
           <Button
             title="Trocar senha"
             loading={busy}

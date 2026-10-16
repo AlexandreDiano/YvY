@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { IconEye, IconEyeOff } from '@/ui/icons';
 import { Txt } from '@/ui/Text';
@@ -8,9 +8,16 @@ type Props = TextInputProps & {
   label?: string;
   hint?: string;
   error?: string | null;
+  /**
+   * Campo de várias linhas em que Enter envia (chama onSubmitEditing) e fecha
+   * o teclado, em vez de quebrar linha. No site, Shift+Enter ainda quebra.
+   */
+  submitOnEnter?: boolean;
+  /** Para pular de um campo para o próximo com Enter (`ref.current?.focus()`). */
+  ref?: Ref<TextInput>;
 };
 
-export function Field({ label, hint, error, style, multiline, secureTextEntry, ...rest }: Props) {
+export function Field({ label, hint, error, style, multiline, secureTextEntry, submitOnEnter, ...rest }: Props) {
   // campo de senha ganha o "olhinho" para conferir o que digitou antes de enviar
   const [show, setShow] = useState(false);
   return (
@@ -24,6 +31,7 @@ export function Field({ label, hint, error, style, multiline, secureTextEntry, .
         <TextInput
           {...rest}
           multiline={multiline}
+          {...(submitOnEnter ? { submitBehavior: 'blurAndSubmit' as const, blurOnSubmit: true, returnKeyType: 'send' as const } : {})}
           secureTextEntry={secureTextEntry && !show}
           autoCapitalize={secureTextEntry ? 'none' : rest.autoCapitalize}
           autoCorrect={secureTextEntry ? false : rest.autoCorrect}

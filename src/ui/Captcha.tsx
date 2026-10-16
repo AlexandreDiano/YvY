@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { env } from '@/lib/env';
 import { Txt } from '@/ui/Text';
@@ -29,6 +29,9 @@ export function Captcha({ onToken }: { onToken: (token: string | null) => void }
         source={{ uri }}
         style={s.web}
         scrollEnabled={false}
+        // toque dentro da WebView não passa pela tela, então o teclado do
+        // campo de senha ficava aberto em cima do captcha
+        onTouchStart={() => Keyboard.dismiss()}
         onMessage={(e) => {
           const m = e.nativeEvent.data;
           if (m.startsWith('token:')) onToken(m.slice(6));

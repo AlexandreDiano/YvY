@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { TextInput } from 'react-native';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useCaptcha } from '@/features/auth/useCaptcha';
 import { Banner, Button, Field, Screen, Section, Txt } from '@/ui';
@@ -12,8 +13,10 @@ export default function Entrar() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const captcha = useCaptcha();
+  const passwordRef = useRef<TextInput>(null);
 
   async function submit() {
+    if (busy || !captcha.ready) return;
     setError(null);
     setBusy(true);
     try {
@@ -46,8 +49,19 @@ export default function Entrar() {
         autoCapitalize="none"
         keyboardType="email-address"
         placeholder="voce@exemplo.com"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      <Field label="Senha" value={password} onChangeText={setPassword} secureTextEntry />
+      <Field
+        ref={passwordRef}
+        label="Senha"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        returnKeyType="go"
+        onSubmitEditing={() => void submit()}
+      />
       {error ? (
         <Txt variant="small" tone="danger">
           {error}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Keyboard, Linking, View } from 'react-native';
 import {
   cancelClaimRequest,
   deleteClaimCheck,
@@ -161,12 +161,16 @@ export default function Checar() {
   }, [isModerator]);
 
   async function run() {
+    if (busy || input.trim().length < 8) return;
+    Keyboard.dismiss();
     setBusy(true);
     setError(null);
     setOutcome(null);
     try {
       const res = await checkFact(input);
       setOutcome(res);
+      // o texto pedido continua no resultado (e em "Suas checagens"), o campo fica livre
+      setInput('');
       if (res.kind === 'queued' || res.kind === 'auto') void loadMine();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao checar.');
@@ -182,6 +186,8 @@ export default function Checar() {
         value={input}
         onChangeText={setInput}
         multiline
+        submitOnEnter
+        onSubmitEditing={() => void run()}
         placeholder="Cole aqui o que chegou no WhatsApp..."
         hint="Telefone, e-mail e CPF são apagados antes de qualquer coisa. Se for checado por IA, só você vê o resultado até alguém da equipe conferir e publicar."
       />
