@@ -60,6 +60,8 @@ export async function getAction(id: string): Promise<ActionListed | null> {
     const rows = await all<ActionListed>(COL_ACTIONS);
     return rows.find((a) => a.id === id) ?? null;
   }
+  // link quebrado ou cortado: o Postgres recusaria o uuid (22P02) e a tela ficava vazia
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   const res = await supabase.from('actions_with_counts').select('*').eq('id', id).maybeSingle();
   if (res.error) throw res.error;
   return (res.data as ActionListed | null) ?? null;

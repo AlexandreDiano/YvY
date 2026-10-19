@@ -50,6 +50,7 @@ module.exports = defineConfig([
       'src/features/support/SupportCard.tsx',
       'src/lib/shrinkImage.web.ts',
       'src/ui/PostImage.tsx',
+      'src/ui/PostImage.web.tsx',
     ],
     rules: { 'no-restricted-syntax': 'off' },
   },

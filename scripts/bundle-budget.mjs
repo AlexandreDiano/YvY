@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET_KB = 760; // 19/10: 704 KB
+const BUDGET_KB = 500; // 19/10: 704 KB; 460 KB com PostImage.web e rotas assíncronas
 
 const dist = process.argv[2] ?? 'dist';
 const html = readFileSync(join(dist, 'index.html'), 'utf8');
