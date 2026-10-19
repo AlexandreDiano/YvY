@@ -84,6 +84,174 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"chat_access_log": {
+                  Row: {
+                    "created_at": string,"ip": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"ip": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"ip"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"chat_add_codes": {
+                  Row: {
+                    "code": string,"expires_at": string,"user_id": string,"uses": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "code": string,"expires_at": string,"user_id": string,"uses"?: number
+                  }
+                  Update: {
+                    "code"?: string,"expires_at"?: string,"user_id"?: string,"uses"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_add_codes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_add_codes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"chat_blocks": {
+                  Row: {
+                    "blocked": string,"blocker": string,"created_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocked": string,"blocker": string,"created_at"?: string
+                  }
+                  Update: {
+                    "blocked"?: string,"blocker"?: string,"created_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_blocks_blocked_fkey"
+      columns: ["blocked"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_blocks_blocked_fkey"
+      columns: ["blocked"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_blocks_blocker_fkey"
+      columns: ["blocker"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_blocks_blocker_fkey"
+      columns: ["blocker"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"chat_contacts": {
+                  Row: {
+                    "created_at": string,"decided_at": string | null,"id": string,"requested_by": string,"status": string,"user_a": string,"user_b": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"decided_at"?: string | null,"id"?: string,"requested_by": string,"status"?: string,"user_a": string,"user_b": string
+                  }
+                  Update: {
+                    "created_at"?: string,"decided_at"?: string | null,"id"?: string,"requested_by"?: string,"status"?: string,"user_a"?: string,"user_b"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_contacts_requested_by_fkey"
+      columns: ["requested_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_contacts_requested_by_fkey"
+      columns: ["requested_by"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_contacts_user_a_fkey"
+      columns: ["user_a"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_contacts_user_a_fkey"
+      columns: ["user_a"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_contacts_user_b_fkey"
+      columns: ["user_b"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_contacts_user_b_fkey"
+      columns: ["user_b"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"chat_devices": {
+                  Row: {
+                    "box_pk": string,"created_at": string,"id": string,"sign_pk": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "box_pk": string,"created_at"?: string,"id"?: string,"sign_pk": string,"user_id": string
+                  }
+                  Update: {
+                    "box_pk"?: string,"created_at"?: string,"id"?: string,"sign_pk"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_devices_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_devices_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"chat_reports": {
+                  Row: {
+                    "blocked": boolean,"created_at": string,"id": string,"messages": NonNullable<Json>,"reported": string,"reported_city": string | null,"reported_ips": NonNullable<Json>,"reported_name": string | null,"reported_neighborhood": string | null,"reporter": string,"reporter_ip": string | null,"reporter_name": string | null,"resolution": string | null,"resolved_at": string | null,"resolved_by": string | null,"sign_keys": NonNullable<Json>,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocked"?: boolean,"created_at"?: string,"id"?: string,"messages": NonNullable<Json>,"reported": string,"reported_city"?: string | null,"reported_ips"?: NonNullable<Json>,"reported_name"?: string | null,"reported_neighborhood"?: string | null,"reporter": string,"reporter_ip"?: string | null,"reporter_name"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"sign_keys": NonNullable<Json>,"status"?: string
+                  }
+                  Update: {
+                    "blocked"?: boolean,"created_at"?: string,"id"?: string,"messages"?: NonNullable<Json>,"reported"?: string,"reported_city"?: string | null,"reported_ips"?: NonNullable<Json>,"reported_name"?: string | null,"reported_neighborhood"?: string | null,"reporter"?: string,"reporter_ip"?: string | null,"reporter_name"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"sign_keys"?: NonNullable<Json>,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"claim_checks": {
                   Row: {
                     "attempts": number,"checked_at": string | null,"claim_text": string | null,"created_at": string,"error": string | null,"explanation": string | null,"fact_check_id": string | null,"id": string,"input_hash": string,"input_text": string | null,"model": string | null,"queued_at": string,"requested_count": number,"result": Database["public"]['Enums']["check_result"] | null,"reviewed_at": string | null,"reviewed_by": string | null,"source_name": string | null,"source_url": string | null,"status": Database["public"]['Enums']["claim_status"],"claim_check_view": Json | null
@@ -321,6 +489,56 @@ isOneToOne: false
     },{
       foreignKeyName: "invites_used_by_fkey"
       columns: ["used_by"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"message_queue": {
+                  Row: {
+                    "body": string,"created_at": string,"id": string,"msg_id": string,"nonce": string,"recipient": string,"recipient_device": string,"sender": string,"sender_device": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"id"?: string,"msg_id": string,"nonce": string,"recipient": string,"recipient_device": string,"sender": string,"sender_device": string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"id"?: string,"msg_id"?: string,"nonce"?: string,"recipient"?: string,"recipient_device"?: string,"sender"?: string,"sender_device"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_queue_recipient_device_fkey"
+      columns: ["recipient_device"]
+isOneToOne: false
+      referencedRelation: "chat_devices"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_queue_recipient_fkey"
+      columns: ["recipient"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_queue_recipient_fkey"
+      columns: ["recipient"]
+isOneToOne: false
+      referencedRelation: "profiles_public"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_queue_sender_device_fkey"
+      columns: ["sender_device"]
+isOneToOne: false
+      referencedRelation: "chat_devices"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_queue_sender_fkey"
+      columns: ["sender"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_queue_sender_fkey"
+      columns: ["sender"]
 isOneToOne: false
       referencedRelation: "profiles_public"
       referencedColumns: ["id"]
@@ -716,6 +934,56 @@ isOneToOne: false
                            },
 "cancel_claim_request":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"chat_block":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"chat_blocked_list":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"peer_id": string,"peer_name": string,"peer_neighborhood": string
+            }[]
+                           },
+"chat_can_send":
+{ Args: { "p_from": string,"p_to": string }; Returns: boolean
+                           },
+"chat_client_ip":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"chat_contacts_list":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "blocked": boolean,"contact_id": string,"created_at": string,"incoming": boolean,"peer_city": string,"peer_id": string,"peer_name": string,"peer_neighborhood": string,"status": string
+            }[]
+                           },
+"chat_decide_contact":
+{ Args: { "p_accept": boolean,"p_contact": string }; Returns: undefined
+                           },
+"chat_devices_match":
+{ Args: { "p_from": string,"p_from_dev": string,"p_to": string,"p_to_dev": string }; Returns: boolean
+                           },
+"chat_new_add_code":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "code": string,"expires_at": string
+            }[]
+                           },
+"chat_peer_devices":
+{ Args: { "p_peer": string }; Returns: {
+              "box_pk": string,"id": string,"sign_pk": string
+            }[]
+                           },
+"chat_purge":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"chat_report":
+{ Args: { "p_block": boolean,"p_messages": Json,"p_reported": string }; Returns: string
+                           },
+"chat_request_contact":
+{ Args: { "p_code": string }; Returns: string
+                           },
+"chat_resolve_report":
+{ Args: { "p_id": string,"p_resolution": string }; Returns: undefined
+                           },
+"chat_unblock":
+{ Args: { "p_user": string }; Returns: undefined
                            },
 "check_claim_cron_key":
 { Args: { "p_key": string }; Returns: boolean

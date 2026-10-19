@@ -36,7 +36,9 @@ begin
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind in ('r', 'p')
      and c.relname not in ('audit_log', 'claim_checks', 'notifications',
-                           'elected_2026', 'municipios')
+                           'elected_2026', 'municipios',
+                           -- chat (0050): cifrado que some, IP, código, denúncia
+                           'message_queue', 'chat_access_log', 'chat_add_codes', 'chat_reports')
      and not exists (select 1 from pg_trigger t
                       where t.tgrelid = c.oid and t.tgname = 'zz_audit_row');
   if v is not null then

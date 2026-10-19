@@ -159,6 +159,8 @@ async function makeActor(
 }
 
 async function teardown(): Promise<void> {
+  // denúncia não tem FK (sobrevive à conta apagada): sai à mão
+  if (created.length) await admin.from('chat_reports').delete().in('reporter', created);
   await admin.from('posts').delete().eq('city', AREA_A.city);
   await admin.from('posts').delete().eq('city', OTHER_CITY);
   await admin.from('actions').delete().eq('city', AREA_A.city);
@@ -771,6 +773,129 @@ async function main(): Promise<void> {
     const meta = inv.data?.[0]?.metadata as { new?: Record<string, unknown> } | undefined;
     check('log não guarda o token do convite', Boolean(meta?.new) && !('token' in (meta?.new ?? {})), JSON.stringify(meta));
     await expectRows('militante não lê o log', milA.client.from('audit_log').select('id'), 0);
+  }
+
+  console.log('\nconversas (0050) — contato aceito, bloqueio, fila cifrada, denúncia');
+  {
+    const key = () => Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64');
+    const device = async (who: Actor) => {
+      const r = await who.client.from('chat_devices').insert({ user_id: who.id, box_pk: key(), sign_pk: key() }).select('id').single();
+      return { id: (r.data as { id: string } | null)?.id ?? '', error: r.error };
+    };
+    const msg = (from: Actor, fromDev: string, to: Actor, toDev: string) => ({
+      msg_id: crypto.randomUUID(),
+      sender: from.id,
+      sender_device: fromDev,
+      recipient: to.id,
+      recipient_device: toDev,
+      nonce: key(),
+      body: 'texto-cifrado-de-teste',
+    });
+
+    const devA = await device(milA);
+    const devB = await device(milB);
+    check('membro registra o próprio aparelho', Boolean(devA.id) && Boolean(devB.id), devA.error?.message ?? devB.error?.message);
+    await expectDenied(
+      'pendente não registra aparelho',
+      pending.client.from('chat_devices').insert({ user_id: pending.id, box_pk: key(), sign_pk: key() }).select('id'),
+    );
+    await expectDenied(
+      'ninguém registra aparelho em nome de outro',
+      milA.client.from('chat_devices').insert({ user_id: milB.id, box_pk: key(), sign_pk: key() }).select('id'),
+    );
+    await expectRows('aparelho de outro não aparece direto', milA.client.from('chat_devices').select('id').eq('user_id', milB.id), 0);
+    await expectRows('sem contato, chave do outro não sai', milA.client.rpc('chat_peer_devices', { p_peer: milB.id }), 0);
+    await expectDenied('sem contato, não manda mensagem', milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devB.id)).select('id'));
+
+    {
+      const r = await anon.rpc('chat_new_add_code');
+      check('anônimo não gera código de adicionar', Boolean(r.error));
+      const p = await pending.client.rpc('chat_new_add_code');
+      check('pendente não gera código de adicionar', Boolean(p.error));
+    }
+    const code = ((await milB.client.rpc('chat_new_add_code')).data as { code: string }[] | null)?.[0]?.code ?? '';
+    check('membro gera código de adicionar', code.length === 10, code);
+    {
+      const own = await milB.client.rpc('chat_request_contact', { p_code: code });
+      check('não adiciona o próprio código', Boolean(own.error));
+      const bad = await milA.client.rpc('chat_request_contact', { p_code: 'XXXXXXXXXX' });
+      check('código inventado não adiciona', Boolean(bad.error));
+    }
+    const req = await milA.client.rpc('chat_request_contact', { p_code: code.toLowerCase() });
+    const contactId = req.data as string | null;
+    check('pedido de conversa pelo código', Boolean(contactId) && !req.error, req.error?.message);
+    await expectDenied('pedido pendente ainda não deixa mandar', milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devB.id)).select('id'));
+    {
+      const self = await milA.client.rpc('chat_decide_contact', { p_contact: contactId, p_accept: true });
+      check('quem pediu não aceita o próprio pedido', Boolean(self.error));
+      const other = await londrina.client.rpc('chat_decide_contact', { p_contact: contactId, p_accept: true });
+      check('terceiro não aceita pedido dos outros', Boolean(other.error));
+      const ok = await milB.client.rpc('chat_decide_contact', { p_contact: contactId, p_accept: true });
+      check('dono do código aceita', !ok.error, ok.error?.message);
+    }
+    await expectRows('contato aceito: chave do outro sai', milA.client.rpc('chat_peer_devices', { p_peer: milB.id }), 1);
+    await expectRows('terceiro não vê o contato dos outros', londrina.client.from('chat_contacts').select('id'), 0);
+
+    const sent = msg(milA, devA.id, milB, devB.id);
+    {
+      const r = await milA.client.from('message_queue').insert(sent);
+      check('contato aceito manda mensagem', !r.error, r.error?.message);
+    }
+    await expectDenied(
+      'não manda em nome de outro',
+      milA.client.from('message_queue').insert({ ...msg(milA, devA.id, milB, devB.id), sender: milB.id, sender_device: devB.id }).select('id'),
+    );
+    await expectDenied(
+      'não usa aparelho de terceiro como destino',
+      milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devA.id)).select('id'),
+    );
+    await expectRows('remetente não lê de volta a fila', milA.client.from('message_queue').select('id').eq('msg_id', sent.msg_id), 0);
+    await expectRows('terceiro não lê a fila', modA.client.from('message_queue').select('id').eq('msg_id', sent.msg_id), 0);
+    await expectRows('anônimo não lê a fila', anon.from('message_queue').select('id'), 0);
+    await expectRows('destinatário lê a fila', milB.client.from('message_queue').select('id').eq('msg_id', sent.msg_id), 1);
+    {
+      const del = await milB.client.from('message_queue').delete().eq('msg_id', sent.msg_id).select('id');
+      check('destinatário apaga ao baixar', (del.data ?? []).length === 1, del.error?.message);
+    }
+    await expectRows('ninguém lê o log de IP do chat', adm.client.from('chat_access_log').select('user_id'), 0);
+
+    {
+      const b = await milB.client.rpc('chat_block', { p_user: milA.id });
+      check('bloqueia', !b.error, b.error?.message);
+    }
+    await expectDenied('bloqueado não manda', milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devB.id)).select('id'));
+    await expectDenied('quem bloqueou também não manda', milB.client.from('message_queue').insert(msg(milB, devB.id, milA, devA.id)).select('id'));
+    await expectRows('lista de bloqueados de quem bloqueou', milB.client.rpc('chat_blocked_list'), 1);
+    await expectRows('bloqueado não sabe quem bloqueou', milA.client.from('chat_blocks').select('blocked'), 0);
+
+    const report = await milB.client.rpc('chat_report', {
+      p_reported: milA.id,
+      p_messages: [{ id: sent.msg_id, from: milA.id, at: new Date().toISOString(), env: '{}', sig: 'x', dev: devA.id }],
+      p_block: true,
+    });
+    check('denuncia quem conversou', Boolean(report.data) && !report.error, report.error?.message);
+    {
+      const stranger = await londrina.client.rpc('chat_report', { p_reported: milA.id, p_messages: [], p_block: false });
+      check('não denuncia quem nunca conversou', Boolean(stranger.error));
+    }
+    await expectRows('denunciado não lê a denúncia', milA.client.from('chat_reports').select('id'), 0);
+    await expectRows('quem denunciou não relê a denúncia', milB.client.from('chat_reports').select('id'), 0);
+    await expectRows('moderador do bairro do denunciado lê', modA.client.from('chat_reports').select('id'), 1);
+    await expectRows('admin lê a denúncia', adm.client.from('chat_reports').select('id'), 1);
+    {
+      const rep = await admin.from('chat_reports').select('sign_keys').eq('id', report.data as string).single();
+      const keys = (rep.data?.sign_keys ?? {}) as Record<string, unknown>;
+      check('denúncia guarda as chaves de assinatura das duas partes', devA.id in keys && devB.id in keys, JSON.stringify(keys));
+      const noPerm = await milA.client.rpc('chat_resolve_report', { p_id: report.data, p_resolution: 'nada' });
+      check('denunciado não resolve a denúncia', Boolean(noPerm.error));
+      const ok = await modA.client.rpc('chat_resolve_report', { p_id: report.data, p_resolution: 'advertido' });
+      check('moderador resolve a denúncia', !ok.error, ok.error?.message);
+    }
+    {
+      await milB.client.rpc('chat_unblock', { p_user: milA.id });
+      const r = await milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devB.id));
+      check('desbloqueou: volta a mandar', !r.error, r.error?.message);
+    }
   }
 
   console.log(`\n${pass} ok, ${failures.length} falhas`);

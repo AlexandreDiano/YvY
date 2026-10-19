@@ -148,7 +148,9 @@ begin
   for t in
     select tablename from pg_tables
      where schemaname = 'public'
-       and tablename not in ('audit_log', 'claim_checks', 'notifications', 'municipios', 'elected_2026')
+       and tablename not in ('audit_log', 'claim_checks', 'notifications', 'municipios', 'elected_2026',
+                             -- chat (0050): texto cifrado que some, IP, código e denúncia
+                             'message_queue', 'chat_access_log', 'chat_add_codes', 'chat_reports')
   loop
     perform public.audit_attach(t);
   end loop;
