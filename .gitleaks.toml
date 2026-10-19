@@ -1,0 +1,7 @@
+# Regras padrão do gitleaks, menos o que é público de propósito.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Chave pública do DSN do Sentry (já vai no bundle do app e no eas.json)"
+regexes = ['''6689f719bbaaa0d02e29c9854463eb2d''']
