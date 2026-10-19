@@ -7,6 +7,7 @@ import { pendingInvitees } from '@/api/invites';
 import { FLAG } from '@/api/flags';
 import { PlanCompare } from '@/features/plans/PlanCompare';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { TourTarget } from '@/features/onboarding/Tour';
 import type { ActionListed } from '@/lib/db.types';
 import { daysToElection, electionLabel, shortDateTime } from '@/lib/format';
 import {
@@ -19,6 +20,7 @@ import {
   Txt,
   YvyMark,
   color,
+  space,
 } from '@/ui';
 import { IconBallot, IconFlag, IconSearch } from '@/ui/icons';
 
@@ -77,19 +79,21 @@ export default function Home() {
 
   return (
     <Screen safeTop refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <View>
-          <YvyMark size={34} />
-          <Txt variant="small" muted>
-            Do guarani: terra
-          </Txt>
-        </View>
-        {profile?.neighborhood ? (
-          <Txt variant="small" muted>
-            {profile.neighborhood} · {profile.state}
-          </Txt>
-        ) : null}
-      </Row>
+      <TourTarget id="home.top">
+        <Row style={{ justifyContent: 'space-between' }}>
+          <View>
+            <YvyMark size={34} />
+            <Txt variant="small" muted>
+              Do guarani: terra
+            </Txt>
+          </View>
+          {profile?.neighborhood ? (
+            <Txt variant="small" muted>
+              {profile.neighborhood} · {profile.state}
+            </Txt>
+          ) : null}
+        </Row>
+      </TourTarget>
 
       <Card stripe={color.accent}>
         <Txt variant="heading">
@@ -118,11 +122,13 @@ export default function Home() {
       ) : null}
 
       {membership === 'pending' ? (
-        <Banner
-          tone="warning"
-          title="Cadastro aguardando confirmação"
-          detail="Falta o camarada que te convidou confirmar sua entrada. Até lá, só conteúdo público."
-        />
+        <TourTarget id="home.pending">
+          <Banner
+            tone="warning"
+            title="Cadastro aguardando confirmação"
+            detail="Falta o camarada que te convidou confirmar sua entrada. Até lá, só conteúdo público."
+          />
+        </TourTarget>
       ) : null}
 
       {waiting > 0 ? (
@@ -143,44 +149,50 @@ export default function Home() {
       ) : null}
 
       <PlanCompare />
-      <Button title="Ver propostas e planos" kind="outline" onPress={() => router.push('/propostas')} />
+      <TourTarget id="home.propostas">
+        <Button title="Ver propostas e planos" kind="outline" onPress={() => router.push('/propostas')} />
+      </TourTarget>
 
       {flags[FLAG.checagem] ? (
         <>
           <Section title="Checar fake news" />
-          <Card onPress={() => router.push('/checar')}>
-            <Row>
-              <IconSearch size={20} color={color.primary} />
-              <Txt variant="heading">Colou um print? Cheque aqui.</Txt>
-            </Row>
-            <Txt variant="small" muted>
-              Cole o texto e veja o selo: verdade, meio verdade, exagero ou mentira — com fonte.
-            </Txt>
-          </Card>
+          <TourTarget id="home.checar">
+            <Card onPress={() => router.push('/checar')}>
+              <Row>
+                <IconSearch size={20} color={color.primary} />
+                <Txt variant="heading">Colou um print? Cheque aqui.</Txt>
+              </Row>
+              <Txt variant="small" muted>
+                Cole o texto e veja o selo: verdade, meio verdade, exagero ou mentira — com fonte.
+              </Txt>
+            </Card>
+          </TourTarget>
         </>
       ) : null}
 
       {flags[FLAG.transparencia] ? (
         <>
           <Section title="De olho em quem foi eleito" />
-          <Card onPress={() => router.push('/congresso')}>
-            <Row>
-              <IconBallot size={20} color={color.primary} />
-              <Txt variant="heading">Consultas e votações no Congresso</Txt>
-            </Row>
-            <Txt variant="small" muted>
-              Dê sua opinião nas consultas públicas do Senado e veja o que a Câmara e o Senado votaram.
-            </Txt>
-          </Card>
-          <Card onPress={() => router.push('/representantes')}>
-            <Row>
-              <IconFlag size={20} color={color.primary} />
-              <Txt variant="heading">Quem foi eleito por aqui</Txt>
-            </Row>
-            <Txt variant="small" muted>
-              Presidência, senadores e deputados do seu estado, e o diário oficial da sua cidade.
-            </Txt>
-          </Card>
+          <TourTarget id="home.congresso" style={{ gap: space.md }}>
+            <Card onPress={() => router.push('/congresso')}>
+              <Row>
+                <IconBallot size={20} color={color.primary} />
+                <Txt variant="heading">Consultas e votações no Congresso</Txt>
+              </Row>
+              <Txt variant="small" muted>
+                Dê sua opinião nas consultas públicas do Senado e veja o que a Câmara e o Senado votaram.
+              </Txt>
+            </Card>
+            <Card onPress={() => router.push('/representantes')}>
+              <Row>
+                <IconFlag size={20} color={color.primary} />
+                <Txt variant="heading">Quem foi eleito por aqui</Txt>
+              </Row>
+              <Txt variant="small" muted>
+                Presidência, senadores e deputados do seu estado, e o diário oficial da sua cidade.
+              </Txt>
+            </Card>
+          </TourTarget>
         </>
       ) : null}
 

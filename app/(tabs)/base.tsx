@@ -18,6 +18,7 @@ import { followedRegions, myRegion, type MyRegion } from '@/api/geo';
 import { unreadCount } from '@/api/notifications';
 import { uploadPostImage, type PickedImage } from '@/api/storage';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { TourTarget } from '@/features/onboarding/Tour';
 import { useNoScreenshots } from '@/lib/privacy';
 import type { PostListed } from '@/lib/db.types';
 import { camarada, dayBucket, relativeTime } from '@/lib/format';
@@ -247,35 +248,39 @@ export default function Base() {
           </Txt>
         </View>
         <Row>
-          <Button
-            title={unread ? `Avisos (${unread})` : 'Avisos'}
-            small
-            kind={unread ? 'accent' : 'ghost'}
-            block={false}
-            onPress={() => router.push('/avisos')}
-          />
+          <TourTarget id="base.avisos">
+            <Button
+              title={unread ? `Avisos (${unread})` : 'Avisos'}
+              small
+              kind={unread ? 'accent' : 'ghost'}
+              block={false}
+              onPress={() => router.push('/avisos')}
+            />
+          </TourTarget>
           {isModerator ? (
             <Button title="Moderar" small kind="outline" block={false} onPress={() => router.push('/moderar')} />
           ) : null}
         </Row>
       </Row>
 
-      <Row style={{ flexWrap: 'wrap' }}>
-        {SCOPES.map((s) => (
-          <Chip
-            key={s}
-            label={scopeLabel(s, profile, region?.name)}
-            active={scope === s}
-            onPress={() => {
-              lastScope = s;
-              setScope(s);
-              setPage(0);
-              setPosts([]);
-              void load(0, s);
-            }}
-          />
-        ))}
-      </Row>
+      <TourTarget id="base.scope">
+        <Row style={{ flexWrap: 'wrap' }}>
+          {SCOPES.map((s) => (
+            <Chip
+              key={s}
+              label={scopeLabel(s, profile, region?.name)}
+              active={scope === s}
+              onPress={() => {
+                lastScope = s;
+                setScope(s);
+                setPage(0);
+                setPosts([]);
+                void load(0, s);
+              }}
+            />
+          ))}
+        </Row>
+      </TourTarget>
 
       {scope === 'regiao_imediata' && region ? (
         <Row style={{ flexWrap: 'wrap' }}>
@@ -307,35 +312,37 @@ export default function Base() {
           Você está lendo a região de {shownRegion?.name}. Para postar, volte para a sua região.
         </Txt>
       ) : (
-        <Card>
-          <Field
-            placeholder={`Escreva para ${scopeLabel(scope, profile, region?.name)}...`}
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={MAX_POST_CHARS}
-          />
-          {image ? <Image source={{ uri: image.uri }} style={{ height: 160, borderRadius: radius.sm }} /> : null}
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Row>
-              <Button
-                title={image ? 'Trocar foto' : 'Foto'}
-                kind="ghost"
-                small
-                block={false}
-                left={<IconCamera size={18} color={color.primary} />}
-                onPress={chooseImage}
-              />
-              {image ? (
-                <Button title="Tirar" kind="ghost" small block={false} onPress={() => setImage(null)} />
-              ) : null}
+        <TourTarget id="base.composer">
+          <Card>
+            <Field
+              placeholder={`Escreva para ${scopeLabel(scope, profile, region?.name)}...`}
+              value={text}
+              onChangeText={setText}
+              multiline
+              maxLength={MAX_POST_CHARS}
+            />
+            {image ? <Image source={{ uri: image.uri }} style={{ height: 160, borderRadius: radius.sm }} /> : null}
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Row>
+                <Button
+                  title={image ? 'Trocar foto' : 'Foto'}
+                  kind="ghost"
+                  small
+                  block={false}
+                  left={<IconCamera size={18} color={color.primary} />}
+                  onPress={chooseImage}
+                />
+                {image ? (
+                  <Button title="Tirar" kind="ghost" small block={false} onPress={() => setImage(null)} />
+                ) : null}
+              </Row>
+              <Txt variant="small" muted>
+                {text.length}/{MAX_POST_CHARS}
+              </Txt>
             </Row>
-            <Txt variant="small" muted>
-              {text.length}/{MAX_POST_CHARS}
-            </Txt>
-          </Row>
-          <Button title="Publicar" small loading={busy} disabled={!text.trim()} onPress={publish} />
-        </Card>
+            <Button title="Publicar" small loading={busy} disabled={!text.trim()} onPress={publish} />
+          </Card>
+        </TourTarget>
       )}
 
       {error ? (

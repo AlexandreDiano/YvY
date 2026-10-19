@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createContext, useMemo, useRef, type ReactNode } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -9,6 +9,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from '@/ui/Text';
 import { color, space } from '@/ui/tokens';
+
+/**
+ * Rolagem da tela em volta, para quem precisa trazer um item para a vista
+ * (tour do primeiro acesso, src/features/onboarding/Tour.tsx).
+ */
+export type ScreenScroll = { scrollBy: (dy: number) => void };
+export const ScreenScrollContext = createContext<ScreenScroll | null>(null);
 
 /** Container de tela. `scroll` liga o ScrollView com padding seguro. */
 export function Screen({
@@ -29,6 +36,14 @@ export function Screen({
   contentStyle?: ViewProps['style'];
 }) {
   const insets = useSafeAreaInsets();
+  const ref = useRef<ScrollView>(null);
+  const y = useRef(0);
+  const scroller = useMemo<ScreenScroll>(
+    () => ({
+      scrollBy: (dy) => ref.current?.scrollTo({ y: Math.max(0, y.current + dy), animated: true }),
+    }),
+    [],
+  );
   const pad = { paddingBottom: insets.bottom + space.xxl };
   // depois do contentStyle, senão o padding da tela esconde a barra de status
   const top = safeTop ? { paddingTop: insets.top + space.lg } : null;
@@ -37,15 +52,22 @@ export function Screen({
     return <View style={[s.screen, s.pad, pad, contentStyle, top]}>{children}</View>;
   }
   return (
-    <ScrollView
-      style={s.screen}
-      contentContainerStyle={[s.pad, pad, contentStyle, top]}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      refreshControl={refreshControl}
-    >
-      {children}
-    </ScrollView>
+    <ScreenScrollContext.Provider value={scroller}>
+      <ScrollView
+        ref={ref}
+        onScroll={(e) => {
+          y.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={64}
+        style={s.screen}
+        contentContainerStyle={[s.pad, pad, contentStyle, top]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        refreshControl={refreshControl}
+      >
+        {children}
+      </ScrollView>
+    </ScreenScrollContext.Provider>
   );
 }
 

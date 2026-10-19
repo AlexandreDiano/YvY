@@ -7,7 +7,9 @@ import { decideInvitee, pendingInvitees } from '@/api/invites';
 import { canInvite, canManageRoles, giveSensitiveConsent } from '@/api/members';
 import { RESPONSAVEL } from '@/data/responsavel';
 import { useAuth } from '@/features/auth/AuthProvider';
+
 import { useBiometricLock } from '@/features/auth/BiometricLock';
+import { TourTarget, useTour } from '@/features/onboarding/Tour';
 import { InstallCard } from '@/features/pwa/InstallCard';
 import { useInstall } from '@/features/pwa/install';
 import { SupportCard } from '@/features/support/SupportCard';
@@ -49,6 +51,7 @@ const PRECISION = [
 
 export default function Perfil() {
   const router = useRouter();
+  const tour = useTour();
   const {
     profile,
     role,
@@ -210,22 +213,24 @@ export default function Perfil() {
       {isBaseMember && flags[FLAG.convites] ? (
         <>
           <Section title="Convidar" />
-          <Card>
-            {inviter ? (
-              <>
-                <Txt variant="body">
-                  O QRCode vale 1 uso e expira em 2 minutos. Mostre na tela para o
-                  camarada escanear — presencialmente.
+          <TourTarget id="perfil.convidar">
+            <Card>
+              {inviter ? (
+                <>
+                  <Txt variant="body">
+                    O QRCode vale 1 uso e expira em 2 minutos. Mostre na tela para o
+                    camarada escanear — presencialmente.
+                  </Txt>
+                  <Button title="Gerar QRCode de convite" onPress={() => router.push('/convidar')} />
+                </>
+              ) : (
+                <Txt variant="body" muted>
+                  Convidar é liberado pela moderação. Quer trazer alguém? Fale com o
+                  moderador do seu bairro.
                 </Txt>
-                <Button title="Gerar QRCode de convite" onPress={() => router.push('/convidar')} />
-              </>
-            ) : (
-              <Txt variant="body" muted>
-                Convidar é liberado pela moderação. Quer trazer alguém? Fale com o
-                moderador do seu bairro.
-              </Txt>
-            )}
-          </Card>
+              )}
+            </Card>
+          </TourTarget>
         </>
       ) : null}
 
@@ -375,6 +380,9 @@ export default function Perfil() {
 
       <Section title="Sobre" />
       <Card>
+        <TourTarget id="perfil.tutorial">
+          <Button title="Como o app funciona" kind="ghost" onPress={() => tour?.start()} />
+        </TourTarget>
         <Button title="Quem somos" kind="ghost" onPress={() => router.push('/sobre/quem-somos')} />
         <Divider />
         <Button title="Privacidade" kind="ghost" onPress={() => router.push('/sobre/privacidade')} />

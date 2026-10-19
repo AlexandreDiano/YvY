@@ -2,6 +2,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FLAG } from '@/api/flags';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { TourTarget } from '@/features/onboarding/Tour';
 import { color, space, type } from '@/ui';
 import { IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
 
@@ -47,7 +48,11 @@ export default function TabsLayout() {
         options={{
           title: 'Ações',
           href: isBaseMember && flags[FLAG.acoes] ? undefined : null,
-          tabBarIcon: ({ color: c, size }) => <IconPin size={size} color={c} />,
+          tabBarIcon: ({ color: c, size }) => (
+            <TourTarget id="tab.acoes">
+              <IconPin size={size} color={c} />
+            </TourTarget>
+          ),
         }}
       />
       <Tabs.Screen
@@ -55,14 +60,22 @@ export default function TabsLayout() {
         options={{
           title: 'Base',
           href: isBaseMember && flags[FLAG.feed] ? undefined : null,
-          tabBarIcon: ({ color: c, size }) => <IconChat size={size} color={c} />,
+          tabBarIcon: ({ color: c, size }) => (
+            <TourTarget id="tab.base">
+              <IconChat size={size} color={c} />
+            </TourTarget>
+          ),
         }}
       />
       <Tabs.Screen
         name="perfil"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color: c, size }) => <IconUser size={size} color={c} />,
+          tabBarIcon: ({ color: c, size }) => (
+            <TourTarget id="tab.perfil">
+              <IconUser size={size} color={c} />
+            </TourTarget>
+          ),
         }}
       />
     </Tabs>

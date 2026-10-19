@@ -35,6 +35,9 @@ const light = {
   text: '#1C1B19',
   textMuted: '#6B6862',
   textOnPrimary: '#FFFFFF',
+
+  // véu escuro sobre a tela (tour do primeiro acesso)
+  scrim: 'rgba(20, 21, 19, 0.72)',
 };
 
 /**
@@ -61,6 +64,8 @@ const dark: typeof light = {
   text: '#ECEAE5',
   textMuted: '#A6A39C',
   textOnPrimary: '#FFFFFF',
+
+  scrim: 'rgba(0, 0, 0, 0.78)',
 };
 
 export const color = isDark ? dark : light;

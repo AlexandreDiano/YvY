@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -201,6 +203,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => data.subscription.unsubscribe();
   }, [mode, refresh]);
+
+  // Membro pendente: confere de tempos em tempos se quem convidou já
+  // confirmou, para as abas da base aparecerem sem reabrir o app. Só lê a
+  // própria linha (RLS) e só enquanto está pendente e com o app aberto.
+  const membershipRef = useRef(profile?.membership_status);
+  membershipRef.current = profile?.membership_status;
+  const pendingId = mode === 'backend' && profile?.membership_status === 'pending' ? profile.id : null;
+  useEffect(() => {
+    if (!pendingId || !supabase) return;
+    const client = supabase;
+    let busy = false;
+    const check = async () => {
+      if (busy || AppState.currentState !== 'active') return;
+      busy = true;
+      try {
+        const { data } = await client.from('profiles').select('membership_status').eq('id', pendingId).maybeSingle();
+        if (data && data.membership_status !== membershipRef.current) await loadRemote();
+      } catch {
+        // sem rede: tenta de novo na próxima volta
+      } finally {
+        busy = false;
+      }
+    };
+    const timer = setInterval(() => void check(), 15_000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void check();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [pendingId, loadRemote]);
 
   const signUpWithInvite = useCallback(
     async (claim: string, input: SignUpInput): Promise<MembershipStatus | 'email_pending'> => {

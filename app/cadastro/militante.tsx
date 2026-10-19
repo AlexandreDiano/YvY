@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { CLAIM_TTL_H, clearClaim, storedClaim, type InviteClaim } from '@/api/invites';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { markTutorialPending, takeTutorialPending } from '@/features/onboarding/tutorial';
 import { SignupForm } from '@/features/signup/SignupForm';
 import { notify } from '@/lib/notify';
 import { Banner, Button, Loading, Screen } from '@/ui';
@@ -51,7 +52,16 @@ export default function CadastroMilitante() {
   return (
     <SignupForm
       onSubmit={async (input) => {
-        const status = await signUpWithInvite(claim.claim, input);
+        // tour do primeiro acesso (no e-mail pendente, espera o primeiro login).
+        // Marca antes: o perfil nasce dentro do signUp e o tour lê a marca nessa hora.
+        await markTutorialPending();
+        let status;
+        try {
+          status = await signUpWithInvite(claim.claim, input);
+        } catch (err) {
+          await takeTutorialPending();
+          throw err;
+        }
         // reserva usada (ou guardada no cadastro que espera o e-mail): pode apagar
         await clearClaim();
         if (status === 'email_pending') {
@@ -62,13 +72,8 @@ export default function CadastroMilitante() {
           );
           return;
         }
+        // o tour já explica a confirmação pendente, sem alerta por cima
         router.replace('/(tabs)');
-        if (status === 'pending') {
-          notify(
-            'Conta criada',
-            'Agora o camarada que te convidou precisa confirmar você. Até lá você vê o conteúdo público.',
-          );
-        }
       }}
     />
   );

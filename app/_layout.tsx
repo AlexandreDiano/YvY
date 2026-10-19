@@ -15,6 +15,7 @@ import {
 } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
 import { BiometricLockProvider } from "@/features/auth/BiometricLock";
+import { TourProvider } from "@/features/onboarding/Tour";
 import { Txt, color, isDark, space, type } from "@/ui";
 import { OfflineBanner } from "@/ui/OfflineBanner";
 import { initMonitoring, withMonitoring } from "@/lib/monitoring";
@@ -46,6 +47,7 @@ function RootLayout() {
           <StatusBar style={isDark ? "light" : "dark"} />
           <OfflineBanner />
           <BiometricLockProvider>
+          <TourProvider>
           <VisitorViewFrame>
             <Stack
               screenOptions={{
@@ -133,6 +135,7 @@ function RootLayout() {
               />
             </Stack>
           </VisitorViewFrame>
+          </TourProvider>
           </BiometricLockProvider>
         </AuthProvider>
       </SafeAreaProvider>

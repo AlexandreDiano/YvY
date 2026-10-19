@@ -5,6 +5,7 @@ import { actionTypeLabel, cancelPresence, confirmPresence, inArea, listActions, 
 import { followedRegions, inRegion, myRegion, type MyRegion } from '@/api/geo';
 import { ActionsMap } from '@/features/actions/ActionsMap';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { TourTarget } from '@/features/onboarding/Tour';
 import type { ActionListed } from '@/lib/db.types';
 import { shortDateTime } from '@/lib/format';
 import {
@@ -110,13 +111,19 @@ export default function Acoes() {
     >
       <Row style={{ justifyContent: 'space-between' }}>
         <Txt variant="title">Ações</Txt>
-        <Button title="+ Nova" small block={false} onPress={() => router.push('/acoes/nova')} />
+        <TourTarget id="acoes.nova">
+          <Button title="+ Nova" small block={false} onPress={() => router.push('/acoes/nova')} />
+        </TourTarget>
       </Row>
 
-      {profile ? <ActionsMap actions={visible} area={profile} /> : null}
+      {profile ? (
+        <TourTarget id="acoes.map">
+          <ActionsMap actions={visible} area={profile} />
+        </TourTarget>
+      ) : null}
 
       {region ? (
-        <>
+        <TourTarget id="acoes.region" style={{ gap: space.md }}>
           <Txt variant="label" muted upper>
             Região
           </Txt>
@@ -137,7 +144,7 @@ export default function Acoes() {
             <Chip label="Todas" active={regionSel === 'all'} onPress={() => pickRegion('all')} />
             <Chip label="+ Seguir região" onPress={() => router.push('/regioes')} />
           </Row>
-        </>
+        </TourTarget>
       ) : null}
       <Txt variant="label" muted upper>
         Cidade
