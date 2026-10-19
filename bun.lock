@@ -26,6 +26,7 @@
         "expo-notifications": "~57.0.22",
         "expo-router": "~57.0.26",
         "expo-screen-capture": "~57.0.4",
+        "expo-secure-store": "~57.0.4",
         "expo-sharing": "~57.0.23",
         "expo-splash-screen": "~57.0.10",
         "expo-status-bar": "~57.0.1",
@@ -34,6 +35,7 @@
         "react-dom": "19.2.3",
         "react-native": "0.86.3",
         "react-native-gesture-handler": "~2.32.0",
+        "react-native-libsodium": "^1.7.0",
         "react-native-qrcode-svg": "^6.3.26",
         "react-native-reanimated": "4.5.1",
         "react-native-safe-area-context": "~5.7.0",
@@ -320,6 +322,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.5", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || ^2.0.0-alpha.4", "@emnapi/runtime": "^1.7.1 || ^2.0.0-alpha.4" } }, "sha512-HshSvXzmBxNzqejd3k/KemgQ3hdREUYFRRrgxOZ+gPljDIsO2SDZrVZMd4Z/HsxudQbE62OVyVFE8z9BCurfjA=="],
+
+    "@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
 
     "@nolyfill/is-core-module": ["@nolyfill/is-core-module@1.0.39", "", {}, "sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA=="],
 
@@ -885,6 +889,8 @@
 
     "expo-screen-capture": ["expo-screen-capture@57.0.4", "", { "peerDependencies": { "expo": "*", "react": "*" } }, "sha512-08+bHhNnEKABCNB687LMYQPhVL200exgCqNdHnEkAo0UyS+SN8k+lh9w9bJ+tAmYpGa76o+hRYMqwpv7oBPEOA=="],
 
+    "expo-secure-store": ["expo-secure-store@57.0.4", "", { "peerDependencies": { "expo": "*" } }, "sha512-7zBA1RThURTXdP4w65kBzZNbcSsfArqVd+p+ETAnPRWXO8J296Qd0YaCVyRpJ0HSwlCnGdvOnqO+NgSreHsOhA=="],
+
     "expo-server": ["expo-server@57.0.3", "", {}, "sha512-aK+LdKzauHSGmsOStZtyxdzv0zWssCkxTw3m4QuOhfDSJsZaMRTd9O41d8ixU/QfELTbaJ0oRNcF7JFV/7O9YQ=="],
 
     "expo-sharing": ["expo-sharing@57.0.23", "", { "dependencies": { "@expo/config-plugins": "^57.0.10", "@expo/config-types": "^57.0.2", "@expo/plist": "^0.8.1" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-fN+jrqoWwOpIo+X4utiu/ayCWym23DMgvrTJUHoopkBeO6rEa79ZY4f6ApOlRxvEx2NgQgJEQX+cbPJrjOSRog=="],
@@ -1133,6 +1139,14 @@
 
     "levn": ["levn@0.4.1", "", { "dependencies": { "prelude-ls": "^1.2.1", "type-check": "~0.4.0" } }, "sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ=="],
 
+    "libsodium": ["libsodium@0.8.4", "", {}, "sha512-lMcYaRi0zcs7tarATsQUYC7rstliIXZuoq0c6zXSgNtSNtdvBgkSegjWhpMJAXzKX3SUSwIp7+zEsob+j3LuRw=="],
+
+    "libsodium-sumo": ["libsodium-sumo@0.8.4", "", {}, "sha512-TMtHShQfVVsaxDygyapvUC3o7YsPgXa/hRWeIgzyFz6w5k/1hirGptCxp1U7XwW3rCskaTTYKgV10v86UiGgNw=="],
+
+    "libsodium-wrappers": ["libsodium-wrappers@0.8.4", "", { "dependencies": { "libsodium": "^0.8.0" } }, "sha512-mu8aAWucZjTB5O/BtGXtW4e1agy7uHxNYG7zPthmmD1jU43LCDmSWZLN4JhflbdPXj3yDO4lxM1O9hLDgIOXDw=="],
+
+    "libsodium-wrappers-sumo": ["libsodium-wrappers-sumo@0.8.4", "", { "dependencies": { "libsodium-sumo": "^0.8.0" } }, "sha512-ql7hcgulKZ3ekfa2DGAogcCKsWU0diA/0nArz1CFzh93WQdb46/Kj18ka/Hifq6uA3Ush34Pc6vU/6HXeRwUkg=="],
+
     "lighthouse-logger": ["lighthouse-logger@1.4.2", "", { "dependencies": { "debug": "^2.6.9", "marky": "^1.2.2" } }, "sha512-gPWxznF6TKmUHrOQjlVo2UbaL2EJ71mb2CCeRs/2qBpi4L/g4LUVc9+3lKQ6DTUZwJswfM7ainGrLO1+fOqa2g=="],
 
     "lightningcss": ["lightningcss@1.33.0", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.33.0", "lightningcss-darwin-arm64": "1.33.0", "lightningcss-darwin-x64": "1.33.0", "lightningcss-freebsd-x64": "1.33.0", "lightningcss-linux-arm-gnueabihf": "1.33.0", "lightningcss-linux-arm64-gnu": "1.33.0", "lightningcss-linux-arm64-musl": "1.33.0", "lightningcss-linux-x64-gnu": "1.33.0", "lightningcss-linux-x64-musl": "1.33.0", "lightningcss-win32-arm64-msvc": "1.33.0", "lightningcss-win32-x64-msvc": "1.33.0" } }, "sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA=="],
@@ -1370,6 +1384,8 @@
     "react-native-gesture-handler": ["react-native-gesture-handler@2.32.0", "", { "dependencies": { "@egjs/hammerjs": "^2.0.17", "@types/react-test-renderer": "^19.1.0", "hoist-non-react-statics": "^3.3.0", "invariant": "^2.2.4" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-uYIMOKlKENORq2SABE+jIjbPU+h5I/sQKcq2v16zRq848nwEp1fWRVwML4QWqijc8UcXJC25o54S8GQd4Mf2OA=="],
 
     "react-native-is-edge-to-edge": ["react-native-is-edge-to-edge@1.3.1", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-NIXU/iT5+ORyCc7p0z2nnlkouYKX425vuU1OEm6bMMtWWR9yvb+Xg5AZmImTKoF9abxCPqrKC3rOZsKzUYgYZA=="],
+
+    "react-native-libsodium": ["react-native-libsodium@1.7.0", "", { "dependencies": { "@noble/hashes": "^1.3.2", "libsodium-wrappers": "^0.8.2", "libsodium-wrappers-sumo": "^0.8.2" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-0I2FcCeyR2HUiUOIvoukteZFMY2WIhPCQ6OOOYy33nQiyGFpwW6I4ky/f18SdSN84n/GLvgC9DOF0fJaKTYYJg=="],
 
     "react-native-qrcode-svg": ["react-native-qrcode-svg@6.3.26", "", { "dependencies": { "prop-types": "^15.8.0", "qrcode": "^1.5.4", "text-encoding": "^0.7.0" }, "peerDependencies": { "react": "*", "react-native": ">=0.63.4", "react-native-svg": ">=14.0.0" } }, "sha512-xhQywklf0qh5Z9ooy2rEuCrv6tRksVAeFUdYgv5y3fUkwQN53yp2Iu49QTgxj8QyjFgo0fYwee+knBBDzbNH+g=="],
 
