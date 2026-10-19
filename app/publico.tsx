@@ -16,7 +16,6 @@ import {
   Txt,
   YvyMark,
   color,
-  space,
 } from '@/ui';
 import { IconBallot, IconSearch } from '@/ui/icons';
 

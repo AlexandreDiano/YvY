@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Só repassa para a regra local da máquina, se existir.
+if [ -x .git/hooks/commit-msg.local ]; then exec .git/hooks/commit-msg.local "$@"; fi

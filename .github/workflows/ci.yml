@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tipos, lint, testes e regras do repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run test
+      - run: bun run check:repo
+      - name: Build do site (mesmo comando da Vercel)
+        run: bunx expo export -p web && node scripts/precache.mjs dist
+      - name: Tamanho do JS inicial
+        run: node scripts/bundle-budget.mjs dist
+
+  rls:
+    name: RLS e regras do banco (Supabase local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Migrations, seeds, teste de RLS e invariantes
+        env:
+          SUPABASE_START_ARGS: -x studio,imgproxy,logflare,vector,edge-runtime
+        run: bash scripts/test-rls-local.sh
+      - name: Tipos do banco em dia com as migrations
+        run: |
+          bash scripts/gen-db-types.sh
+          git diff --exit-code src/lib/db.generated.ts || {
+            echo "::error::src/lib/db.generated.ts desatualizado: rode bash scripts/gen-db-types.sh e commite"
+            exit 1
+          }
+
+  secrets:
+    name: Segredo vazado
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

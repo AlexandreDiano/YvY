@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Barra segredo no commit. Ligado por `bun install` (script prepare).
+# Com gitleaks instalado usa ele; sem, procura os formatos de chave do projeto.
+set -euo pipefail
+
+if command -v gitleaks >/dev/null; then
+  gitleaks git --staged --no-banner --redact
+else
+  # JWT (service_role e anon do Supabase: nenhuma é versionada), secret key
+  # nova do Supabase, chaves do Resend, Gemini, Tavily e Anthropic.
+  pattern='eyJhbGciOi[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.|sb_secret_[A-Za-z0-9_-]{10,}|re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{8,}|AIza[0-9A-Za-z_-]{35}|tvly-[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{20,}'
+  hits=$(git diff --cached -U0 --diff-filter=AM -- . ':!*.md' ':!.env.example' ':!supabase/migrations/*' ':!supabase/tests/*' \
+    | grep -E '^\+' | grep -Ev '^\+\+\+' | grep -E "$pattern" || true)
+  if [ -n "$hits" ]; then
+    echo "pre-commit: parece ter segredo no que vai ser commitado:" >&2
+    echo "$hits" | cut -c1-120 >&2
+    exit 1
+  fi
+fi
+
+if git diff --cached --name-only --diff-filter=AM | grep -E '(^|/)\.env(\..+)?$' | grep -qvx '.env.example'; then
+  echo "pre-commit: .env não vai para o repositório." >&2
+  exit 1
+fi
+
+# regra local da máquina, fora do repositório
+if [ -x .git/hooks/pre-commit.local ]; then .git/hooks/pre-commit.local; fi

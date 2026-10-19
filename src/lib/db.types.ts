@@ -1,7 +1,7 @@
 /**
- * Tipos do banco, espelhando supabase/migrations. Escritos à mão; quando
- * alguém tiver tempo dá para trocar pela geração automática:
- *   npx supabase gen types typescript --project-id <id> > src/lib/db.types.ts
+ * Tipos de domínio que as telas usam (linhas já no formato do app). O tipo
+ * `Database` do cliente Supabase é gerado das migrations em db.generated.ts
+ * (bash scripts/gen-db-types.sh); o CI falha se ele ficar para trás.
  */
 
 export type UserRole = 'visitor' | 'militant' | 'moderator' | 'admin';
@@ -208,93 +208,4 @@ export type FeatureFlag = {
   is_enabled: boolean;
   description: string | null;
   updated_at: string;
-};
-
-type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
-  Row: Row;
-  Insert: Insert;
-  Update: Update;
-  Relationships: [];
-};
-
-export type Database = {
-  public: {
-    Tables: {
-      profiles: Table<Profile>;
-      actions: Table<ActionRow>;
-      action_participants: Table<ActionParticipant>;
-      posts: Table<Post>;
-      post_flags: Table<PostFlag>;
-      proposal_cards: Table<ProposalCard>;
-      fact_checks: Table<FactCheck>;
-      invites: Table<Invite>;
-      moderators: Table<Moderator>;
-      feature_flags: Table<FeatureFlag>;
-    };
-    Views: {
-      profiles_public: { Row: ProfilePublic; Relationships: [] };
-      actions_with_counts: { Row: ActionListed; Relationships: [] };
-      posts_with_author: { Row: PostListed; Relationships: [] };
-    };
-    Functions: {
-      search_fact_checks: {
-        Args: { q: string; min_score?: number };
-        Returns: FactCheck[];
-      };
-      // fila de checagem automática (0012). Devolvem jsonb, tipado em src/api/claims.ts
-      request_claim_check: { Args: { p_text: string }; Returns: unknown };
-      get_claim_checks: { Args: { p_ids: string[] }; Returns: unknown[] };
-      list_claim_checks: { Args: { p_limit?: number }; Returns: unknown[] };
-      is_militant_or_above: { Args: Record<string, never>; Returns: boolean };
-      is_admin: { Args: Record<string, never>; Returns: boolean };
-      claim_invite: {
-        Args: { p_token: string };
-        Returns: { claim: string; claim_expires_at: string }[];
-      };
-      rotate_table_invite: {
-        Args: { p_invite: string };
-        Returns: { token: string; scan_expires_at: string }[];
-      };
-      redeem_invite: {
-        Args: {
-          /** Segredo da reserva (claim_invite), não o token do QRCode. */
-          p_claim: string;
-          p_full_name: string;
-          p_display_name: string;
-          p_phone: string | null;
-          p_cep: string;
-          p_neighborhood: string;
-          p_city: string;
-          p_state: string;
-          p_location_precision: number;
-          p_sensitive_consent: boolean;
-        };
-        Returns: { profile_id: string; membership_status: MembershipStatus }[];
-      };
-      my_pending_invitees: {
-        Args: Record<string, never>;
-        Returns: {
-          id: string;
-          display_name: string;
-          neighborhood: string | null;
-          city: string | null;
-          state: string | null;
-          created_at: string;
-        }[];
-      };
-      decide_invitee: {
-        Args: { p_invitee: string; p_decision: MembershipStatus };
-        Returns: undefined;
-      };
-    };
-    Enums: {
-      user_role: UserRole;
-      membership_status: MembershipStatus;
-      action_type: ActionType;
-      action_status: ActionStatus;
-      post_status: PostStatus;
-      check_result: CheckResult;
-    };
-    CompositeTypes: Record<string, never>;
-  };
 };

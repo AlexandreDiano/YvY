@@ -108,7 +108,7 @@ async function redeem(client: NonNullable<typeof supabase>, claim: string, input
     p_claim: claim,
     p_full_name: input.fullName.trim(),
     p_display_name: input.displayName?.trim() || suggestDisplayName(input.fullName) || 'Camarada',
-    p_phone: input.phone ?? null,
+    p_phone: input.phone ?? undefined,
     p_cep: input.cep,
     p_neighborhood: input.neighborhood,
     p_city: input.city,

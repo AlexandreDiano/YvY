@@ -9,8 +9,13 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --import ./tests/alias.mjs --experimental-strip-types --no-warnings --test 'tests/unit/*.test.ts'",
+    "check:repo": "node --experimental-strip-types --no-warnings scripts/check-repo.mjs",
+    "check": "bun run typecheck && bun run lint && bun run test && bun run check:repo",
     "test:rls": "node --experimental-strip-types supabase/tests/rls.test.ts",
-    "test:rls:local": "bash scripts/test-rls-local.sh"
+    "test:rls:local": "bash scripts/test-rls-local.sh",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
@@ -53,6 +58,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.0",
+    "eslint-config-expo": "~57.0.2",
     "typescript": "~6.0.3"
   }
 }

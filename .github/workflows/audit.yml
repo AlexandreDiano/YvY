@@ -1,0 +1,21 @@
+name: Dependências vulneráveis
+
+# Só avisa (o job falha e o GitHub manda e-mail). Atualizar é decisão manual.
+on:
+  schedule:
+    - cron: '0 9 * * 1' # segunda, 6h em Brasília
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Ignorados: só rodam no build (metro, expo cli), não chegam ao aparelho.
+      # Revisar quando o Expo atualizar.
+      - run: >
+          bun audit --audit-level=high
+          --ignore GHSA-vfj7-8cjw-p6xm
+          --ignore GHSA-86w9-cpqp-85rv

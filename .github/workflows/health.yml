@@ -1,0 +1,33 @@
+name: Site no ar
+
+# Falhou = o GitHub manda e-mail para o dono do repositório. O que acontece
+# dentro do banco (cron, fila, cota de e-mail) é vigiado por health_watch()
+# (migration 0049), que avisa os admins pelo próprio app.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: ${{ secrets.SUPABASE_URL }}
+      ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - name: Site e PWA
+        run: |
+          set -e
+          for path in / /manifest.json /sw.js; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --retry 2 --max-time 20 "https://www.useyvy.app$path")
+            echo "$path -> $code"
+            [ "$code" = 200 ] || exit 1
+          done
+      - name: API pública (conteúdo que visitante lê)
+        if: env.URL != ''
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --retry 2 --max-time 20 \
+            -H "apikey: $ANON" "$URL/rest/v1/feature_flags?select=key&limit=1")
+          echo "feature_flags -> $code"
+          [ "$code" = 200 ]

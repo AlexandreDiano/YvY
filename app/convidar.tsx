@@ -2,7 +2,7 @@ import * as Brightness from 'expo-brightness';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, Share, StyleSheet } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import {
   PERSONAL_SCAN_MIN,
@@ -36,7 +36,6 @@ import {
   Screen,
   Section,
   Txt,
-  color,
   radius,
   space,
 } from '@/ui';
