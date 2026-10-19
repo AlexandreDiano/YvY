@@ -6,8 +6,9 @@ import type { UserRole } from '@/lib/db.types';
  * papéis alternam membro e moderador; só admin dá ou tira essa permissão. É
  * tudo por RPC porque `role` não tem UPDATE para o cliente.
  *
- * Convite (0036): por padrão só moderador e admin convidam. Admin, quem muda
- * papéis e o moderador do bairro liberam membro por membro.
+ * Convite (0036/0046): por padrão só moderador e admin convidam. Admin, quem
+ * muda papéis, o moderador do bairro e quem convidou a pessoa liberam membro
+ * por membro.
  */
 export type Member = {
   id: string;
@@ -19,7 +20,29 @@ export type Member = {
   is_role_manager: boolean;
   /** Pode gerar convite: moderador/admin, ou membro liberado (0036). */
   can_invite: boolean;
+  /** Quantas pessoas entraram pelo convite dele (0046). */
+  invited_count: number;
+  /** Apelido de quem convidou, se houver. */
+  invited_by_name: string | null;
 };
+
+export type MemberInvitee = {
+  id: string;
+  display_name: string;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  membership_status: 'pending' | 'active' | 'rejected';
+  created_at: string;
+};
+
+/** Quem este membro convidou. Para admin, quem muda papéis e moderador do bairro dele (0046). */
+export async function inviteesOf(userId: string): Promise<MemberInvitee[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('invitees_of' as never, { p_user: userId } as never);
+  if (error) throw error;
+  return (data ?? []) as unknown as MemberInvitee[];
+}
 
 export async function canManageRoles(): Promise<boolean> {
   if (!supabase) return false;

@@ -718,6 +718,61 @@ async function main(): Promise<void> {
     check('quem não convidou não confirma militante', Boolean(error), error ? '' : 'a RPC aceitou');
   }
 
+  // 0046: quem convidou libera o convite do próprio convidado; lista por membro
+  {
+    const guest = await makeActor('guest', 'militant', 'active', AREA_B);
+    await admin.from('profiles').update({ invited_by: milA.id }).eq('id', guest.id);
+
+    const g1 = await milB.client.rpc('set_invite_permission', { p_user: guest.id, p_enabled: true });
+    check('quem não convidou não libera convite do convidado', Boolean(g1.error), g1.error ? '' : 'liberou');
+    const g2 = await milA.client.rpc('set_invite_permission', { p_user: guest.id, p_enabled: true });
+    check('quem convidou libera convite do próprio convidado', !g2.error, g2.error?.message);
+
+    const mine = await milA.client.rpc('my_invitees');
+    const row = ((mine.data ?? []) as { id: string; can_invite: boolean }[]).find((r) => r.id === guest.id);
+    check('my_invitees mostra que o convidado pode convidar', row?.can_invite === true, mine.error?.message);
+
+    const v1 = await milB.client.rpc('invitees_of', { p_user: milA.id });
+    check('militante comum não vê convidados de outro', Boolean(v1.error), v1.error ? '' : 'viu');
+    const v2 = await modA.client.rpc('invitees_of', { p_user: milA.id });
+    check(
+      'moderador vê convidados de membro do bairro dele',
+      ((v2.data ?? []) as { id: string }[]).some((r) => r.id === guest.id),
+      v2.error?.message,
+    );
+    const v3 = await modA.client.rpc('invitees_of', { p_user: milB.id });
+    check('moderador não vê convidados de outro bairro', Boolean(v3.error), v3.error ? '' : 'viu');
+    const v4 = await adm.client.rpc('invitees_of', { p_user: milA.id });
+    check('admin vê convidados de qualquer membro', !v4.error && (v4.data ?? []).length > 0, v4.error?.message);
+    const v5 = await anon.rpc('invitees_of', { p_user: milA.id });
+    check('anônimo não chama invitees_of', Boolean(v5.error), v5.error ? '' : 'chamou');
+  }
+
+  // 0047: cada um liga/desliga o próprio aviso por e-mail, e só o próprio
+  {
+    const own = await milA.client.from('profiles').update({ notify_email: true }).eq('id', milA.id).select('id');
+    check('membro liga o próprio aviso por e-mail', !own.error && (own.data ?? []).length === 1, own.error?.message);
+    await expectDenied(
+      'membro não mexe no aviso por e-mail de outro',
+      milA.client.from('profiles').update({ notify_email: false }).eq('id', milB.id).select('id'),
+    );
+  }
+
+  // 0048: escrita de usuário vai ao log com autor e conteúdo; cliente não lê o log
+  {
+    const { data } = await admin
+      .from('audit_log')
+      .select('action, actor_name, metadata')
+      .eq('user_id', milA.id)
+      .eq('entity_type', 'invite_grants');
+    const hit = (data ?? []).find((r) => r.action === 'insert');
+    check('escrita do usuário entra no log com apelido', hit?.actor_name === 'MILA', JSON.stringify(data));
+    const inv = await admin.from('audit_log').select('metadata').eq('user_id', milA.id).eq('entity_type', 'invites').limit(1);
+    const meta = inv.data?.[0]?.metadata as { new?: Record<string, unknown> } | undefined;
+    check('log não guarda o token do convite', Boolean(meta?.new) && !('token' in (meta?.new ?? {})), JSON.stringify(meta));
+    await expectRows('militante não lê o log', milA.client.from('audit_log').select('id'), 0);
+  }
+
   console.log(`\n${pass} ok, ${failures.length} falhas`);
   if (failures.length) {
     console.log('\nfalhas:');

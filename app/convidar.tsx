@@ -20,7 +20,7 @@ import {
   type GeneratedInvite,
   type Invitee,
 } from '@/api/invites';
-import { canInvite } from '@/api/members';
+import { canInvite, setInvitePermission } from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { camarada } from '@/lib/format';
 import { confirmAction, notify } from '@/lib/notify';
@@ -178,6 +178,24 @@ export default function Convidar() {
       });
   }, [invite, kind, focused, now]);
 
+  function grant(i: Invitee, enabled: boolean) {
+    const who = camarada(i.display_name);
+    confirmAction(
+      enabled ? `Deixar ${who} convidar?` : `Tirar o convite de ${who}?`,
+      enabled
+        ? `${who} vai poder gerar QRCode de convite. Quem entrar pelo convite dele aparece para ele confirmar, não para você.`
+        : `${who} para de gerar convite. Quem já entrou continua.`,
+      'Confirmar',
+      () =>
+        void setInvitePermission(i.id, enabled).then(
+          () => setInvitees((list) => list.map((x) => (x.id === i.id ? { ...x, can_invite: enabled } : x))),
+          (err: unknown) => notify('Erro', err instanceof Error ? err.message : 'Não foi possível salvar.'),
+        ),
+    );
+  }
+
+  const list = <InviteeList invitees={invitees} canGrant={inviter === true} onDecide={decide} onGrant={grant} />;
+
   if (inviter === null) return <Loading />;
   if (!inviter) {
     return (
@@ -187,10 +205,11 @@ export default function Convidar() {
           title="Convite não liberado"
           detail={
             isBaseMember
-              ? 'Convidar é liberado pela moderação. Fale com o moderador do seu bairro.'
-              : 'Quem ainda está pendente de confirmação não pode gerar convite.'
+              ? 'Quem libera é quem te convidou ou a moderação do seu bairro.'
+              : 'Você ainda está pendente. Só dá para convidar depois de confirmado.'
           }
         />
+        {invitees.length > 0 ? list : null}
       </Screen>
     );
   }
@@ -384,10 +403,29 @@ export default function Convidar() {
         </Modal>
       ) : null}
 
+      {list}
+    </Screen>
+  );
+}
+
+/** Quem esta pessoa convidou: confirmar/recusar quem está pendente e liberar o convite de quem já entrou. */
+function InviteeList({
+  invitees,
+  canGrant,
+  onDecide,
+  onGrant,
+}: {
+  invitees: Invitee[];
+  canGrant: boolean;
+  onDecide: (i: Invitee, decision: 'active' | 'rejected') => void;
+  onGrant: (i: Invitee, enabled: boolean) => void;
+}) {
+  return (
+    <>
       <Section title={`Quem você convidou · ${invitees.length}`} />
       {invitees.length === 0 ? (
         <Txt variant="small" muted>
-          Ninguém ainda. Quem entrar pelo seu convite aparece aqui.
+          Ninguém ainda. Quem entrar com o seu convite aparece aqui.
         </Txt>
       ) : (
         invitees.map((i) => (
@@ -398,30 +436,44 @@ export default function Convidar() {
               {i.membership_status === 'active'
                 ? 'confirmado'
                 : i.membership_status === 'pending'
-                  ? 'aguardando sua confirmação'
+                  ? 'esperando você confirmar'
                   : 'recusado'}
+              {i.membership_status === 'active' && i.can_invite ? ' · pode convidar' : ''}
+              {i.invited_count > 0 ? ` · trouxe ${i.invited_count}` : ''}
             </Txt>
             {i.membership_status === 'pending' ? (
               <Row>
-                <Button title="Confirmar" small block={false} onPress={() => void decide(i, 'active')} />
+                <Button title="Confirmar" small block={false} onPress={() => onDecide(i, 'active')} />
                 <Button
                   title="Recusar"
                   kind="ghost"
                   small
                   block={false}
                   onPress={() =>
-                    Alert.alert(`Recusar ${camarada(i.display_name)}?`, 'A pessoa fica sem acesso à base.', [
-                      { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Recusar', style: 'destructive', onPress: () => void decide(i, 'rejected') },
-                    ])
+                    confirmAction(
+                      `Recusar ${camarada(i.display_name)}?`,
+                      'A pessoa fica sem acesso à base.',
+                      'Recusar',
+                      () => onDecide(i, 'rejected'),
+                      true,
+                    )
                   }
                 />
               </Row>
             ) : null}
+            {canGrant && i.membership_status === 'active' && i.role === 'militant' ? (
+              <Button
+                title={i.can_invite ? 'Tirar convite' : 'Deixar convidar'}
+                kind={i.can_invite ? 'ghost' : 'outline'}
+                small
+                block={false}
+                onPress={() => onGrant(i, !i.can_invite)}
+              />
+            ) : null}
           </Card>
         ))
       )}
-    </Screen>
+    </>
   );
 }
 

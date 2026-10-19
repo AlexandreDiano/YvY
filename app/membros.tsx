@@ -1,17 +1,20 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { View } from 'react-native';
 import {
   canManageRoles,
+  inviteesOf,
   listMembers,
   setInvitePermission,
   setMemberRole,
   setRoleManager,
   type Member,
+  type MemberInvitee,
 } from '@/api/members';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { camarada } from '@/lib/format';
 import { confirmAction, notify } from '@/lib/notify';
-import { Badge, Button, Card, EmptyState, Field, Loading, Row, Screen, Txt, color } from '@/ui';
+import { Badge, Button, Card, Divider, EmptyState, Field, Loading, Row, Screen, Txt, color, space } from '@/ui';
 
 const ROLE_LABEL: Record<string, string> = {
   militant: 'Membro',
@@ -30,6 +33,9 @@ const ROLE_COLOR: Record<string, string> = {
  * papéis e o moderador do bairro liberam membro por membro (o moderador só vê
  * os bairros dele). O banco confere tudo de novo nas RPCs da 0032/0036,
  * esconder botão aqui é só para não confundir.
+ *
+ * Cada membro abre a lista de quem ele convidou (0046), um nível só. Quem foi
+ * convidado e convidou outros aparece de novo na lista com os convidados dele.
  */
 export default function Membros() {
   const { profile, isAdmin, isModerator } = useAuth();
@@ -38,6 +44,23 @@ export default function Membros() {
   const [q, setQ] = useState('');
   const [list, setList] = useState<Member[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  // convidados de cada membro aberto; undefined = fechado, null = carregando
+  const [open, setOpen] = useState<Record<string, MemberInvitee[] | null | undefined>>({});
+
+  function toggle(m: Member) {
+    if (open[m.id] !== undefined) {
+      setOpen(({ [m.id]: _, ...rest }) => rest);
+      return;
+    }
+    setOpen((o) => ({ ...o, [m.id]: null }));
+    inviteesOf(m.id).then(
+      (list) => setOpen((o) => (m.id in o ? { ...o, [m.id]: list } : o)),
+      (err: unknown) => {
+        setOpen(({ [m.id]: _, ...rest }) => rest);
+        notify('Erro', err instanceof Error ? err.message : 'Não foi possível carregar.');
+      },
+    );
+  }
 
   const load = useCallback(async (query: string) => {
     try {
@@ -84,7 +107,7 @@ export default function Membros() {
     confirmAction(
       enabled ? `Liberar convite para ${who}?` : `Tirar o convite de ${who}?`,
       enabled
-        ? 'A pessoa poderá gerar QRCode de convite presencial. Você continua vendo quem ela convida pela confirmação.'
+        ? 'A pessoa vai poder gerar QRCode de convite presencial. Quem entrar pelo convite dela aparece aqui, embaixo do nome dela.'
         : 'A pessoa deixa de gerar convites. Quem ela já convidou continua.',
       'Confirmar',
       () => void run(m.id, () => setInvitePermission(m.id, enabled)),
@@ -149,6 +172,11 @@ export default function Membros() {
                 {m.role === 'militant' && m.can_invite ? ' · pode convidar' : ''}
                 {self ? ' · você' : ''}
               </Txt>
+              {m.invited_by_name ? (
+                <Txt variant="small" muted>
+                  Convidado por {camarada(m.invited_by_name)}
+                </Txt>
+              ) : null}
               {editable ? (
                 <Row style={{ flexWrap: 'wrap' }}>
                   {m.role === 'militant' ? (
@@ -190,6 +218,33 @@ export default function Membros() {
                     />
                   ) : null}
                 </Row>
+              ) : null}
+              {m.invited_count > 0 ? (
+                <>
+                  <Button
+                    title={open[m.id] !== undefined ? 'Esconder convidados' : `Convidou ${m.invited_count}`}
+                    kind="ghost"
+                    small
+                    block={false}
+                    loading={open[m.id] === null}
+                    onPress={() => toggle(m)}
+                  />
+                  {open[m.id] ? (
+                    <View style={{ gap: space.xs, paddingLeft: space.md }}>
+                      <Divider />
+                      {open[m.id]!.map((i) => (
+                        <Txt key={i.id} variant="small">
+                          {camarada(i.display_name)}
+                          <Txt variant="small" muted>
+                            {' · '}
+                            {[i.neighborhood, i.city].filter(Boolean).join(' · ')}
+                            {i.membership_status === 'pending' ? ' · pendente' : i.membership_status === 'rejected' ? ' · recusado' : ''}
+                          </Txt>
+                        </Txt>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
               ) : null}
             </Card>
           );

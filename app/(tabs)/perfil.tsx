@@ -265,6 +265,13 @@ export default function Perfil() {
         />
         <Divider />
         <Toggle
+          value={profile.notify_email === true}
+          onChange={(v) => void updateProfile({ notify_email: v })}
+          label="Avisos por e-mail"
+          detail="Os avisos do app chegam também no seu e-mail. Já vem ligado no site, que não tem notificação no celular."
+        />
+        <Divider />
+        <Toggle
           value
           onChange={() => {
             Alert.alert(

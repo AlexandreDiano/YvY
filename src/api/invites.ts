@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import type { Invite, Profile } from '@/lib/db.types';
+import type { Invite, Profile, UserRole } from '@/lib/db.types';
 import { env } from '@/lib/env';
 import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
@@ -312,6 +312,11 @@ export type Invitee = {
   state: string | null;
   membership_status: 'pending' | 'active' | 'rejected';
   created_at: string;
+  role: UserRole;
+  /** Já gera convite: moderador/admin, ou membro liberado. */
+  can_invite: boolean;
+  /** Quantas pessoas este convidado trouxe. */
+  invited_count: number;
 };
 
 /** Todos que esta pessoa convidou e a situação de cada um (RPC my_invitees). */

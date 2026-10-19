@@ -47,6 +47,8 @@ export type Profile = {
   invited_by: string | null;
   notify_actions: boolean;
   notify_feed: boolean;
+  /** Avisos por e-mail (0047). Null: ainda não escolhido, o app preenche ao abrir. */
+  notify_email?: boolean | null;
   terms_accepted_at: string | null;
   /** Consentimento para dado de participação política (LGPD art. 11, migration 0039). */
   sensitive_consent_at: string | null;

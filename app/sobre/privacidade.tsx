@@ -57,11 +57,34 @@ export default function Privacidade() {
         </Txt>
         <Txt variant="body">
           A coordenação (moderador do bairro, admin) vê o que precisa para
-          moderar e organizar — e toda ação de moderação fica registrada em log
-          de auditoria.
+          moderar e organizar. Moderador e admin também veem quem convidou quem,
+          pelo apelido.
         </Txt>
         <Txt variant="body">
           Seu nome completo, telefone e CEP são seus. Ninguém da base acessa.
+        </Txt>
+      </Card>
+
+      <Section title="Registro de atividade" />
+      <Card>
+        <Txt variant="body">
+          Para a segurança de quem participa e para responder a pedido da Justiça, o app registra o que cada
+          conta faz: entrar e sair, e criar, mudar ou apagar qualquer coisa (post, ação, presença, convite,
+          dado do perfil). O registro guarda o que foi feito, quando, de qual IP e aparelho, e uma cópia do
+          conteúdo. No caso de uma mudança, guarda o antes e o depois.
+        </Txt>
+        <Txt variant="body">
+          Só o admin consegue ler esse registro. Ele é apagado sozinho depois de 6 meses, mesmo que você tenha
+          apagado a conta antes. Não registramos o que você só lê, nem o texto colado na checagem de fatos.
+        </Txt>
+      </Card>
+
+      <Section title="Avisos por e-mail" />
+      <Card>
+        <Txt variant="body">
+          Se "Avisos por e-mail" estiver ligado no Perfil, os avisos do app vão para o seu e-mail pelo
+          Resend, serviço de envio de e-mail (servidores nos EUA), que recebe só o seu endereço e o aviso. O e-mail leva só o aviso, com apelidos e bairros, como na tela. Dá
+          para desligar no Perfil a qualquer hora.
         </Txt>
       </Card>
 
@@ -110,8 +133,8 @@ export default function Privacidade() {
       <Txt variant="body">
         Você pode pedir acesso, correção ou exclusão dos seus dados, e sair do
         app apagando a conta. Exclusão de conta apaga perfil, posts e
-        participações; o log de auditoria guarda apenas o registro da ação, sem
-        conteúdo pessoal, por 90 dias.
+        participações do app. O registro de atividade (veja acima) continua por
+        até 6 meses a partir de cada ação e depois é apagado.
       </Txt>
     </Screen>
   );

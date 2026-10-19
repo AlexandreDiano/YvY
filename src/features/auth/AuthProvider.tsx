@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import {
   createContext,
   useCallback,
@@ -182,7 +182,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         res = await client.from('profiles').select('*').eq('id', uid).maybeSingle();
       }
     }
-    setProfile((res.data as Profile | null) ?? null);
+    let row = (res.data as Profile | null) ?? null;
+    if (row && row.notify_email == null) {
+      // primeira abertura desde a 0047: e-mail ligado no site/PWA (sem push), desligado no APK
+      const on = Platform.OS === 'web';
+      const { error } = await client.from('profiles').update({ notify_email: on }).eq('id', uid);
+      if (!error) row = { ...row, notify_email: on };
+    }
+    setProfile(row);
   }, []);
 
   const refresh = useCallback(async () => {
