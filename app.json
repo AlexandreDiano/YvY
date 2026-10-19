@@ -116,6 +116,14 @@
         "projectId": "084e6303-b641-4808-b6f8-0387a389b522"
       }
     },
-    "owner": "dianooos-team"
+    "owner": "dianooos-team",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/084e6303-b641-4808-b6f8-0387a389b522",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
