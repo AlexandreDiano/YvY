@@ -23,6 +23,10 @@
       "destination": "/plano/[sq]"
     },
     {
+      "source": "/conversas/:id",
+      "destination": "/conversas/[id]"
+    },
+    {
       "source": "/ecidadania/pesquisamateria",
       "destination": "https://www12.senado.leg.br/ecidadania/pesquisamateria"
     },

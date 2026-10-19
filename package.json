@@ -15,6 +15,7 @@
     "check": "bun run typecheck && bun run lint && bun run test && bun run check:repo",
     "test:rls": "node --experimental-strip-types supabase/tests/rls.test.ts",
     "test:rls:local": "bash scripts/test-rls-local.sh",
+    "test:e2e:chat": "bash scripts/e2e-chat.sh",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "dependencies": {

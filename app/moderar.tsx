@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { listForModeration, moderate, scopeLabel } from '@/api/feed';
@@ -93,6 +93,7 @@ export default function Moderar() {
 
   return (
     <Screen>
+      <Button title="Denúncias de conversa" kind="outline" onPress={() => router.push('/denuncias')} />
       <Txt variant="small" muted>
         Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de região e
         Brasil, só com aprovação. Recusar avisa o autor com o motivo; em caso grave dá para suspender a conta.

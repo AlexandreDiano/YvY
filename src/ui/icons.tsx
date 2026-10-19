@@ -46,6 +46,24 @@ export function IconChat(p: P) {
   );
 }
 
+export function IconMessage(p: P) {
+  return (
+    <Svg {...S(p)}>
+      <Path d="M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-7l-4 3v-3H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+      <Path d="M8 9h8M8 12h5" />
+    </Svg>
+  );
+}
+
+export function IconLock(p: P) {
+  return (
+    <Svg {...S(p)}>
+      <Rect x="5" y="11" width="14" height="9" rx="1.5" />
+      <Path d="M8 11V8a4 4 0 018 0v3" />
+    </Svg>
+  );
+}
+
 export function IconBallot(p: P) {
   return (
     <Svg {...S(p)}>

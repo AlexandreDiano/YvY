@@ -46,6 +46,7 @@ module.exports = defineConfig([
       'app/+html.tsx',
       'app/cadastro/convite.tsx',
       'app/convidar.tsx',
+      'app/conversas/adicionar.tsx',
       'src/features/pwa/InstallCard.tsx',
       'src/features/support/SupportCard.tsx',
       'src/lib/shrinkImage.web.ts',

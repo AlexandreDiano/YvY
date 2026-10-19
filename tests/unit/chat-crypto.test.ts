@@ -93,3 +93,10 @@ test('impressão digital estável e curta', () => {
   assert.equal(fingerprint(a.signPk), fingerprint(a.signPk));
   assert.match(fingerprint(a.signPk), /^([0-9A-F]{4} ){4}[0-9A-F]{4}$/);
 });
+
+test('uuid v4 válido e diferente a cada vez', async () => {
+  const { uuid } = await import('@/lib/chat/crypto');
+  const a = uuid();
+  assert.match(a, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.notEqual(a, uuid());
+});

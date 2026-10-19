@@ -103,6 +103,15 @@ export function fingerprint(signPk: string): string {
   return (hex.match(/.{4}/g) ?? []).join(' ').toUpperCase();
 }
 
+/** UUID v4 com o gerador do libsodium (o Hermes não tem crypto.randomUUID). */
+export function uuid(): string {
+  const b = sodium.randombytes_buf(16);
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const h = sodium.to_hex(b);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 export function newLocalKey(): string {
   return b64(sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES));
 }

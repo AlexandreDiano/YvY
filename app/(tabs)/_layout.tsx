@@ -4,7 +4,7 @@ import { FLAG } from '@/api/flags';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { TourTarget } from '@/features/onboarding/Tour';
 import { color, space, type } from '@/ui';
-import { IconChat, IconHome, IconPin, IconUser } from '@/ui/icons';
+import { IconChat, IconHome, IconMessage, IconPin, IconUser } from '@/ui/icons';
 
 /**
  * Abas de baixo. Ações e Base só aparecem para membro confirmado, e cada
@@ -65,6 +65,14 @@ export default function TabsLayout() {
               <IconChat size={size} color={c} />
             </TourTarget>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="conversas"
+        options={{
+          title: 'Conversas',
+          href: isBaseMember && flags[FLAG.chat] ? undefined : null,
+          tabBarIcon: ({ color: c, size }) => <IconMessage size={size} color={c} />,
         }}
       />
       <Tabs.Screen

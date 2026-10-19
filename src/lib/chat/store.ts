@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { lock, unlock } from '@/lib/chat/crypto';
 
 /**
  * Histórico das conversas, só neste aparelho e cifrado com a chave local
@@ -30,6 +29,8 @@ const pinsKey = (me: string) => `chat:v1:${me}:pins`;
 async function readJson<T>(key: string, localKey: string, fallback: T): Promise<T> {
   const raw = await AsyncStorage.getItem(key);
   if (!raw) return fallback;
+  // sob demanda, como em src/api/chat.ts: libsodium fora do pacote comum
+  const { unlock } = await import('@/lib/chat/crypto');
   const json = unlock(raw, localKey);
   if (!json) return fallback;
   try {
@@ -40,6 +41,7 @@ async function readJson<T>(key: string, localKey: string, fallback: T): Promise<
 }
 
 async function writeJson(key: string, localKey: string, value: unknown): Promise<void> {
+  const { lock } = await import('@/lib/chat/crypto');
   await AsyncStorage.setItem(key, lock(JSON.stringify(value), localKey));
 }
 
@@ -73,4 +75,17 @@ export function readPins(me: string, localKey: string): Promise<Pins> {
 
 export function writePins(me: string, localKey: string, pins: Pins): Promise<void> {
   return writeJson(pinsKey(me), localKey, pins);
+}
+
+/** Estado pequeno da conversa neste aparelho: o que já foi lido e a impressão digital lida no QRCode. */
+export type Meta = { lastRead?: Record<string, string>; expectFp?: Record<string, string> };
+
+const metaKey = (me: string) => `chat:v1:${me}:meta`;
+
+export function readMeta(me: string, localKey: string): Promise<Meta> {
+  return readJson<Meta>(metaKey(me), localKey, {});
+}
+
+export function writeMeta(me: string, localKey: string, meta: Meta): Promise<void> {
+  return writeJson(metaKey(me), localKey, meta);
 }
