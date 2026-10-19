@@ -88,6 +88,39 @@ export default function Privacidade() {
         </Txt>
       </Card>
 
+      <Section title="Conversas" />
+      <Card>
+        <Txt variant="body">
+          O YvY não consegue ler suas conversas. Cada mensagem é cifrada no seu aparelho, com a
+          biblioteca libsodium, para o aparelho de quem recebe, e só ele decifra. O histórico fica
+          só no seu aparelho, também cifrado: trocar de celular, apagar o app ou limpar os dados do
+          navegador apaga o histórico. No app instalado a chave fica no cofre do aparelho; no
+          navegador, guardada no próprio navegador.
+        </Txt>
+        <Txt variant="body">
+          O servidor guarda: quem é contato de quem (e se o pedido foi aceito), quem bloqueou quem,
+          a chave pública de cada aparelho, e a mensagem cifrada só até ser baixada (no máximo 7
+          dias). Também guarda o IP de quem envia mensagem, sem o conteúdo e sem o destinatário,
+          por 6 meses; ele só é usado se houver denúncia.
+        </Txt>
+        <Txt variant="body">
+          Só manda mensagem quem você aceitou, depois de ler seu QRCode ou código. Dá para bloquear
+          a qualquer hora, e desbloquear depois.
+        </Txt>
+        <Txt variant="body">
+          Ao denunciar, as últimas 20 mensagens da conversa, decifradas no seu aparelho, vão para a
+          moderação (moderador do bairro da pessoa denunciada e admin), junto com o seu IP no
+          momento, os IPs que a pessoa denunciada usou para mandar mensagem nos últimos 30 dias e
+          as chaves públicas de assinatura das duas contas, que provam quem escreveu cada mensagem.
+          A denúncia fica até ser resolvida e é apagada 6 meses depois da decisão.
+        </Txt>
+        <Txt variant="body">
+          Quem entrega as chaves públicas é o servidor. Por isso o QRCode de adicionar leva a
+          impressão digital da chave, e o app avisa se a chave recebida não bater ou se o contato
+          aparecer num aparelho novo. O código do app é aberto: qualquer pessoa pode conferir.
+        </Txt>
+      </Card>
+
       <Section title="O que não fazemos" />
       <Card>
         <Txt variant="body">Não vendemos dado. Não há rastreador de anúncio no app.</Txt>
@@ -132,9 +165,11 @@ export default function Privacidade() {
       <Section title="Seus direitos (LGPD)" />
       <Txt variant="body">
         Você pode pedir acesso, correção ou exclusão dos seus dados, e sair do
-        app apagando a conta. Exclusão de conta apaga perfil, posts e
-        participações do app. O registro de atividade (veja acima) continua por
-        até 6 meses a partir de cada ação e depois é apagado.
+        app apagando a conta. Exclusão de conta apaga perfil, posts,
+        participações, contatos, bloqueios e mensagens ainda na fila. O
+        registro de atividade e o IP das conversas (veja acima) continuam por
+        até 6 meses e depois são apagados; denúncia em que você aparece segue a
+        regra da denúncia.
       </Txt>
     </Screen>
   );
