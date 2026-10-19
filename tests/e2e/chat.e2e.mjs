@@ -86,6 +86,12 @@ try {
     await p.ev(`localStorage.setItem('sb-127-auth-token', ${JSON.stringify(JSON.stringify(u.session))}); window.confirm = () => true; true`);
   }
 
+  // primeira abertura pela lista: duas chamadas em paralelo não podem virar dois aparelhos
+  await pb.go('/conversas');
+  await wait(1500);
+  const devs = await admin.from('chat_devices').select('id').eq('user_id', B.id);
+  ok('primeira abertura registra um aparelho só', (devs.data ?? []).length === 1, `aparelhos: ${(devs.data ?? []).length}`);
+
   await pa.go('/conversas/adicionar');
   const tA = await pa.text();
   const code = (tA.match(/\b([A-Z2-9]{5}) ([A-Z2-9]{5})\b/) || []).slice(1).join('');

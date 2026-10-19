@@ -803,6 +803,14 @@ async function main(): Promise<void> {
       'ninguém registra aparelho em nome de outro',
       milA.client.from('chat_devices').insert({ user_id: milB.id, box_pk: key(), sign_pk: key() }).select('id'),
     );
+    {
+      for (let i = 0; i < 6; i++) await device(milB);
+      const n = await admin.from('chat_devices').select('id', { count: 'exact', head: true }).eq('user_id', milB.id);
+      const still = await admin.from('chat_devices').select('id').eq('id', devB.id);
+      check('6º aparelho tira o mais antigo (fica no máximo 5)', n.count === 5 && (still.data ?? []).length === 0, `count=${n.count}`);
+      const keep = await device(milB);
+      devB.id = keep.id;
+    }
     await expectRows('aparelho de outro não aparece direto', milA.client.from('chat_devices').select('id').eq('user_id', milB.id), 0);
     await expectRows('sem contato, chave do outro não sai', milA.client.rpc('chat_peer_devices', { p_peer: milB.id }), 0);
     await expectDenied('sem contato, não manda mensagem', milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devB.id)).select('id'));
@@ -833,7 +841,7 @@ async function main(): Promise<void> {
       const ok = await milB.client.rpc('chat_decide_contact', { p_contact: contactId, p_accept: true });
       check('dono do código aceita', !ok.error, ok.error?.message);
     }
-    await expectRows('contato aceito: chave do outro sai', milA.client.rpc('chat_peer_devices', { p_peer: milB.id }), 1);
+    await expectRows('contato aceito: chave dos 5 aparelhos do outro sai', milA.client.rpc('chat_peer_devices', { p_peer: milB.id }), 5);
     await expectRows('terceiro não vê o contato dos outros', londrina.client.from('chat_contacts').select('id'), 0);
 
     const sent = msg(milA, devA.id, milB, devB.id);

@@ -230,9 +230,12 @@ create trigger chat_queue_guard before insert on message_queue
 create or replace function public.chat_devices_cap() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if (select count(*) from chat_devices where user_id = new.user_id) >= 5 then
-    raise exception 'Limite de 5 aparelhos. Saia de um aparelho antigo no Perfil.' using errcode = 'P0001';
-  end if;
+  -- até 5 aparelhos: no 6º, o mais antigo sai sozinho (no site, limpar os
+  -- dados do navegador cria aparelho novo a cada vez; travar deixaria a
+  -- pessoa sem conversa). O que estava na fila para ele some junto.
+  delete from chat_devices
+   where id in (select id from chat_devices where user_id = new.user_id
+                 order by created_at desc offset 4);
   return new;
 end;
 $$;

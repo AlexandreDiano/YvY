@@ -5,7 +5,7 @@ import {
   readConversation,
   readMeta,
   readPins,
-  writeMeta,
+  updateMeta,
   writePins,
   type StoredMessage,
 } from '@/lib/chat/store';
@@ -73,16 +73,28 @@ function friendly(err: unknown, fallback: string): Error {
 
 // ---------------------------------------------------------------- aparelho
 
-let current: { userId: string; secret: Secret } | null = null;
+let current: { userId: string; secret: Promise<Secret> } | null = null;
 
 /**
  * Chaves deste aparelho. Primeira vez: gera, registra a pública e guarda a
  * privada no cofre. Se o servidor apagou o aparelho (saiu em outro lugar),
  * registra de novo com as mesmas chaves.
  */
-export async function ensureDevice(userId: string): Promise<Secret> {
+export function ensureDevice(userId: string): Promise<Secret> {
+  // uma promessa só por conta: as telas chamam em paralelo ao abrir, e duas
+  // chamadas no primeiro uso registrariam dois aparelhos
+  if (current?.userId !== userId) {
+    const secret = setupDevice(userId);
+    current = { userId, secret };
+    secret.catch(() => {
+      if (current?.secret === secret) current = null;
+    });
+  }
+  return current.secret;
+}
+
+async function setupDevice(userId: string): Promise<Secret> {
   const C = await sodium();
-  if (current?.userId === userId) return current.secret;
   const db = client();
 
   const raw = await readSecret(userId);
@@ -111,7 +123,6 @@ export async function ensureDevice(userId: string): Promise<Secret> {
     secret = { ...keys, deviceId: ins.data.id, localKey: C.newLocalKey() };
     await writeSecret(userId, JSON.stringify(secret));
   }
-  current = { userId, secret };
   return secret;
 }
 
@@ -166,8 +177,7 @@ export async function addByCode(me: string, raw: string): Promise<void> {
     const peer = (await listContacts()).find((c) => c.contactId === data)?.peerId;
     if (peer) {
       const secret = await ensureDevice(me);
-      const meta = await readMeta(me, secret.localKey);
-      await writeMeta(me, secret.localKey, { ...meta, expectFp: { ...meta.expectFp, [peer]: fp } });
+      await updateMeta(me, secret.localKey, (m) => ({ ...m, expectFp: { ...m.expectFp, [peer]: fp } }));
     }
   }
 }
@@ -288,22 +298,30 @@ export async function fetchInbox(me: string): Promise<Record<string, number>> {
   for (const row of data) bySender.set(row.sender, [...(bySender.get(row.sender) ?? []), row]);
 
   const added: Record<string, number> = {};
+  // só sai da fila o que foi resolvido: aberto, ou impossível de abrir
+  // (aparelho de origem sumiu, texto adulterado). Se a busca da chave falhou
+  // (rede), fica para a próxima vez.
+  const done: string[] = [];
   for (const [sender, rows] of bySender) {
-    let devices: PeerDevice[] = [];
+    let devices: PeerDevice[];
     try {
       devices = (await peerKeys(me, sender)).devices;
     } catch {
-      devices = [];
+      continue;
     }
     const opened: StoredMessage[] = [];
     for (const row of rows) {
       const dev = devices.find((d) => d.id === row.sender_device);
-      if (!dev) continue;
+      if (!dev) {
+        done.push(row.id);
+        continue;
+      }
       const got = C.open({ nonce: row.nonce, body: row.body }, dev.boxPk, dev.signPk, secret.boxSk, {
         id: row.msg_id,
         from: sender,
         to: me,
       });
+      done.push(row.id);
       if (!got) continue;
       opened.push({ id: row.msg_id, from: sender, to: me, at: got.env.at, t: got.env.t, env: got.text, sig: got.sig, dev: dev.id, verified: got.verified });
     }
@@ -313,12 +331,9 @@ export async function fetchInbox(me: string): Promise<Record<string, number>> {
     }
   }
 
-  // apaga tudo o que foi lido, inclusive o que não abriu (cifrado para chave antiga, adulterado)
-  await db
-    .from('message_queue')
-    .delete()
-    .eq('recipient_device', secret.deviceId)
-    .in('id', data.map((r) => r.id));
+  if (done.length) {
+    await db.from('message_queue').delete().eq('recipient_device', secret.deviceId).in('id', done);
+  }
   return added;
 }
 
@@ -342,8 +357,7 @@ export async function lastRead(me: string): Promise<Record<string, string>> {
 
 export async function markRead(me: string, peer: string): Promise<void> {
   const secret = await ensureDevice(me);
-  const meta = await readMeta(me, secret.localKey);
-  await writeMeta(me, secret.localKey, { ...meta, lastRead: { ...meta.lastRead, [peer]: new Date().toISOString() } });
+  await updateMeta(me, secret.localKey, (m) => ({ ...m, lastRead: { ...m.lastRead, [peer]: new Date().toISOString() } }));
 }
 
 // ---------------------------------------------------------------- denúncia

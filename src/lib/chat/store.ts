@@ -23,6 +23,18 @@ export type StoredMessage = {
 export type Pins = Record<string, Record<string, string>>; // peer -> device -> signPk
 
 const MAX = 1000;
+
+/**
+ * Uma escrita por vez em cada chave: enviar enquanto chega mensagem (ou duas
+ * cargas da tela ao mesmo tempo) faria um ler-alterar-gravar apagar o do
+ * outro — e a mensagem recebida já saiu da fila do servidor.
+ */
+const queues = new Map<string, Promise<unknown>>();
+function serial<T>(key: string, job: () => Promise<T>): Promise<T> {
+  const run = (queues.get(key) ?? Promise.resolve()).then(job, job);
+  queues.set(key, run.catch(() => undefined));
+  return run;
+}
 const conv = (me: string, peer: string) => `chat:v1:${me}:c:${peer}`;
 const pinsKey = (me: string) => `chat:v1:${me}:pins`;
 
@@ -50,19 +62,21 @@ export function readConversation(me: string, peer: string, localKey: string): Pr
 }
 
 /** Junta mensagens novas (sem repetir id), em ordem de data, com teto. */
-export async function appendMessages(
+export function appendMessages(
   me: string,
   peer: string,
   localKey: string,
   add: StoredMessage[],
 ): Promise<StoredMessage[]> {
-  const list = await readConversation(me, peer, localKey);
-  const seen = new Set(list.map((m) => m.id));
-  for (const m of add) if (!seen.has(m.id)) list.push(m);
-  list.sort((a, b) => a.at.localeCompare(b.at));
-  const kept = list.slice(-MAX);
-  await writeJson(conv(me, peer), localKey, kept);
-  return kept;
+  return serial(conv(me, peer), async () => {
+    const list = await readConversation(me, peer, localKey);
+    const seen = new Set(list.map((m) => m.id));
+    for (const m of add) if (!seen.has(m.id)) list.push(m);
+    list.sort((a, b) => a.at.localeCompare(b.at));
+    const kept = list.slice(-MAX);
+    await writeJson(conv(me, peer), localKey, kept);
+    return kept;
+  });
 }
 
 export async function deleteConversation(me: string, peer: string): Promise<void> {
@@ -74,7 +88,7 @@ export function readPins(me: string, localKey: string): Promise<Pins> {
 }
 
 export function writePins(me: string, localKey: string, pins: Pins): Promise<void> {
-  return writeJson(pinsKey(me), localKey, pins);
+  return serial(pinsKey(me), () => writeJson(pinsKey(me), localKey, pins));
 }
 
 /** Estado pequeno da conversa neste aparelho: o que já foi lido e a impressão digital lida no QRCode. */
@@ -87,5 +101,10 @@ export function readMeta(me: string, localKey: string): Promise<Meta> {
 }
 
 export function writeMeta(me: string, localKey: string, meta: Meta): Promise<void> {
-  return writeJson(metaKey(me), localKey, meta);
+  return serial(metaKey(me), () => writeJson(metaKey(me), localKey, meta));
+}
+
+/** Lê, altera e grava o estado numa vez só (sem perder escrita concorrente). */
+export function updateMeta(me: string, localKey: string, change: (m: Meta) => Meta): Promise<void> {
+  return serial(metaKey(me), async () => writeJson(metaKey(me), localKey, change(await readMeta(me, localKey))));
 }
