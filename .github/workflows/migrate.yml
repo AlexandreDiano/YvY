@@ -1,0 +1,69 @@
+name: Migrations na produção
+
+# Depois do CI verde na main: confere se tem migration nova e, se tiver,
+# espera aprovação no Environment "production" e aplica com supabase db push.
+# Versões em supabase/migrations-hold.txt ficam de fora.
+#
+# Secrets do repositório: SUPABASE_ACCESS_TOKEN (supabase.com/dashboard/account/tokens),
+# SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+jobs:
+  plan:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      pending: ${{ steps.dry.outputs.pending }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Tira as migrations em espera
+        run: bash scripts/migrations-hold.sh
+      - id: dry
+        name: O que seria aplicado
+        run: |
+          supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
+          out=$(supabase db push --dry-run --include-all -p "$SUPABASE_DB_PASSWORD" 2>&1)
+          echo "$out"
+          if echo "$out" | grep -q 'Would push these migrations'; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+            { echo '### Migrations a aplicar'; echo '```'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  apply:
+    needs: plan
+    if: needs.plan.outputs.pending == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - run: bash scripts/migrations-hold.sh
+      - name: supabase db push
+        run: |
+          supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
+          supabase db push --include-all --yes -p "$SUPABASE_DB_PASSWORD"

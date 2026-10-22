@@ -1,0 +1,3 @@
+# Migrations que o migrate.yml NÃO aplica na produção (uma versão por linha).
+# Tirar daqui = liberar. Teste local e CI continuam aplicando todas.
+0048  # auditoria total: espera revisão do advogado (YVY-69)
