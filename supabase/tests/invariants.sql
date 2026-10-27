@@ -12,7 +12,9 @@ begin
     from (select distinct table_name from information_schema.role_table_grants
            where grantee = 'anon' and table_schema = 'public'
              and table_name not in ('proposal_cards', 'fact_checks', 'feature_flags',
-                                    'elected_2026', 'government_plans')) t;
+                                    'elected_2026', 'government_plans',
+                                    -- monitor de promessas (0051, YVY-130): só as views
+                                    'plan_promises', 'plan_promise_history')) t;
   if v is not null then
     raise exception 'anon tem acesso a tabela/view fora da lista: %', v;
   end if;

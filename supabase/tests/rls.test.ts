@@ -116,6 +116,7 @@ const OTHER_CITY = `Outra-${RUN}`;
 type Actor = { id: string; email: string; client: SupabaseClient };
 
 const created: string[] = [];
+const PLAN_SQ = `rls-plan-${RUN}`;
 
 async function makeActor(
   label: string,
@@ -164,6 +165,8 @@ async function teardown(): Promise<void> {
   await admin.from('posts').delete().eq('city', AREA_A.city);
   await admin.from('posts').delete().eq('city', OTHER_CITY);
   await admin.from('actions').delete().eq('city', AREA_A.city);
+  // histórico de promessa sai junto (on delete cascade)
+  await admin.from('government_plans').delete().eq('sq_candidato', PLAN_SQ);
   for (const id of created) {
     await admin.from('profiles').delete().eq('id', id);
     await admin.auth.admin.deleteUser(id).catch(() => undefined);
@@ -903,6 +906,85 @@ async function main(): Promise<void> {
       await milB.client.rpc('chat_unblock', { p_user: milA.id });
       const r = await milA.client.from('message_queue').insert(msg(milA, devA.id, milB, devB.id));
       check('desbloqueou: volta a mandar', !r.error, r.error?.message);
+    }
+  }
+
+  console.log('\nMonitor de promessas (0051)');
+  {
+    const ins = await admin.from('government_plans').insert({
+      sq_candidato: PLAN_SQ,
+      nome_urna: 'PLANO TESTE',
+      cargo: 'Presidente',
+      uf: 'BR',
+      partido: 'TST',
+      pdf_url: 'https://example.org/plano.pdf',
+      items: [
+        { tema: 'Saúde', texto: 'Trecho literal de teste um.', pagina: 3 },
+        { tema: 'Educação', texto: 'Trecho literal de teste dois.', pagina: 7 },
+      ],
+      verified: true,
+    });
+    if (ins.error) throw new Error(`government_plans: ${ins.error.message}`);
+    const list = await anon.from('plan_promises').select('promise_key,status').eq('sq_candidato', PLAN_SQ).order('position');
+    const rows = (list.data ?? []) as { promise_key: string; status: string | null }[];
+    check('anônimo lê as promessas do plano', !list.error && rows.length === 2, list.error?.message ?? `recebeu ${rows.length}`);
+    check('promessa sem registro vem sem status', rows.every((r) => r.status === null));
+    const key = rows[0]?.promise_key ?? 'x';
+    const ok = {
+      p_sq: PLAN_SQ,
+      p_key: key,
+      p_status: 'in_progress',
+      p_source_url: 'https://www.planalto.gov.br/teste',
+      p_evidence_date: '2026-10-01',
+      p_note: 'Decreto de teste publicado.',
+    };
+
+    await expectRows('anônimo não lê a tabela do histórico', anon.from('plan_promise_updates').select('id'), 0);
+    await expectRows('membro não lê a tabela do histórico', milA.client.from('plan_promise_updates').select('id'), 0);
+    await expectDenied(
+      'moderador não grava direto na tabela',
+      modA.client
+        .from('plan_promise_updates')
+        .insert({ ...{ sq_candidato: PLAN_SQ, promise_key: key, status: 'fulfilled' }, source_url: ok.p_source_url, evidence_date: ok.p_evidence_date, note: 'x' })
+        .select('id'),
+    );
+    {
+      const r = await anon.rpc('set_plan_promise_status', ok);
+      check('anônimo não muda status de promessa', Boolean(r.error), r.error ? '' : 'mudou');
+    }
+    {
+      const r = await milA.client.rpc('set_plan_promise_status', ok);
+      check('membro comum não muda status de promessa', Boolean(r.error), r.error ? '' : 'mudou');
+    }
+    {
+      const r = await modA.client.rpc('set_plan_promise_status', { ...ok, p_source_url: '' });
+      check('não muda status sem link da fonte', Boolean(r.error), r.error ? '' : 'mudou');
+      const r2 = await modA.client.rpc('set_plan_promise_status', { ...ok, p_note: '  ' });
+      check('não muda status sem nota', Boolean(r2.error), r2.error ? '' : 'mudou');
+      const r3 = await modA.client.rpc('set_plan_promise_status', { ...ok, p_evidence_date: '2999-01-01' });
+      check('não aceita data da prova no futuro', Boolean(r3.error), r3.error ? '' : 'mudou');
+      const r4 = await modA.client.rpc('set_plan_promise_status', { ...ok, p_key: 'nao-existe' });
+      check('não aceita promessa fora do plano conferido', Boolean(r4.error), r4.error ? '' : 'mudou');
+    }
+    {
+      const r = await modA.client.rpc('set_plan_promise_status', ok);
+      check('moderador muda status com prova', !r.error, r.error?.message);
+      const r2 = await adm.client.rpc('set_plan_promise_status', { ...ok, p_status: 'fulfilled', p_evidence_date: '2026-10-20' });
+      check('admin muda status com prova', !r2.error, r2.error?.message);
+      const cur = await anon.from('plan_promises').select('status').eq('promise_key', key).single();
+      check('anônimo vê o status mais recente', (cur.data as { status?: string } | null)?.status === 'fulfilled', JSON.stringify(cur.data ?? cur.error));
+      const hist = await anon.from('plan_promise_history').select('*').eq('promise_key', key);
+      const h = (hist.data ?? []) as Record<string, unknown>[];
+      check('anônimo lê o histórico com as duas mudanças', !hist.error && h.length === 2, hist.error?.message ?? `recebeu ${h.length}`);
+      check('histórico público não diz quem registrou', h.every((x) => !('created_by' in x)));
+      const log = await admin.from('audit_log').select('id').eq('action', 'plan_promise_status').eq('user_id', modA.id);
+      check('mudança de status vai ao audit_log', (log.data ?? []).length === 1, log.error?.message);
+    }
+    {
+      await admin.from('government_plans').update({ verified: false }).eq('sq_candidato', PLAN_SQ);
+      await expectRows('plano não conferido não aparece', anon.from('plan_promises').select('promise_key').eq('sq_candidato', PLAN_SQ), 0);
+      const r = await modA.client.rpc('set_plan_promise_status', ok);
+      check('não muda status de plano não conferido', Boolean(r.error), r.error ? '' : 'mudou');
     }
   }
 
