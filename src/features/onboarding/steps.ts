@@ -1,5 +1,6 @@
 import type { Href } from 'expo-router';
 import { FLAG } from '@/api/flags';
+import { electionOver } from '@/lib/format';
 
 export type TourContext = {
   /** membro confirmado: só ele tem as abas Ações e Base */
@@ -53,8 +54,10 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'home.propostas',
     route: '/(tabs)',
-    title: 'Propostas e planos',
-    text: 'As propostas dos candidatos e os planos de governo que eles entregaram ao TSE. Tudo com o link da fonte.',
+    title: electionOver() ? 'Plano do presidente eleito' : 'Propostas e planos',
+    text: electionOver()
+      ? 'O plano de governo que o presidente eleito entregou ao TSE antes da eleição. Tudo com o link da fonte.'
+      : 'As propostas dos candidatos e os planos de governo que eles entregaram ao TSE. Tudo com o link da fonte.',
   },
   {
     id: 'home.checar',

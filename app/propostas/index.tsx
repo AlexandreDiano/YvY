@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { listCards } from '@/api/content';
 import { presidentialCandidates, type Elected } from '@/api/elected';
 import { AREAS, areaLabel } from '@/data/areas';
+import { electionOver } from '@/lib/format';
 import type { ProposalCard } from '@/lib/db.types';
 import {
   Banner,
@@ -22,6 +23,61 @@ import {
 } from '@/ui';
 
 export default function Propostas() {
+  if (electionOver()) return <AfterElection />;
+  return <BeforeElection />;
+}
+
+/**
+ * Depois do 2º turno: só o plano do presidente eleito. Os cards comentados eram
+ * comparação de campanha e saem da lista (a página de cada um continua no ar,
+ * para quem tem o link). O acompanhamento das promessas é o YVY-130.
+ */
+function AfterElection() {
+  const router = useRouter();
+  const [elected, setElected] = useState<Elected[] | null>(null);
+
+  useEffect(() => {
+    void presidentialCandidates().then(setElected, () => setElected([]));
+  }, []);
+
+  if (!elected) return <Loading label="Carregando..." />;
+
+  return (
+    <Screen>
+      <Section title="Presidente eleito" />
+      {elected.length === 0 ? (
+        <EmptyState
+          title="Resultado em atualização"
+          detail="O resultado oficial do 2º turno ainda não foi trazido do TSE. Volte em breve."
+        />
+      ) : (
+        <>
+          <Txt variant="small" muted>
+            Plano de governo que o eleito registrou no TSE antes da eleição: propostas com página e o PDF completo.
+          </Txt>
+          {elected.map((c) => (
+            <Card key={c.sq_candidato}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Txt variant="heading">{c.nome_urna}</Txt>
+                <Txt variant="small" muted>
+                  {c.partido}
+                </Txt>
+              </Row>
+              <Button
+                title="Ver plano de governo"
+                kind="outline"
+                small
+                onPress={() => router.push(`/plano/${c.sq_candidato}`)}
+              />
+            </Card>
+          ))}
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function BeforeElection() {
   const router = useRouter();
   const [cards, setCards] = useState<ProposalCard[] | null>(null);
   const [stale, setStale] = useState(false);

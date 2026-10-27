@@ -9,7 +9,7 @@ import {
   type House,
   type Vote,
 } from '@/api/officials';
-import { brDate } from '@/lib/format';
+import { brDate, electionOver } from '@/lib/format';
 import {
   Badge,
   Banner,
@@ -225,7 +225,11 @@ function Votes() {
       {votes.length === 0 ? (
         <EmptyState
           title="Nenhuma votação recente"
-          detail="Em período eleitoral o plenário quase não vota. Volte depois do 2º turno."
+          detail={
+            electionOver()
+              ? 'Nenhuma votação em plenário nos últimos dias. Puxe a tela para atualizar.'
+              : 'Em período eleitoral o plenário quase não vota. Volte depois do 2º turno.'
+          }
         />
       ) : (
         votes.map((v) => (

@@ -5,11 +5,12 @@ import { confirmPresence, inArea, listActions, myConfirmations } from '@/api/act
 import { myClaimChecks } from '@/api/claims';
 import { pendingInvitees } from '@/api/invites';
 import { FLAG } from '@/api/flags';
+import { ElectionCard } from '@/features/plans/ElectionCard';
 import { PlanCompare } from '@/features/plans/PlanCompare';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { TourTarget } from '@/features/onboarding/Tour';
 import type { ActionListed } from '@/lib/db.types';
-import { daysToElection, electionLabel, shortDateTime } from '@/lib/format';
+import { electionOver, shortDateTime } from '@/lib/format';
 import {
   Banner,
   Button,
@@ -75,8 +76,6 @@ export default function Home() {
     }
   }
 
-  const dias = daysToElection();
-
   return (
     <Screen safeTop refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
       <TourTarget id="home.top">
@@ -95,14 +94,7 @@ export default function Home() {
         </Row>
       </TourTarget>
 
-      <Card stripe={color.accent}>
-        <Txt variant="heading">
-          {dias > 0 ? `${dias} ${dias === 1 ? 'dia' : 'dias'} para o 2º turno` : 'Hoje é dia de votar'}
-        </Txt>
-        <Txt variant="small" muted>
-          Votação: {electionLabel()}
-        </Txt>
-      </Card>
+      <ElectionCard />
 
       {mode === 'local' ? (
         <Banner
@@ -150,7 +142,11 @@ export default function Home() {
 
       <PlanCompare />
       <TourTarget id="home.propostas">
-        <Button title="Ver propostas e planos" kind="outline" onPress={() => router.push('/propostas')} />
+        <Button
+          title={electionOver() ? 'Presidente eleito e plano de governo' : 'Ver propostas e planos'}
+          kind="outline"
+          onPress={() => router.push('/propostas')}
+        />
       </TourTarget>
 
       {flags[FLAG.checagem] ? (

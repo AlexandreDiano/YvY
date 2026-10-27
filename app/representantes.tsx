@@ -20,7 +20,7 @@ import {
   type Presence,
 } from '@/api/officials';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { brDate } from '@/lib/format';
+import { brDate, electionOver } from '@/lib/format';
 import { Badge, Button, Card, Chip, Field, Loading, Row, Screen, Section, Txt, color, space } from '@/ui';
 
 /**
@@ -58,7 +58,9 @@ export default function Representantes() {
       <Txt variant="small" muted>
         {view === 'now'
           ? 'Quem está no cargo hoje. Em cada um, veja o que fez neste mandato ou na carreira toda.'
-          : 'Eleitos no 1º turno de 2026 e quem disputa o 2º turno (25/10). Tomam posse em 2027. Fonte: TSE.'}
+          : electionOver()
+            ? 'Eleitos em 2026. Tomam posse em 2027. Fonte: TSE.'
+            : 'Eleitos no 1º turno de 2026 e quem disputa o 2º turno (25/10). Tomam posse em 2027. Fonte: TSE.'}
       </Txt>
 
       {scope === 'br' ? null : profile?.state ? (
@@ -267,7 +269,8 @@ function ElectedSections({ uf }: { uf: string | null }) {
 }
 
 function ElectedCard({ e, official }: { e: Elected; official: Official | null }) {
-  const status = e.situacao === '2º TURNO' ? 'Disputa o 2º turno' : 'Eleito(a)';
+  const status =
+    e.situacao !== '2º TURNO' ? 'Eleito(a)' : electionOver() ? 'Foi ao 2º turno (resultado em atualização)' : 'Disputa o 2º turno';
   const executive = e.cargo === 'Presidente' || e.cargo === 'Governador';
   if (executive) return <ExecutiveCard e={e} status={status} official={official} />;
   if (official) {

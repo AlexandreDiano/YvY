@@ -8,6 +8,7 @@ import {
   presidentialPlans,
   type GovernmentPlan,
 } from '@/api/elected';
+import { electionOver } from '@/lib/format';
 import { Button, Card, Chip, Row, Section, Txt, space } from '@/ui';
 
 /**
@@ -16,6 +17,7 @@ import { Button, Card, Chip, Row, Section, Txt, space } from '@/ui';
  * É imparcial pela forma como é montada: mesmo tema, mesmo número de trechos
  * para cada um, ordem alfabética, e o texto é copiado do plano registrado no
  * TSE (conferido palavra por palavra contra o PDF), sem resumo nem comentário.
+ * Depois do 2º turno não há mais o que comparar: some.
  */
 export function PlanCompare() {
   const router = useRouter();
@@ -23,6 +25,7 @@ export function PlanCompare() {
   const [theme, setTheme] = useState(PLAN_THEMES[0]!.key);
 
   useEffect(() => {
+    if (electionOver()) return;
     void presidentialPlans().then(setPlans, () => setPlans([]));
   }, []);
 

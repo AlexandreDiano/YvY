@@ -3,9 +3,10 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { myClaimChecks } from '@/api/claims';
 import { FLAG } from '@/api/flags';
+import { ElectionCard } from '@/features/plans/ElectionCard';
 import { PlanCompare } from '@/features/plans/PlanCompare';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { daysToElection, electionLabel } from '@/lib/format';
+import { electionOver } from '@/lib/format';
 import {
   Banner,
   Button,
@@ -22,7 +23,7 @@ import { IconBallot, IconSearch } from '@/ui/icons';
 /**
  * Área pública, sem conta nem sessão.
  *
- * É o que tem para quem não recebeu convite: propostas com fonte e a checagem
+ * É o que tem para quem não recebeu convite: planos de governo com fonte e a checagem
  * de boato, que é o material feito para circular no WhatsApp. Nada da
  * estrutura de mobilização aparece aqui.
  */
@@ -37,8 +38,6 @@ export default function Publico() {
     }, []),
   );
 
-  const dias = daysToElection();
-
   return (
     <Screen>
       <View>
@@ -48,14 +47,7 @@ export default function Publico() {
         </Txt>
       </View>
 
-      <Card stripe={color.accent}>
-        <Txt variant="heading">
-          {dias > 0 ? `${dias} ${dias === 1 ? 'dia' : 'dias'} para o 2º turno` : 'Hoje é dia de votar'}
-        </Txt>
-        <Txt variant="small" muted>
-          Votação: {electionLabel()}
-        </Txt>
-      </Card>
+      <ElectionCard />
 
       {readyChecks > 0 ? (
         <Banner
@@ -66,7 +58,11 @@ export default function Publico() {
       ) : null}
 
       <PlanCompare />
-      <Button title="Ver propostas e planos" kind="outline" onPress={() => router.push('/propostas')} />
+      <Button
+        title={electionOver() ? 'Presidente eleito e plano de governo' : 'Ver propostas e planos'}
+        kind="outline"
+        onPress={() => router.push('/propostas')}
+      />
 
       {flags[FLAG.checagem] ? (
         <>

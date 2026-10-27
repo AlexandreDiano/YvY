@@ -9,6 +9,14 @@ export function daysToElection(now = new Date()): number {
   return Math.max(0, Math.ceil(diff / 86400000));
 }
 
+/**
+ * Votação do 2º turno acabou: a data do env (8h) + 16h = meia-noite do dia. A
+ * partir daí sai a contagem regressiva e a comparação de candidatos.
+ */
+export function electionOver(now = new Date()): boolean {
+  return now.getTime() >= env.electionDate.getTime() + 16 * 3600_000;
+}
+
 export function electionLabel(): string {
   const d = env.electionDate;
   return `${DIAS_CURTO[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;

@@ -16,7 +16,7 @@ import { SupportCard } from '@/features/support/SupportCard';
 import { env } from '@/lib/env';
 import { monitoringEnabled, sendTestError } from '@/lib/monitoring';
 import { notify } from '@/lib/notify';
-import { camarada, formatCep, formatPhone, longDate } from '@/lib/format';
+import { camarada, electionOver, formatCep, formatPhone, longDate } from '@/lib/format';
 import {
   Button,
   Card,
@@ -378,7 +378,7 @@ export default function Perfil() {
 
       {/* Pix só depois da eleição. Arrecadar num app com conteúdo contra
         candidato pode ser lido como gasto eleitoral (revisão jurídica, 12/10). */}
-      {isBaseMember && env.pixKey && Date.now() >= env.electionDate.getTime() + 16 * 3600_000 ? (
+      {isBaseMember && env.pixKey && electionOver() ? (
         <>
           <Section title="Apoie o YvY" />
           <SupportCard />

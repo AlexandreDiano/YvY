@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { camarada, formatCep, formatPhone, suggestDisplayName } from '@/lib/format';
+import { env } from '@/lib/env';
+import { camarada, daysToElection, electionOver, formatCep, formatPhone, suggestDisplayName } from '@/lib/format';
 import { pixPayload } from '@/lib/pix';
 
 test('apelido sugerido nunca carrega o nome completo', () => {
@@ -20,6 +21,15 @@ test('máscaras de CEP e telefone', () => {
   assert.equal(formatCep('80010000999'), '80010-000');
   assert.equal(formatPhone('41998765432'), '(41) 99876-5432');
   assert.equal(formatPhone('4133334444'), '(41) 3333-4444');
+});
+
+test('eleição: contagem até o dia, encerrada depois da meia-noite', () => {
+  const at = (h: number) => new Date(env.electionDate.getTime() + h * 3600_000);
+  assert.equal(daysToElection(at(-24)), 1);
+  assert.equal(electionOver(at(-1)), false);
+  assert.equal(electionOver(at(15.9)), false);
+  assert.equal(electionOver(at(16)), true);
+  assert.equal(daysToElection(at(48)), 0);
 });
 
 // CRC16-CCITT-FALSE escrito de outro jeito (tabela), para não testar o código

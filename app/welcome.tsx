@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { InstallCard } from '@/features/pwa/InstallCard';
-import { daysToElection, electionLabel } from '@/lib/format';
+import { daysToElection, electionLabel, electionOver } from '@/lib/format';
 import { Button, Screen, Spacer, Txt, YvyLogo, space } from '@/ui';
 
 export default function Welcome() {
@@ -24,14 +24,16 @@ export default function Welcome() {
           A terra é de quem a organiza.
         </Txt>
         <Txt variant="body" muted center>
-          {dias > 0
-            ? `${dias} ${dias === 1 ? 'dia' : 'dias'} para o 2º turno · ${electionLabel()}`
-            : `Dia de votação · ${electionLabel()}`}
+          {electionOver()
+            ? 'Eleições 2026 encerradas. Agora é acompanhar quem foi eleito.'
+            : dias > 0
+              ? `${dias} ${dias === 1 ? 'dia' : 'dias'} para o 2º turno · ${electionLabel()}`
+              : `Dia de votação · ${electionLabel()}`}
         </Txt>
       </View>
 
       <View style={s.actions}>
-        <Button title="Ver propostas, checagem e Congresso" onPress={() => router.push('/publico')} />
+        <Button title="Ver planos, checagem e Congresso" onPress={() => router.push('/publico')} />
         <Txt variant="small" muted center>
           Não precisa de cadastro.
         </Txt>

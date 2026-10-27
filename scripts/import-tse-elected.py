@@ -35,11 +35,14 @@ def main(path: str) -> None:
             key = r["SQ_CANDIDATO"]
             cur = rows.get(key)
             votes = int(r["QT_VOTOS_NOMINAIS"] or 0)
+            turno = int(r["NR_TURNO"])
             if cur:
-                cur["v"] += votes
-                # 2º turno vira "ELEITO" depois; fica a situação mais recente (maior turno).
-                if int(r["NR_TURNO"]) >= cur["t"]:
-                    cur["s"], cur["t"] = r["DS_SIT_TOT_TURNO"], int(r["NR_TURNO"])
+                # Fica o turno mais recente: a situação do 2º turno ("ELEITO" ou
+                # "NÃO ELEITO") e os votos só dele, sem somar com o 1º.
+                if turno > cur["t"]:
+                    cur["s"], cur["t"], cur["v"] = r["DS_SIT_TOT_TURNO"], turno, votes
+                elif turno == cur["t"]:
+                    cur["v"] += votes
                 continue
             rows[key] = {
                 "q": key,
@@ -49,7 +52,7 @@ def main(path: str) -> None:
                 "f": r["NM_CANDIDATO"].title(),
                 "p": r["SG_PARTIDO"],
                 "s": r["DS_SIT_TOT_TURNO"],
-                "t": int(r["NR_TURNO"]),
+                "t": turno,
                 "v": votes,
             }
     keep = sorted((r for r in rows.values() if r["s"] in KEEP), key=lambda r: (r["c"], r["u"], -r["v"]))

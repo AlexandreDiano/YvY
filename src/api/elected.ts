@@ -1,4 +1,5 @@
 import { withCache } from '@/lib/cache';
+import { electionOver } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -27,10 +28,14 @@ export const CARGO_ORDER = [
   'Deputado Distrital',
 ];
 
-/** Candidatos a presidente no momento (2º turno, ou eleito). */
+/**
+ * Candidatos a presidente no momento: os dois do 2º turno até a votação; depois
+ * dela, só o eleito (vazio até o resultado do TSE ser importado).
+ */
 export async function presidentialCandidates(): Promise<Elected[]> {
   const all = await listElected('BR');
-  return all.filter((e) => e.cargo === 'Presidente');
+  const over = electionOver();
+  return all.filter((e) => e.cargo === 'Presidente' && (!over || e.situacao === 'ELEITO'));
 }
 
 /** `uf` null = Brasil todo (~1.700 linhas). Presidente sempre vem junto. */
