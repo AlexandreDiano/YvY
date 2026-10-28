@@ -54,6 +54,19 @@ jobs:
             exit 1
           }
 
+  migrations-prod:
+    name: Migrations na ordem da produção (sem as em espera)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      # Igual ao migrate.yml: o banco nasce sem as versões de
+      # supabase/migrations-hold.txt. Pega migration que depende de outra
+      # em espera (foi o caso da 0051 com o audit_attach da 0048).
+      - run: bash scripts/migrations-hold.sh
+      - name: Migrations e seeds aplicam do zero
+        run: npx -y supabase@2.121.0 start -x studio,imgproxy,logflare,vector,edge-runtime
+
   secrets:
     name: Segredo vazado
     runs-on: ubuntu-latest

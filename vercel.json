@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "rm -rf node_modules && bun install --frozen-lockfile",
-  "buildCommand": "bunx expo export -p web && node scripts/precache.mjs dist",
+  "buildCommand": "node scripts/require-env.mjs && bunx expo export -p web && node scripts/precache.mjs dist",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [

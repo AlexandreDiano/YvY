@@ -42,7 +42,14 @@ alter table plan_promise_updates enable row level security;
 -- escrita pela RPC.
 revoke all on plan_promise_updates from public, anon, authenticated;
 
-select public.audit_attach('plan_promise_updates');
+-- A 0048 (que cria audit_attach) está em espera na produção; quando entrar,
+-- o laço dela liga a auditoria nesta tabela também. Mesmo esquema da 0050.
+do $$
+begin
+  if exists (select 1 from pg_proc where proname = 'audit_attach') then
+    perform public.audit_attach('plan_promise_updates');
+  end if;
+end $$;
 
 -- Views donas (security_invoker = false): leem a tabela fechada. Só select.
 create or replace view public.plan_promises
