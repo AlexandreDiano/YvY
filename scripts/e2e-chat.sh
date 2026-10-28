@@ -11,10 +11,6 @@ if [ -z "${DOCKER_HOST:-}" ] && ! command -v docker >/dev/null && [ -S "/run/use
 fi
 eval "$(npx -y supabase@2.121.0 status -o env | sed -n 's/^\(API_URL\|ANON_KEY\|SERVICE_ROLE_KEY\)=/export LOCAL_\1=/p')"
 
-ENGINE=docker; command -v docker >/dev/null || ENGINE=podman
-$ENGINE exec -i supabase_db_yvy psql -U postgres -q -c \
-  "update feature_flags set is_enabled = true where key = 'module_chat'"
-
 out=$(mktemp -d)
 # --clear: o cache do Metro guarda o EXPO_PUBLIC_* do build anterior (o de produção)
 EXPO_PUBLIC_SUPABASE_URL="$LOCAL_API_URL" EXPO_PUBLIC_SUPABASE_ANON_KEY="$LOCAL_ANON_KEY" \

@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { DEFAULT_FLAGS, loadFlags } from '@/api/flags';
 import type { MembershipStatus, Profile, UserRole } from '@/lib/db.types';
-import { isBackendConfigured } from '@/lib/env';
+import { env, isBackendConfigured } from '@/lib/env';
 import { suggestDisplayName } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 
@@ -72,7 +72,10 @@ type Ctx = {
   setVisitorView: (on: boolean) => void;
   /** 'email_pending': a conta existe mas falta confirmar o e-mail (o convite é usado no 1º login). */
   signUpWithInvite: (claim: string, input: SignUpInput) => Promise<MembershipStatus | 'email_pending'>;
+  /** Erro com `code: 'email_not_confirmed'` quando a conta ainda não confirmou o e-mail. */
   signIn: (email: string, password: string, captchaToken?: string) => Promise<void>;
+  /** Manda de novo o link de confirmação do cadastro (template "Confirm signup"). */
+  resendConfirmation: (email: string, captchaToken?: string) => Promise<void>;
   /** Manda o código de recuperação para o e-mail (template "Reset Password" com {{ .Token }}). */
   requestPasswordReset: (email: string, captchaToken?: string) => Promise<void>;
   resetPassword: (email: string, code: string, password: string) => Promise<void>;
@@ -262,7 +265,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const signUp = await client.auth.signUp({
         email: input.email.trim().toLowerCase(),
         password: input.password,
-        options: { captchaToken: input.captchaToken },
+        // o link do e-mail confirma e cai no site; o convite é usado no login
+        options: { captchaToken: input.captchaToken, emailRedirectTo: env.siteUrl ? `${env.siteUrl}/entrar` : undefined },
       });
       if (signUp.error) throw captchaError(signUp.error);
       // senha e token do captcha nunca vão para o cadastro guardado no aparelho
@@ -331,10 +335,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: { captchaToken },
       });
+      if (error?.code === 'email_not_confirmed') {
+        throw Object.assign(new Error('Falta confirmar o e-mail. Abra o link que mandamos no cadastro e entre de novo.'), {
+          code: 'email_not_confirmed',
+        });
+      }
       if (error) throw captchaError(error);
       await refresh();
     },
     [mode, refresh],
+  );
+
+  const resendConfirmation = useCallback(
+    async (email: string, captchaToken?: string) => {
+      if (mode === 'local') throw new Error('Confirmar e-mail exige backend configurado.');
+      const { error } = await supabase!.auth.resend({
+        type: 'signup',
+        email: email.trim().toLowerCase(),
+        options: { captchaToken, emailRedirectTo: env.siteUrl ? `${env.siteUrl}/entrar` : undefined },
+      });
+      if (error && isCaptchaError(error)) throw captchaError(error);
+      if (error && error.status === 429) throw new Error('Muitos pedidos agora. Tente de novo em alguns minutos.');
+      if (error) throw error;
+    },
+    [mode],
   );
 
   const updateProfile = useCallback(
@@ -386,13 +410,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setVisitorView,
       signUpWithInvite,
       signIn,
+      resendConfirmation,
       requestPasswordReset,
       resetPassword,
       updateProfile,
       signOut,
       refresh,
     };
-  }, [ready, mode, profile, flags, visitorView, signUpWithInvite, signIn, requestPasswordReset, resetPassword, updateProfile, signOut, refresh]);
+  }, [ready, mode, profile, flags, visitorView, signUpWithInvite, signIn, resendConfirmation, requestPasswordReset, resetPassword, updateProfile, signOut, refresh]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

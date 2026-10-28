@@ -12,7 +12,6 @@ export const FLAG = {
   checagem: 'module_checagem',
   convites: 'module_convites',
   transparencia: 'module_transparencia',
-  chat: 'module_chat',
 } as const;
 
 export type FlagKey = (typeof FLAG)[keyof typeof FLAG];
@@ -24,8 +23,6 @@ export const DEFAULT_FLAGS: Record<FlagKey, boolean> = {
   module_checagem: true,
   module_convites: true,
   module_transparencia: true,
-  // conversa só existe com servidor; na produção a flag decide
-  module_chat: false,
 };
 
 export async function loadFlags(): Promise<Record<string, boolean>> {

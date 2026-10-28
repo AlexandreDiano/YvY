@@ -11,7 +11,7 @@ import { IconChat, IconHome, IconMessage, IconPin, IconUser } from '@/ui/icons';
  * módulo ainda obedece a própria feature flag (dá para desligar sem build novo).
  */
 export default function TabsLayout() {
-  const { isBaseMember, flags, profile, ready } = useAuth();
+  const { isBaseMember, flags, profile, ready, mode } = useAuth();
   const insets = useSafeAreaInsets();
 
   // Sem conta, ou admin olhando como visitante: não tem aba nenhuma, vai
@@ -71,7 +71,8 @@ export default function TabsLayout() {
         name="conversas"
         options={{
           title: 'Conversas',
-          href: isBaseMember && flags[FLAG.chat] ? undefined : null,
+          // conversa só existe com servidor (sem modo local)
+          href: isBaseMember && mode === 'backend' ? undefined : null,
           tabBarIcon: ({ color: c, size }) => <IconMessage size={size} color={c} />,
         }}
       />

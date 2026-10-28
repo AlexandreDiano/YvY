@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
-import { FLAG } from '@/api/flags';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { EmptyState, Loading, Screen } from '@/ui';
 
-/** Conversas só para membro confirmado, com servidor e com a flag ligada. */
+/** Conversas só para membro confirmado e com servidor. */
 export function ChatGate({ children }: { children: ReactNode }) {
-  const { ready, isBaseMember, flags } = useAuth();
+  const { ready, isBaseMember } = useAuth();
   if (!ready) return <Loading />;
   if (!supabase) {
     return (
@@ -19,13 +18,6 @@ export function ChatGate({ children }: { children: ReactNode }) {
     return (
       <Screen>
         <EmptyState title="Só para membro confirmado" detail="Quando quem te convidou confirmar sua entrada, as conversas abrem aqui." />
-      </Screen>
-    );
-  }
-  if (!flags[FLAG.chat]) {
-    return (
-      <Screen>
-        <EmptyState title="Conversas ainda não abriram" detail="A equipe liga esta parte em breve." />
       </Screen>
     );
   }

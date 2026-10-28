@@ -7,11 +7,14 @@ import { Banner, Button, Field, Screen, Section, Txt } from '@/ui';
 
 export default function Entrar() {
   const router = useRouter();
-  const { signIn, mode } = useAuth();
+  const { signIn, resendConfirmation, mode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // login recusado por e-mail não confirmado: oferece mandar o link de novo
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resent, setResent] = useState(false);
   const captcha = useCaptcha();
   const passwordRef = useRef<TextInput>(null);
 
@@ -23,10 +26,26 @@ export default function Entrar() {
       await signIn(email, password, captcha.token);
       router.replace('/(tabs)');
     } catch (err) {
+      setUnconfirmed((err as { code?: string }).code === 'email_not_confirmed');
       setError(err instanceof Error ? err.message : 'E-mail ou senha não conferem.');
     } finally {
       setBusy(false);
       // token do captcha só vale uma vez, gera outro para a próxima tentativa
+      captcha.reset();
+    }
+  }
+
+  async function resend() {
+    if (busy || !captcha.ready) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await resendConfirmation(email, captcha.token);
+      setResent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não deu para reenviar agora.');
+    } finally {
+      setBusy(false);
       captcha.reset();
     }
   }
@@ -69,6 +88,15 @@ export default function Entrar() {
       ) : null}
       {captcha.widget}
       <Button title="Entrar" loading={busy} disabled={!captcha.ready} onPress={submit} />
+      {unconfirmed ? (
+        <Button
+          title={resent ? 'Link reenviado — confira a caixa de entrada e o spam' : 'Reenviar e-mail de confirmação'}
+          kind="outline"
+          loading={busy}
+          disabled={resent || !captcha.ready}
+          onPress={resend}
+        />
+      ) : null}
 
       <Button
         title="Esqueci a senha"
