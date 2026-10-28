@@ -14,10 +14,16 @@
 //
 // Segredos: RESEND_API_KEY, EMAIL_FROM ("YvY <avisos@useyvy.app>", domínio
 // verificado no Resend).
+//
+// Teto: o plano grátis do Resend dá 100 e-mails/dia e a confirmação de
+// cadastro do Auth (SMTP do Resend) sai da mesma cota. Aviso para em
+// EMAIL_DAILY_CAP (padrão 80) nas últimas 24h; o resto espera a próxima volta
+// e some sozinho quando o aviso passa de 1 dia (continua no app).
 
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 
 const BATCH = 100;
+const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? 80);
 const SITE = "https://www.useyvy.app";
 
 const json = (b: unknown, status = 200) => Response.json(b, { status });
@@ -48,6 +54,14 @@ Deno.serve(async (req) => {
   if (!key || !from) return json({ error: "Resend não configurado" }, 500);
 
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { count: today, error: countError } = await db
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .gt("emailed_at", since);
+  if (countError) return json({ error: countError.message }, 500);
+  const room = Math.min(BATCH, DAILY_CAP - (today ?? 0));
+  if (room <= 0) return json({ sent: 0, capped: true });
+
   const { data: queue, error } = await db
     .from("notifications")
     .select("id, user_id, title, body, profiles!inner(notify_email, is_active)")
@@ -57,7 +71,7 @@ Deno.serve(async (req) => {
     .eq("profiles.notify_email", true)
     .eq("profiles.is_active", true)
     .order("created_at")
-    .limit(BATCH);
+    .limit(room);
   if (error) return json({ error: error.message }, 500);
   if (!queue?.length) return json({ sent: 0 });
 

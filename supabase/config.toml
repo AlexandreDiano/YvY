@@ -244,6 +244,12 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Confirmação de cadastro em português (YVY-135). Na produção, colar o mesmo
+# arquivo em Auth › Email Templates › Confirm signup.
+[auth.email.template.confirmation]
+subject = "Confirme seu e-mail no YvY"
+content_path = "./supabase/templates/confirmation.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

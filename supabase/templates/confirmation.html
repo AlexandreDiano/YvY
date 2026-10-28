@@ -1,0 +1,10 @@
+<!-- Auth › Email Templates › Confirm signup. Assunto: "Confirme seu e-mail no YvY".
+     Mesmo visual do notify-email. Colar no painel do Supabase (produção);
+     no local vale pelo config.toml. -->
+<div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto;color:#1F2A1D">
+  <h2 style="color:#2D5A27;margin:0 0 12px">Confirme seu e-mail</h2>
+  <p style="line-height:1.5">Você criou uma conta no YvY com um convite. Toque no botão para confirmar que este e-mail é seu.</p>
+  <p><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#2D5A27;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Confirmar e-mail</a></p>
+  <p style="line-height:1.5">Depois, entre com seu e-mail e senha <strong>no mesmo celular ou navegador em que fez o cadastro</strong> — é lá que o convite ficou guardado, por 24 horas.</p>
+  <p style="font-size:12px;color:#6B6B6B">Não foi você? Ignore este e-mail; sem a confirmação a conta não abre.</p>
+</div>

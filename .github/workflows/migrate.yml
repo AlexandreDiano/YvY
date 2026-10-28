@@ -39,21 +39,7 @@ jobs:
         run: bash scripts/migrations-hold.sh
       - id: dry
         name: O que seria aplicado
-        run: |
-          supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
-          # Sem o `|| ...`, o bash -e do Actions sai na atribuição e o erro do
-          # CLI some do log.
-          out=$(supabase db push --dry-run --include-all -p "$SUPABASE_DB_PASSWORD" 2>&1) || {
-            echo "$out"
-            exit 1
-          }
-          echo "$out"
-          if echo "$out" | grep -q 'Would push these migrations'; then
-            echo "pending=true" >> "$GITHUB_OUTPUT"
-            { echo '### Migrations a aplicar'; echo '```'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "pending=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash scripts/migrate-prod.sh plan
 
   apply:
     needs: plan
@@ -69,6 +55,4 @@ jobs:
           version: 2.121.0
       - run: bash scripts/migrations-hold.sh
       - name: supabase db push
-        run: |
-          supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
-          supabase db push --include-all --yes -p "$SUPABASE_DB_PASSWORD"
+        run: bash scripts/migrate-prod.sh apply
