@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   canManageRoles,
@@ -19,6 +19,7 @@ import {
   bulkTargets,
   isEditable,
   matchesFilter,
+  memberSummary,
   namesPreview,
   runBulk,
   type BulkAction,
@@ -79,8 +80,19 @@ export default function Membros() {
   const [busy, setBusy] = useState<string | null>(null);
   // modo de seleção: null = desligado
   const [selected, setSelected] = useState<Set<string> | null>(null);
+  // cartões abertos (fechado mostra só nome, papel e resumo)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // convidados de cada membro aberto; undefined = fechado, null = carregando
   const [open, setOpen] = useState<Record<string, MemberInvitee[] | null | undefined>>({});
+
+  function toggleCard(id: string) {
+    setExpanded((e) => {
+      const next = new Set(e);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function toggleInvitees(m: Member) {
     if (open[m.id] !== undefined) {
@@ -229,7 +241,7 @@ export default function Membros() {
           : 'Aqui aparecem os membros dos bairros que você modera. '}
         Membro comum só convida (gera QRCode de convite) se for liberado.{' '}
         {isAdmin ? 'Quem pode mudar papéis torna membros moderadores e tira; só admin dá essa permissão. ' : ''}
-        Marque ou desmarque o que cada pessoa pode, ou use Selecionar para mudar várias de uma vez. A pessoa recebe
+        Toque numa pessoa para ver e mudar o que ela pode, ou use Selecionar para mudar várias de uma vez. A pessoa recebe
         um aviso quando algo muda.
       </Txt>
       <Field
@@ -281,6 +293,9 @@ export default function Membros() {
           const self = m.id === profile?.id;
           const editable = isEditable(m, profile?.id);
           const where = [m.neighborhood, m.city, m.state].filter(Boolean).join(' · ');
+          // admin e você, sem convidados: não há o que abrir
+          const expandable = editable || m.invited_count > 0 || Boolean(m.invited_by_name);
+          const isOpen = expandable && expanded.has(m.id);
           return (
             <Card key={m.id} stripe={ROLE_COLOR[m.role]}>
               {selected && editable ? (
@@ -292,14 +307,31 @@ export default function Membros() {
                 />
               ) : (
                 <>
-                  <Row style={{ justifyContent: 'space-between' }}>
-                    <Txt variant="heading">{camarada(m.display_name)}</Txt>
-                    <Badge label={ROLE_LABEL[m.role] ?? m.role} color={ROLE_COLOR[m.role] ?? color.neutral} />
-                  </Row>
-                  <Txt variant="small" muted>
-                    {where}
-                    {self ? ' · você' : ''}
-                  </Txt>
+                  <Pressable
+                    disabled={!expandable}
+                    onPress={() => toggleCard(m.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isOpen }}
+                    accessibilityLabel={`${camarada(m.display_name)}, ${isOpen ? 'fechar' : 'ver permissões'}`}
+                    style={{ gap: space.xs }}
+                  >
+                    <Row style={{ justifyContent: 'space-between' }}>
+                      <Txt variant="heading" style={{ flex: 1 }}>
+                        {camarada(m.display_name)}
+                      </Txt>
+                      <Badge label={ROLE_LABEL[m.role] ?? m.role} color={ROLE_COLOR[m.role] ?? color.neutral} />
+                      {expandable ? (
+                        <Txt variant="body" muted>
+                          {isOpen ? '▴' : '▾'}
+                        </Txt>
+                      ) : null}
+                    </Row>
+                    <Txt variant="small" muted>
+                      {[where, self ? 'você' : null, ...memberSummary(m)].filter(Boolean).join(' · ')}
+                    </Txt>
+                  </Pressable>
+                  {!isOpen ? null : (
+                  <>
                   {m.invited_by_name ? (
                     <Txt variant="small" muted>
                       Convidado por {camarada(m.invited_by_name)}
@@ -366,6 +398,8 @@ export default function Membros() {
                       ) : null}
                     </>
                   ) : null}
+                  </>
+                  )}
                 </>
               )}
             </Card>

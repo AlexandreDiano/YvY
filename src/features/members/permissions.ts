@@ -31,6 +31,15 @@ export function matchesFilter(m: Member, f: MemberFilter): boolean {
   }
 }
 
+/** Linha do cartão fechado: o que a pessoa pode além do papel. */
+export function memberSummary(m: Member): string[] {
+  return [
+    m.role === 'militant' && m.can_invite ? 'pode convidar' : null,
+    m.is_role_manager ? 'muda papéis' : null,
+    m.invited_count > 0 ? `convidou ${m.invited_count}` : null,
+  ].filter((x): x is string => x !== null);
+}
+
 /** Admin e a própria pessoa não mudam pela tela. */
 export function isEditable(m: Member, selfId: string | undefined): boolean {
   return m.id !== selfId && m.role !== 'admin';

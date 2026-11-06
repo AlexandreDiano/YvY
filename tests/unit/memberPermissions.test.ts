@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import type { Member } from '@/api/members';
-import { bulkTargets, isEditable, matchesFilter, namesPreview, runBulk } from '@/features/members/permissions';
+import { bulkTargets, isEditable, matchesFilter, memberSummary, namesPreview, runBulk } from '@/features/members/permissions';
 
 const base: Member = {
   id: 'x',
@@ -63,4 +63,11 @@ test('em massa segue depois de uma falha e diz quem falhou', async () => {
 test('nomes na confirmação cortam depois do limite', () => {
   assert.equal(namesPreview(['A', 'B']), 'A, B');
   assert.equal(namesPreview(['A', 'B', 'C', 'D'], 2), 'A, B e mais 2');
+});
+
+test('resumo do cartão fechado', () => {
+  assert.deepEqual(memberSummary(sem), []);
+  assert.deepEqual(memberSummary(com), ['pode convidar', 'convidou 2']);
+  // moderador convida pelo papel: não repete
+  assert.deepEqual(memberSummary({ ...mod, is_role_manager: true }), ['muda papéis']);
 });
