@@ -2,6 +2,7 @@ import type { PlanPromise, PromiseStatus, PromiseUpdate } from '@/features/plans
 import { withCache } from '@/lib/cache';
 import { all, insert, localId } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Monitor de promessas do plano de governo (migration 0051, YVY-130).
@@ -29,7 +30,7 @@ export async function listPromises(sq: string): Promise<{ promises: PlanPromise[
         .select('sq_candidato,promise_key,position,tema,texto,pagina,status,source_url,evidence_date,note,updated_at')
         .eq('sq_candidato', sq)
         .order('position');
-      if (res.error) throw res.error;
+      if (res.error) throw ptError(res.error);
       return res.data as unknown as PlanPromise[];
     },
     TTL,
@@ -49,7 +50,7 @@ export async function promiseHistory(sq: string, key: string): Promise<PromiseUp
     .eq('sq_candidato', sq)
     .eq('promise_key', key)
     .order('created_at', { ascending: false });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
   return res.data as unknown as PromiseUpdate[];
 }
 
@@ -86,5 +87,5 @@ export async function setPromiseStatus(input: {
       p_note: input.note.trim(),
     } as never,
   );
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }

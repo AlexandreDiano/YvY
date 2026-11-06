@@ -19,6 +19,7 @@ import { env, isBackendConfigured } from '@/lib/env';
 import { suggestDisplayName } from '@/lib/format';
 import { clearAll as clearLocalStore } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Sessão do app.
@@ -131,7 +132,7 @@ async function redeem(client: NonNullable<typeof supabase>, claim: string, input
     p_location_precision: input.locationPrecision ?? 3,
     p_sensitive_consent: input.sensitiveConsent === true,
   });
-  if (error) throw error;
+  if (error) throw ptError(error);
   return (data?.[0]?.membership_status ?? 'pending') as MembershipStatus;
 }
 
@@ -301,7 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         // conta criada mas convite recusado, não deixa usuário órfão logado
         await client.auth.signOut();
-        throw error;
+        throw ptError(error);
       }
       await refresh();
       return status;
@@ -337,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (e2) {
         if (e2.code === 'same_password') throw new Error('A senha nova precisa ser diferente da antiga.');
         if (e2.code === 'weak_password') throw new Error('Senha fraca. Use uma mais longa, com letras e números.');
-        throw e2;
+        throw ptError(e2);
       }
       await refresh();
     },
@@ -373,7 +374,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       if (error && isCaptchaError(error)) throw captchaError(error);
       if (error && error.status === 429) throw new Error('Muitos pedidos agora. Tente de novo em alguns minutos.');
-      if (error) throw error;
+      if (error) throw ptError(error);
     },
     [mode],
   );
@@ -388,7 +389,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const { error } = await supabase!.from('profiles').update(patch).eq('id', profile.id);
-      if (error) throw error;
+      if (error) throw ptError(error);
       setProfile(next);
     },
     [mode, profile],
@@ -407,7 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error.code === 'email_exists') throw new Error('Esse e-mail já é de outra conta.');
         if (error.code === 'email_address_invalid') throw new Error('Esse e-mail não é aceito. Confira o endereço.');
         if (error.status === 429) throw new Error('Muitos pedidos agora. Tente de novo em alguns minutos.');
-        throw error;
+        throw ptError(error);
       }
       const now = data.user?.email ?? null;
       setAccount({ email: now, newEmail: data.user?.new_email ?? null });
@@ -428,13 +429,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isCaptchaError(error)) throw captchaError(error);
         if (error.code === 'invalid_credentials') throw new Error('A senha atual não confere.');
         if (error.status === 429) throw new Error('Muitas tentativas agora. Tente de novo em alguns minutos.');
-        throw error;
+        throw ptError(error);
       }
       const { error: e2 } = await supabase!.auth.updateUser({ password: next });
       if (e2) {
         if (e2.code === 'same_password') throw new Error('A senha nova precisa ser diferente da antiga.');
         if (e2.code === 'weak_password') throw new Error('Senha fraca. Use uma mais longa, com letras e números.');
-        throw e2;
+        throw ptError(e2);
       }
     },
     [mode],
@@ -456,7 +457,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // o cascade do banco não chega ao Storage: imagens dos posts saem antes
       await removeMyPostImages(uid);
       const { error } = await client.rpc('delete_my_account', { p_confirm: confirm.trim().toUpperCase() });
-      if (error) throw error;
+      if (error) throw ptError(error);
       // o usuário não existe mais: sair só daqui, sem chamar o servidor
       await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
       // chave e histórico das conversas deste aparelho

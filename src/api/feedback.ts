@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /** Ideias, problemas e sugestões dos membros (migration 0029). Só a equipe lê todos. */
 export type FeedbackKind = 'ideia' | 'problema' | 'outro';
@@ -24,7 +25,7 @@ export async function sendFeedback(authorId: string, kind: FeedbackKind, message
   const res = await supabase
     .from('feedback' as never)
     .insert({ author_id: authorId, kind, message: text.slice(0, 1000) } as never);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 /** Membro: só os próprios. Moderador/admin: todos (a RLS decide). */
@@ -35,7 +36,7 @@ export async function listFeedback(): Promise<Feedback[]> {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(200);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return res.data as unknown as Feedback[];
 }
 
@@ -47,7 +48,7 @@ export async function setFeedbackStatus(ids: string | string[], status: Feedback
     .from('feedback' as never)
     .update({ status, ...(note !== undefined ? { staff_note: note.trim() || null } : {}) } as never)
     .in('id', list);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 /** Equipe: agrupa agora os que chegaram sem grupo (o cron faz de hora em hora). */

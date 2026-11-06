@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CheckResult } from '@/lib/db.types';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Checagem automática em fila (supabase/migrations/0012_claim_checks.sql).
@@ -57,7 +58,7 @@ async function writeMine(list: Mine[]): Promise<void> {
 export async function requestClaimCheck(text: string): Promise<ClaimCheck | null> {
   if (!supabase) return null;
   const res = await supabase.rpc('request_claim_check', { p_text: text });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
   const check = res.data as unknown as ClaimCheck;
   const mine = await readMine();
   if (!mine.some((m) => m.id === check.id)) {
@@ -109,7 +110,7 @@ export type QueueItem = {
 export async function listClaimQueue(): Promise<QueueItem[]> {
   if (!supabase) return [];
   const res = await supabase.rpc('list_claim_queue' as never);
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
   return res.data as unknown as QueueItem[];
 }
 
@@ -150,21 +151,21 @@ export async function publishClaimCheck(
       p_source_name: edits.sourceName ?? null,
     } as never,
   );
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }
 
 /** Tira do ar uma checagem que a equipe já tinha publicado (migration 0044). */
 export async function unpublishFactCheck(id: string): Promise<void> {
   if (!supabase) return;
   const res = await supabase.rpc('unpublish_fact_check' as never, { p_id: id } as never);
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }
 
 /** Apaga item com problema (texto sem sentido, teste, abuso). Moderador/admin. */
 export async function deleteClaimCheck(id: string): Promise<void> {
   if (!supabase) return;
   const res = await supabase.rpc('delete_claim_check' as never, { p_id: id } as never);
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }
 
 /**
@@ -174,7 +175,7 @@ export async function deleteClaimCheck(id: string): Promise<void> {
 export async function cancelClaimRequest(id: string, queued: boolean): Promise<void> {
   if (supabase && queued) {
     const res = await supabase.rpc('cancel_claim_request' as never, { p_id: id } as never);
-    if (res.error) throw new Error(res.error.message);
+    if (res.error) throw ptError(res.error);
   }
   const mine = await readMine();
   await writeMine(mine.filter((m) => m.id !== id));

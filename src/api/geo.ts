@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Região geográfica imediata do IBGE de quem está logado (migration 0043):
@@ -54,7 +55,7 @@ export type RegionOption = { id: number; name: string; uf: string; cityCount: nu
 export async function listRegions(uf: string): Promise<RegionOption[]> {
   if (!supabase) return [];
   const res = await supabase.rpc('list_regions' as never, { p_uf: uf } as never);
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
   return (res.data as { regiao_id: number; regiao_nome: string; uf: string; cidades: number }[]).map((r) => ({
     id: r.regiao_id,
     name: r.regiao_nome,
@@ -66,7 +67,7 @@ export async function listRegions(uf: string): Promise<RegionOption[]> {
 export async function followRegion(id: number, follow: boolean): Promise<void> {
   if (!supabase) return;
   const res = await supabase.rpc('follow_region' as never, { p_regiao: id, p_follow: follow } as never);
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }
 
 export const UFS = [

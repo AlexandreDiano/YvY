@@ -3,6 +3,7 @@ import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
 import { inRegion, type MyRegion } from '@/api/geo';
 import { withSignedImages } from '@/api/storage';
+import { ptError } from '@/lib/errors';
 
 /** Feed do bairro, o "Fala Camarada". */
 
@@ -80,7 +81,7 @@ export async function listFeed(
   if (scope === 'regiao_imediata') q = q.eq('state', region?.uf ?? profile.state ?? '');
   if (scope === 'regiao') q = q.in('state', REGION_UFS[regionOf(profile.state)] ?? []);
   const res = await q.order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   let rows = res.data as PostListed[];
   // a RLS devolve a própria região e as seguidas da mesma UF juntas; aqui separa
   if (scope === 'regiao_imediata' && region) rows = rows.filter((p) => inRegion(p.city, region));
@@ -94,7 +95,7 @@ export async function deletePost(postId: string): Promise<void> {
     return;
   }
   const res = await supabase.from('posts').delete().eq('id', postId);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 export async function createPost(
@@ -137,7 +138,7 @@ export async function createPost(
     status: 'pending',
     scope,
   });
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 /** Fila de moderação do bairro: pendentes e denunciados. */
@@ -155,7 +156,7 @@ export async function listForModeration(profile: Profile): Promise<PostListed[]>
       `and(scope.eq.bairro,neighborhood.eq."${profile.neighborhood ?? ''}",city.eq."${profile.city ?? ''}"),scope.neq.bairro`,
     )
     .order('created_at');
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return withSignedImages(res.data as PostListed[]);
 }
 
@@ -177,7 +178,7 @@ export async function moderate(
     .from('posts')
     .update({ status: decision, moderator_id: moderatorId, moderator_note: note ?? null })
     .eq('id', postId);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 /**
@@ -190,7 +191,7 @@ export async function sendPostToReview(postId: string, reason: string): Promise<
     return;
   }
   const res = await supabase.rpc('send_post_to_review' as never, { p_post: postId, p_reason: reason } as never);
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }
 
 export async function flagPost(
@@ -229,6 +230,6 @@ export async function flagPost(
   if (res.error) {
     // 23505 = unique_violation, essa pessoa já denunciou este post
     if (res.error.code === '23505') throw new Error('Você já denunciou este post.');
-    throw res.error;
+    throw ptError(res.error);
   }
 }

@@ -4,6 +4,7 @@ import { withCache } from '@/lib/cache';
 import type { CheckResult, FactCheck, ProposalCard } from '@/lib/db.types';
 import { supabase } from '@/lib/supabase';
 import { requestClaimCheck } from '@/api/claims';
+import { ptError } from '@/lib/errors';
 
 /**
  * Conteúdo público: cards de proposta e checagem de fatos.
@@ -50,7 +51,7 @@ async function listAllCards(): Promise<{ cards: ProposalCard[]; stale: boolean }
         .select('*')
         .eq('is_active', true)
         .order('sort_order');
-      if (res.error) throw res.error;
+      if (res.error) throw ptError(res.error);
       return res.data as ProposalCard[];
     });
     return { cards: data?.length ? data : localCards, stale };
@@ -73,7 +74,7 @@ export async function listChecks(): Promise<FactCheck[]> {
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
-      if (res.error) throw res.error;
+      if (res.error) throw ptError(res.error);
       return res.data as FactCheck[];
     });
     // lista vazia vinda do banco é resposta de verdade (a equipe pode ter

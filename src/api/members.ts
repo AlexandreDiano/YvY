@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/lib/db.types';
+import { ptError } from '@/lib/errors';
 
 /**
  * Papéis pelo app (migration 0032). Admin e quem tem a permissão de mudar
@@ -40,7 +41,7 @@ export type MemberInvitee = {
 export async function inviteesOf(userId: string): Promise<MemberInvitee[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('invitees_of' as never, { p_user: userId } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
   return (data ?? []) as unknown as MemberInvitee[];
 }
 
@@ -53,20 +54,20 @@ export async function canManageRoles(): Promise<boolean> {
 export async function listMembers(query: string): Promise<Member[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('list_members' as never, { p_query: query.trim() || null } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
   return (data ?? []) as unknown as Member[];
 }
 
 export async function setMemberRole(userId: string, role: 'militant' | 'moderator'): Promise<void> {
   if (!supabase) throw new Error('Disponível só com o servidor configurado.');
   const { error } = await supabase.rpc('set_member_role' as never, { p_user: userId, p_role: role } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
 }
 
 export async function setRoleManager(userId: string, enabled: boolean): Promise<void> {
   if (!supabase) throw new Error('Disponível só com o servidor configurado.');
   const { error } = await supabase.rpc('set_role_manager' as never, { p_user: userId, p_enabled: enabled } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
 }
 
 /** A pessoa logada pode gerar convite? No modo local todo membro pode, para testar. */
@@ -79,14 +80,14 @@ export async function canInvite(isBaseMember: boolean): Promise<boolean> {
 export async function setInvitePermission(userId: string, enabled: boolean): Promise<void> {
   if (!supabase) throw new Error('Disponível só com o servidor configurado.');
   const { error } = await supabase.rpc('set_invite_permission' as never, { p_user: userId, p_enabled: enabled } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
 }
 
 /** Consentimento para dado de participação política, para quem entrou antes da 0039. */
 export async function giveSensitiveConsent(): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.rpc('give_sensitive_consent' as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
 }
 
 /**
@@ -100,5 +101,5 @@ export async function setMemberActive(userId: string, active: boolean, reason?: 
     'set_member_active' as never,
     { p_user: userId, p_active: active, p_reason: reason ?? null } as never,
   );
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw ptError(res.error);
 }

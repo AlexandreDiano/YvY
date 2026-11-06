@@ -1,6 +1,7 @@
 import { withCache } from '@/lib/cache';
 import { electionOver } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Eleitos em 2026 (e quem foi ao 2º turno), da tabela `elected_2026`
@@ -51,7 +52,7 @@ export async function listElected(uf: string | null): Promise<Elected[]> {
         .limit(2000);
       if (uf) query = query.in('uf', [uf, 'BR']);
       const res = await query;
-      if (res.error) throw res.error;
+      if (res.error) throw ptError(res.error);
       return res.data as unknown as Elected[];
     },
     7 * 24 * 60 * 60 * 1000,
@@ -83,7 +84,7 @@ export async function getGovernmentPlan(sq: string): Promise<GovernmentPlan | nu
         .select('sq_candidato,nome_urna,cargo,uf,partido,pdf_url,pages,items,verified')
         .eq('sq_candidato', sq)
         .maybeSingle();
-      if (res.error) throw res.error;
+      if (res.error) throw ptError(res.error);
       return res.data as unknown as GovernmentPlan | null;
     },
     7 * 24 * 60 * 60 * 1000,

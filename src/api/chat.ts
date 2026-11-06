@@ -10,6 +10,7 @@ import {
   type StoredMessage,
 } from '@/lib/chat/store';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Conversas 1:1 com criptografia de ponta a ponta (0050).
@@ -68,7 +69,7 @@ function client() {
 function friendly(err: unknown, fallback: string): Error {
   const msg = (err as { message?: string } | null)?.message ?? '';
   if (/row-level security|42501|permission/i.test(msg)) return new Error('Não dá para mandar: a conversa não foi aceita ou alguém bloqueou.');
-  return new Error(msg || fallback);
+  return ptError(err, fallback);
 }
 
 // ---------------------------------------------------------------- aparelho

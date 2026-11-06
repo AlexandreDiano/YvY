@@ -1,6 +1,7 @@
 import type { ActionListed, ActionParticipant, ActionStatus, ActionType, Profile } from '@/lib/db.types';
 import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /** Ações de mobilização. */
 
@@ -47,7 +48,7 @@ export async function listActions(): Promise<ActionListed[]> {
     .in('status', ['open', 'confirmed'])
     .order('scheduled_at')
     .limit(300);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return res.data as ActionListed[];
 }
 
@@ -63,7 +64,7 @@ export async function getAction(id: string): Promise<ActionListed | null> {
   // link quebrado ou cortado: o Postgres recusaria o uuid (22P02) e a tela ficava vazia
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   const res = await supabase.from('actions_with_counts').select('*').eq('id', id).maybeSingle();
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return (res.data as ActionListed | null) ?? null;
 }
 
@@ -114,7 +115,7 @@ export async function createAction(profile: Profile, input: NewAction): Promise<
     })
     .select('id')
     .single();
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return (res.data as { id: string }).id;
 }
 
@@ -127,7 +128,7 @@ export async function setStatus(id: string, status: ActionStatus, reason?: strin
     .from('actions')
     .update({ status, cancel_reason: reason ?? null })
     .eq('id', id);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 export async function myConfirmations(userId: string): Promise<Set<string>> {
@@ -140,7 +141,7 @@ export async function myConfirmations(userId: string): Promise<Set<string>> {
     .select('action_id,status')
     .eq('user_id', userId)
     .eq('status', 'confirmed');
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return new Set((res.data as { action_id: string }[]).map((r) => r.action_id));
 }
 
@@ -166,7 +167,7 @@ export async function confirmPresence(actionId: string, userId: string): Promise
   const res = await supabase
     .from('action_participants')
     .upsert({ action_id: actionId, user_id: userId, status: 'confirmed' }, { onConflict: 'action_id,user_id' });
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 export async function cancelPresence(actionId: string, userId: string): Promise<void> {
@@ -182,7 +183,7 @@ export async function cancelPresence(actionId: string, userId: string): Promise<
     .update({ status: 'cancelled' })
     .eq('action_id', actionId)
     .eq('user_id', userId);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 /** "Estou aqui" no dia da ação. */
@@ -199,7 +200,7 @@ export async function checkIn(actionId: string, userId: string): Promise<void> {
     .update({ checked_in_at: at })
     .eq('action_id', actionId)
     .eq('user_id', userId);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
 
 async function bumpLocalCount(actionId: string, delta: number): Promise<void> {

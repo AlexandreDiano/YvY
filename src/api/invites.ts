@@ -4,6 +4,7 @@ import type { Invite, Profile, UserRole } from '@/lib/db.types';
 import { env } from '@/lib/env';
 import { all, insert, localId, patch } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Convite por QRCode presencial, em duas etapas (migration 0035).
@@ -107,7 +108,7 @@ export async function generateInvite(
     })
     .select('id,token,expires_at,scan_expires_at,max_uses')
     .single();
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   const row = res.data as Pick<Invite, 'id' | 'token' | 'expires_at' | 'scan_expires_at' | 'max_uses'>;
   // O servidor abriu a janela agora. O quanto ela sobra além do esperado é a
   // diferença de relógio (mais a latência, que é de segundos).
@@ -136,7 +137,7 @@ export async function rotateTableInvite(inv: GeneratedInvite): Promise<Generated
     return { ...inv, token, scanExpiresAt };
   }
   const { data, error } = await supabase.rpc('rotate_table_invite', { p_invite: inv.id });
-  if (error) throw error;
+  if (error) throw ptError(error);
   const row = (data as { token: string; scan_expires_at: string }[])[0]!;
   return { ...inv, token: row.token, scanExpiresAt: toLocal(row.scan_expires_at, inv.skewMs) };
 }
@@ -151,7 +152,7 @@ export async function myInvites(profile: Profile): Promise<Invite[]> {
     .select('*')
     .eq('created_by', profile.id)
     .order('created_at', { ascending: false });
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
   return res.data as Invite[];
 }
 
@@ -191,7 +192,7 @@ export async function inviteClaimStats(inviteId: string): Promise<{ redeemed: nu
     return { redeemed: 0, pending: row?.use_count ?? 0 };
   }
   const { data, error } = await supabase.rpc('invite_claim_stats' as never, { p_invite: inviteId } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
   const row = (data as unknown as { redeemed: number; pending: number }[])[0];
   return row ?? { redeemed: 0, pending: 0 };
 }
@@ -206,7 +207,7 @@ export async function releaseInviteClaims(inviteId: string): Promise<number> {
     return 0;
   }
   const { data, error } = await supabase.rpc('release_invite_claims' as never, { p_invite: inviteId } as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
   return (data as unknown as number) ?? 0;
 }
 
@@ -236,7 +237,7 @@ export async function claimInvite(token: string): Promise<InviteClaim> {
     result = { claim: token, expiresAt: new Date(Date.now() + CLAIM_TTL_H * 3600_000).toISOString() };
   } else {
     const { data, error } = await supabase.rpc('claim_invite', { p_token: token });
-    if (error) throw new Error(error.message);
+    if (error) throw ptError(error);
     const row = (data as { claim: string; claim_expires_at: string }[])[0]!;
     result = { claim: row.claim, expiresAt: row.claim_expires_at };
   }
@@ -280,7 +281,7 @@ export async function decideInvitee(
     p_invitee: inviteeId,
     p_decision: decision,
   });
-  if (error) throw error;
+  if (error) throw ptError(error);
 }
 
 /**
@@ -293,7 +294,7 @@ export async function decideInvitee(
 export async function pendingInvitees(_profile: Profile) {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('my_pending_invitees');
-  if (error) throw error;
+  if (error) throw ptError(error);
   return (data ?? []) as {
     id: string;
     display_name: string;
@@ -323,7 +324,7 @@ export type Invitee = {
 export async function myInvitees(): Promise<Invitee[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('my_invitees' as never);
-  if (error) throw error;
+  if (error) throw ptError(error);
   return (data ?? []) as unknown as Invitee[];
 }
 

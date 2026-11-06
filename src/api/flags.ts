@@ -1,6 +1,7 @@
 import type { FeatureFlag } from '@/lib/db.types';
 import { withCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Feature flags. Servem para desligar um módulo inteiro sem build novo, caso
@@ -29,7 +30,7 @@ export async function loadFlags(): Promise<Record<string, boolean>> {
   if (!supabase) return { ...DEFAULT_FLAGS };
   const { data } = await withCache('flags', async () => {
     const res = await supabase!.from('feature_flags').select('key,is_enabled');
-    if (res.error) throw res.error;
+    if (res.error) throw ptError(res.error);
     return res.data as Pick<FeatureFlag, 'key' | 'is_enabled'>[];
   });
   const map: Record<string, boolean> = { ...DEFAULT_FLAGS };

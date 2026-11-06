@@ -1,5 +1,6 @@
 import type { AppNotification } from '@/lib/db.types';
 import { supabase } from '@/lib/supabase';
+import { ptError } from '@/lib/errors';
 
 /**
  * Avisos dentro do app (tabela `notifications`, migration 0021): post
@@ -39,5 +40,5 @@ export async function deleteNotifications(id?: string): Promise<void> {
   if (!supabase) return;
   const q = supabase.from('notifications' as never).delete();
   const res = id ? await q.eq('id', id) : await q.not('id', 'is', null);
-  if (res.error) throw res.error;
+  if (res.error) throw ptError(res.error);
 }
