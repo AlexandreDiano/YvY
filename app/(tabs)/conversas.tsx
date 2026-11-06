@@ -149,17 +149,21 @@ function Lista() {
         return (
           <Card key={c.contactId} onPress={() => router.push({ pathname: '/conversas/[id]', params: { id: c.peerId } })}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <Txt variant="label">{camarada(c.name)}</Txt>
+              <Txt variant="label" style={{ flex: 1 }} numberOfLines={1}>
+                {camarada(c.name)}
+              </Txt>
+              {p ? (
+                <Txt variant="small" muted>
+                  {relativeTime(p.at)}
+                </Txt>
+              ) : null}
+            </Row>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Txt variant="small" muted numberOfLines={1} style={{ flex: 1 }}>
+                {p ? `${p.fromMe ? 'Você: ' : ''}${p.text}` : [c.neighborhood, c.city].filter(Boolean).join(', ')}
+              </Txt>
               {p?.unread ? <Badge label="nova" color={color.accent} /> : null}
             </Row>
-            <Txt variant="small" muted numberOfLines={1}>
-              {p ? `${p.fromMe ? 'Você: ' : ''}${p.text}` : [c.neighborhood, c.city].filter(Boolean).join(', ')}
-            </Txt>
-            {p ? (
-              <Txt variant="small" muted>
-                {relativeTime(p.at)}
-              </Txt>
-            ) : null}
           </Card>
         );
       })}

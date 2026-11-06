@@ -117,7 +117,7 @@ function Tela() {
                 {left > 0 ? `Vale por mais ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : 'Venceu. Gere outro.'}
               </Txt>
               <Txt variant="small" muted center>
-                Sua impressão digital: {fp}
+                Seu código de segurança: {fp}
               </Txt>
               <Button title="Gerar outro código" kind="outline" onPress={() => void generate()} />
             </Card>

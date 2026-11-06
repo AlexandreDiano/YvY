@@ -1,6 +1,17 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Fragment, useCallback, useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  type NativeSyntheticEvent,
+  type TextInputKeyPressEventData,
+} from 'react-native';
 import {
   acceptPeerKeys,
   blockPeer,
@@ -21,10 +32,15 @@ import {
 import { useAuth } from '@/features/auth/AuthProvider';
 import { ChatGate } from '@/features/chat/ChatGate';
 import type { StoredMessage } from '@/lib/chat/store';
-import { camarada, shortDateTime } from '@/lib/format';
+import { camarada, clockTime, dayBucket } from '@/lib/format';
 import { confirmAction } from '@/lib/notify';
 import { useNoScreenshots } from '@/lib/privacy';
-import { Banner, Button, Card, EmptyState, Loading, Row, Txt, color, radius, space, type } from '@/ui';
+import { Banner, Button, Divider, EmptyState, Loading, Txt, color, radius, space, type } from '@/ui';
+
+const DESKTOP_WEB =
+  Platform.OS === 'web' &&
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(hover: hover) and (pointer: fine)').matches === true;
 
 export default function Conversa() {
   return (
@@ -34,6 +50,10 @@ export default function Conversa() {
   );
 }
 
+/**
+ * Conversa 1:1. Segurança, bloquear e denunciar ficam no menu Opções do
+ * cabeçalho, fora da lista de mensagens.
+ */
 function Tela() {
   useNoScreenshots('conversa');
   const { profile } = useAuth();
@@ -45,6 +65,7 @@ function Tela() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menu, setMenu] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
   const scroll = useRef<ScrollView>(null);
   const stop = useRef<(() => void) | null>(null);
@@ -92,15 +113,27 @@ function Tela() {
     }
   }
 
+  // no site no computador, Enter envia e Shift+Enter quebra a linha. Celular
+  // (inclusive o site no celular) não tem Shift: lá Enter quebra a linha.
+  function onKeyPress(
+    e: NativeSyntheticEvent<TextInputKeyPressEventData & { shiftKey?: boolean; isComposing?: boolean }>,
+  ) {
+    const { key, shiftKey, isComposing } = e.nativeEvent;
+    if (!DESKTOP_WEB || key !== 'Enter' || shiftKey || isComposing) return;
+    e.preventDefault();
+    void send();
+  }
+
   function block(report: boolean) {
     if (contact === 'loading' || !contact) return;
+    setMenu(false);
     const who = camarada(contact.name);
     confirmAction(
-      report ? `Bloquear e denunciar ${who}?` : `Bloquear ${who}?`,
+      report ? `Denunciar ${who}?` : `Bloquear ${who}?`,
       report
-        ? `As últimas ${Math.min(20, messages.length)} mensagens desta conversa, decifradas neste aparelho, vão para a moderação, junto com o IP de vocês dois. ${who} não poderá mais te mandar mensagem.`
+        ? `As últimas ${Math.min(20, messages.length)} mensagens desta conversa, decifradas neste aparelho, vão para a moderação, junto com o IP de vocês dois. ${who} também fica bloqueado e não poderá mais te mandar mensagem.`
         : `${who} não poderá mais te mandar mensagem, e você também não manda para ${who}. Dá para desbloquear depois.`,
-      report ? 'Bloquear e denunciar' : 'Bloquear',
+      report ? 'Denunciar e bloquear' : 'Bloquear',
       async () => {
         setBusy(true);
         try {
@@ -117,6 +150,12 @@ function Tela() {
     );
   }
 
+  async function unblock() {
+    setMenu(false);
+    await unblockPeer(peer);
+    await load();
+  }
+
   if (contact === 'loading') return <Loading />;
   if (!contact) {
     return <EmptyState title="Conversa não encontrada" detail="A conversa só abre depois que o pedido é aceito." />;
@@ -126,7 +165,16 @@ function Tela() {
 
   return (
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
-      <Stack.Screen options={{ title }} />
+      <Stack.Screen
+        options={{
+          title,
+          // link direto (sem histórico) não tem para onde voltar
+          headerLeft: router.canGoBack()
+            ? undefined
+            : () => <HeaderButton label="Conversas" onPress={() => router.replace('/(tabs)/conversas')} />,
+          headerRight: () => <HeaderButton label="Opções" onPress={() => setMenu(true)} />,
+        }}
+      />
       <ScrollView
         ref={scroll}
         style={s.flex}
@@ -138,7 +186,7 @@ function Tela() {
           <Banner
             tone="warning"
             title={`${title} está num aparelho novo`}
-            detail="Pode ser troca de celular. Se tiver dúvida, confira o código de segurança com a pessoa, em pessoa."
+            detail="Pode ser troca de celular. Se tiver dúvida, confira o código de segurança (em Opções) com a pessoa, em pessoa."
             action={<Button title="Entendi" kind="outline" small block={false} onPress={() => void acceptPeerKeys(me, peer).then(load)} />}
           />
         ) : null}
@@ -150,79 +198,59 @@ function Tela() {
           />
         ) : null}
 
-        {contact.blocked ? (
-          <Banner
-            title="Você bloqueou esta pessoa"
-            detail="Ninguém manda mensagem enquanto estiver bloqueado."
-            action={
-              <Button
-                title="Desbloquear"
-                kind="outline"
-                small
-                block={false}
-                onPress={() => void unblockPeer(peer).then(load)}
-              />
-            }
-          />
-        ) : null}
-
         {messages.length === 0 ? (
           <Txt variant="small" muted center>
             Nenhuma mensagem ainda. O histórico fica só neste aparelho.
           </Txt>
         ) : null}
 
-        {messages.map((m) => {
+        {messages.map((m, i) => {
           const mine = m.from === me;
+          const day = dayBucket(m.at);
+          const newDay = i === 0 || dayBucket(messages[i - 1]!.at) !== day;
           return (
-            <View key={m.id} style={[s.bubble, mine ? s.mine : s.theirs]}>
-              <Txt variant="body" tone={mine ? 'onPrimary' : 'default'}>
-                {m.t}
-              </Txt>
-              <Txt variant="label" tone={mine ? 'onPrimary' : 'default'} muted={!mine}>
-                {shortDateTime(m.at)}
-                {!mine && !m.verified ? ' · assinatura não confere' : ''}
-              </Txt>
-            </View>
+            <Fragment key={m.id}>
+              {newDay ? (
+                <View style={s.day}>
+                  <Txt variant="label" muted>
+                    {day}
+                  </Txt>
+                </View>
+              ) : null}
+              <View style={[s.bubble, mine ? s.mine : s.theirs]}>
+                <Txt variant="body" tone={mine ? 'onPrimary' : 'default'}>
+                  {m.t}
+                </Txt>
+                <Txt variant="label" tone={mine ? 'onPrimary' : 'default'} muted={!mine} style={s.time}>
+                  {clockTime(m.at)}
+                  {!mine && !m.verified ? ' · assinatura não confere' : ''}
+                </Txt>
+              </View>
+            </Fragment>
           );
         })}
-
-        {error ? (
-          <Txt variant="small" tone="danger">
-            {error}
-          </Txt>
-        ) : null}
-
-        <Card>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Txt variant="label">Segurança</Txt>
-            <Button title={showSafety ? 'Fechar' : 'Ver código'} kind="ghost" small block={false} onPress={() => setShowSafety((v) => !v)} />
-          </Row>
-          {showSafety ? (
-            <>
-              <Txt variant="small" muted>
-                Código de segurança de {title} (compare com o que aparece no celular da pessoa, em Adicionar):
-              </Txt>
-              {(keys?.devices ?? []).map((d) => (
-                <Txt key={d.id} variant="heading">
-                  {d.fingerprint}
-                </Txt>
-              ))}
-            </>
-          ) : null}
-          <Row>
-            <Button title="Bloquear" kind="outline" small block={false} disabled={busy || contact.blocked} onPress={() => block(false)} />
-            <Button title="Bloquear e denunciar" kind="outline" small block={false} disabled={busy} onPress={() => block(true)} />
-          </Row>
-        </Card>
       </ScrollView>
 
-      {!contact.blocked ? (
+      {error ? (
+        <Txt variant="small" tone="danger" style={s.error}>
+          {error}
+        </Txt>
+      ) : null}
+
+      {contact.blocked ? (
+        <View style={s.blocked}>
+          <Txt variant="small" muted style={{ flex: 1 }}>
+            Você bloqueou {title}. Ninguém manda mensagem enquanto estiver bloqueado.
+          </Txt>
+          <Button title="Desbloquear" kind="outline" small block={false} onPress={() => void unblock()} />
+        </View>
+      ) : (
         <View style={s.composer}>
           <TextInput
             style={s.input}
             value={text}
             onChangeText={setText}
+            onKeyPress={onKeyPress}
             placeholder="Mensagem"
             placeholderTextColor={color.textMuted}
             multiline
@@ -231,18 +259,104 @@ function Tela() {
           />
           <Button title="Enviar" small block={false} loading={busy} disabled={!text.trim()} onPress={() => void send()} />
         </View>
-      ) : null}
-      <Button title="Voltar" kind="ghost" onPress={() => router.back()} />
+      )}
+
+      <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
+        <Pressable style={s.scrim} onPress={() => setMenu(false)} accessibilityLabel="Fechar opções">
+          {/* toque dentro da folha não fecha */}
+          <Pressable style={s.sheet} onPress={() => undefined}>
+            <Txt variant="heading">{title}</Txt>
+
+            <Pressable onPress={() => setShowSafety((v) => !v)} style={s.item} accessibilityRole="button">
+              <Txt variant="body">Código de segurança</Txt>
+              <Txt variant="small" muted>
+                {showSafety ? 'Esconder' : 'Compare com o celular da pessoa para ter certeza de que é ela.'}
+              </Txt>
+            </Pressable>
+            {showSafety ? (
+              <View style={s.safety}>
+                <Txt variant="small" muted>
+                  Peça para {title} abrir Adicionar e comparar com este código:
+                </Txt>
+                {(keys?.devices ?? []).map((d) => (
+                  <Txt key={d.id} variant="heading" selectable>
+                    {d.fingerprint}
+                  </Txt>
+                ))}
+              </View>
+            ) : null}
+
+            <Divider />
+            {contact.blocked ? (
+              <Pressable onPress={() => void unblock()} style={s.item} accessibilityRole="button">
+                <Txt variant="body">Desbloquear</Txt>
+              </Pressable>
+            ) : (
+              <Pressable onPress={() => block(false)} disabled={busy} style={s.item} accessibilityRole="button">
+                <Txt variant="body">Bloquear</Txt>
+                <Txt variant="small" muted>
+                  Nenhum dos dois manda mensagem. Dá para desfazer.
+                </Txt>
+              </Pressable>
+            )}
+            <Pressable onPress={() => block(true)} disabled={busy} style={s.item} accessibilityRole="button">
+              <Txt variant="body" tone="danger">
+                Denunciar
+              </Txt>
+              <Txt variant="small" muted>
+                Manda as últimas mensagens para a moderação e bloqueia.
+              </Txt>
+            </Pressable>
+
+            <Button title="Fechar" kind="ghost" onPress={() => setMenu(false)} />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
+  );
+}
+
+function HeaderButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={12} accessibilityRole="button" style={s.headerBtn}>
+      <Txt variant="body" tone="primary">
+        {label}
+      </Txt>
+    </Pressable>
   );
 }
 
 const s = StyleSheet.create({
   flex: { flex: 1, backgroundColor: color.bg },
   list: { padding: space.lg, gap: space.sm },
-  bubble: { maxWidth: '85%', padding: space.md, borderRadius: radius.lg, gap: space.xs },
-  mine: { alignSelf: 'flex-end', backgroundColor: color.primary },
-  theirs: { alignSelf: 'flex-start', backgroundColor: color.surface, borderWidth: 1, borderColor: color.border },
+  day: {
+    alignSelf: 'center',
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.lg,
+    backgroundColor: color.surface,
+    marginVertical: space.xs,
+  },
+  bubble: { maxWidth: '85%', paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.lg, gap: 2 },
+  mine: { alignSelf: 'flex-end', backgroundColor: color.primary, borderBottomRightRadius: radius.sm },
+  theirs: {
+    alignSelf: 'flex-start',
+    backgroundColor: color.surface,
+    borderWidth: 1,
+    borderColor: color.border,
+    borderBottomLeftRadius: radius.sm,
+  },
+  time: { alignSelf: 'flex-end', opacity: 0.8 },
+  error: { paddingHorizontal: space.lg, paddingVertical: space.xs },
+  blocked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    padding: space.md,
+    borderTopWidth: 1,
+    borderTopColor: color.border,
+    backgroundColor: color.surface,
+  },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -264,4 +378,18 @@ const s = StyleSheet.create({
     borderColor: color.border,
     color: color.text,
   },
+  headerBtn: { paddingHorizontal: space.sm },
+  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: color.scrim },
+  sheet: {
+    backgroundColor: color.bg,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: space.lg,
+    gap: space.sm,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+  },
+  item: { paddingVertical: space.sm, gap: 2 },
+  safety: { gap: space.xs, paddingBottom: space.sm },
 });

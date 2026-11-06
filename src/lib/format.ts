@@ -29,6 +29,12 @@ export function shortDateTime(iso: string): string {
   return `${DIAS_CURTO[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}, ${h}`;
 }
 
+/** Hora do balão de conversa: "09:05". */
+export function clockTime(iso: string): string {
+  const d = new Date(iso);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** "2026-09-03" vira "03/09/2026" sem passar por Date, que pode virar o dia por causa do fuso. */
 export function brDate(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-');

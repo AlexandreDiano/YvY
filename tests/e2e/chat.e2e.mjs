@@ -4,7 +4,7 @@
  * Rodar por scripts/e2e-chat.sh, que monta tudo.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -58,6 +58,10 @@ async function browser(port, name) {
   };
   const send = (method, params = {}) => new Promise((r) => { pending[++id] = r; ws.send(JSON.stringify({ id, method, params })); });
   await send('Runtime.enable'); await send('Page.enable');
+  // headless diz que não tem mouse, e o app só manda com Enter em computador
+  await send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `{ const mm = window.matchMedia.bind(window); window.matchMedia = (q) => (q.includes('pointer: fine') ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} } : mm(q)); }`,
+  });
   const ev = async (e) => (await send('Runtime.evaluate', { expression: e, awaitPromise: true, returnByValue: true })).result?.value;
   return {
     errors,
@@ -65,12 +69,29 @@ async function browser(port, name) {
     async go(path) { await send('Page.navigate', { url: 'http://127.0.0.1:8765' + path }); await wait(4500); },
     text: () => ev('document.body.innerText'),
     async click(label) {
-      const r = await ev(`(() => { const els = [...document.querySelectorAll('[role=button],button')]; const el = els.find(e => e.innerText.trim() === ${JSON.stringify(label)}); if (!el) return false; el.click(); return true; })()`);
+      const r = await ev(`(() => { const els = [...document.querySelectorAll('[role=button],button')]; const el = els.find(e => e.innerText.trim().split('\\n')[0] === ${JSON.stringify(label)}); if (!el) return false; el.click(); return true; })()`);
       await wait(2500);
       return r;
     },
     async type(selector, value) {
       return ev(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+    },
+    // E2E_SHOTS=pasta: print da tela em tamanho de celular, para conferir a interface
+    async shot(name) {
+      if (!process.env.E2E_SHOTS) return;
+      await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 780, deviceScaleFactor: 2, mobile: true });
+      await wait(600);
+      const r = await send('Page.captureScreenshot', { format: 'png' });
+      writeFileSync(join(process.env.E2E_SHOTS, `${name}.png`), Uint8Array.from(atob(r.data), (c) => c.charCodeAt(0)));
+      await send('Emulation.clearDeviceMetricsOverride');
+    },
+    // tecla Enter de teclado físico no campo focado
+    async enter() {
+      await ev(`document.querySelector('textarea')?.focus(); true`);
+      for (const type of ['keyDown', 'keyUp']) {
+        await send('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: type === 'keyDown' ? '\r' : undefined });
+      }
+      await wait(2500);
     },
     close() { ws.close(); proc.kill(); },
   };
@@ -93,10 +114,11 @@ try {
   ok('primeira abertura registra um aparelho só', (devs.data ?? []).length === 1, `aparelhos: ${(devs.data ?? []).length}`);
 
   await pa.go('/conversas/adicionar');
+  await pa.shot('adicionar');
   const tA = await pa.text();
   const code = (tA.match(/\b([A-Z2-9]{5}) ([A-Z2-9]{5})\b/) || []).slice(1).join('');
   ok('A vê o próprio QRCode/código', code.length === 10, code || tA.slice(0, 200));
-  const fp = (tA.match(/impressão digital: ([0-9A-F ]{24})/) || [])[1]?.replace(/\s/g, '');
+  const fp = (tA.match(/código de segurança: ([0-9A-F ]{24})/) || [])[1]?.replace(/\s/g, '');
 
   await pb.go(`/conversas/adicionar?c=${code}&f=${fp}`);
   await pb.ev('window.confirm = () => true');
@@ -131,13 +153,22 @@ try {
   ok('A apagou da fila depois de baixar', (left.data ?? []).length === 0);
 
   await pa.type('textarea', 'Combinado, vou levar os panfletos');
-  await pa.click('Enviar');
+  await pa.enter();
+  ok('Enter envia no computador e limpa o campo', (await pa.ev(`document.querySelector('textarea').value`)) === '', await pa.ev(`JSON.stringify(document.querySelector('textarea').value)`));
   await pb.go(`/conversas/${A.id}`);
   ok('B recebe a resposta', (await pb.text()).includes('vou levar os panfletos'));
 
+  await pb.shot('conversa-b');
+  await pb.go('/conversas');
+  await pb.shot('lista');
   await pa.go(`/conversas/${B.id}`);
   await pa.ev('window.confirm = () => true');
-  ok('A bloqueia e denuncia', await pa.click('Bloquear e denunciar'));
+  await pa.shot('conversa-a');
+  ok('A abre as opções da conversa', await pa.click('Opções'));
+  await pa.shot('opcoes');
+  await pa.click('Código de segurança');
+  await pa.shot('opcoes-codigo');
+  ok('A denuncia (e bloqueia)', await pa.click('Denunciar'));
   await wait(1500);
   const rep = await admin.from('chat_reports').select('*').eq('reporter', A.id);
   const r0 = rep.data?.[0];
@@ -153,6 +184,7 @@ try {
     await pm.go('/denuncias');
     await wait(1500);
     const t = await pm.text();
+    await pm.shot('denuncias');
     ok('moderador vê a denúncia com o texto', t.includes('Camarada BIA denunciado por Camarada ANA') && t.includes('na praça'), t.slice(0, 300));
     ok('moderação confere a assinatura de cada mensagem', t.includes('assinatura confere') && !t.includes('não confere'));
     await pm.type('textarea', 'Conversa normal, sem problema');
@@ -169,6 +201,8 @@ try {
   await pb.go(`/conversas/${A.id}`);
   await pb.type('textarea', 'mensagem depois do bloqueio');
   await pb.click('Enviar');
+  await pa.go(`/conversas/${B.id}`);
+  await pa.shot('conversa-bloqueada');
   ok('B bloqueado não consegue mandar', (await pb.text()).includes('Não dá para mandar'), (await pb.text()).slice(-300));
 
   await pa.go('/conversas/bloqueados');
