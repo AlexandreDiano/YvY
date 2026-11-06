@@ -27,7 +27,7 @@ export default function Privacidade() {
         <Txt variant="body">
           Fazer parte da base revela opinião política, que a LGPD trata como dado sensível. Por isso o cadastro
           pede um consentimento separado e explícito só para isso, além do aceite dos termos. Ele pode ser
-          retirado a qualquer momento pelo e-mail acima, e a conta é apagada.
+          retirado a qualquer momento apagando a conta (Perfil › Minha conta) ou pelo e-mail acima.
         </Txt>
       </Card>
 
@@ -163,14 +163,29 @@ export default function Privacidade() {
       </Card>
 
       <Section title="Seus direitos (LGPD)" />
-      <Txt variant="body">
-        Você pode pedir acesso, correção ou exclusão dos seus dados, e sair do
-        app apagando a conta. Exclusão de conta apaga perfil, posts,
-        participações, contatos, bloqueios e mensagens ainda na fila. O
-        registro de atividade e o IP das conversas (veja acima) continuam por
-        até 6 meses e depois são apagados; denúncia em que você aparece segue a
-        regra da denúncia.
-      </Txt>
+      <Card>
+        <Txt variant="body">
+          Você mesmo corrige seus dados em Perfil › Minha conta: e-mail, senha, nome completo e CEP (o CEP novo
+          refaz bairro, cidade e UF). Apelido e telefone ficam no Perfil. Acesso a uma cópia dos dados vai pelo
+          e-mail acima.
+        </Txt>
+        <Txt variant="body">
+          Em Minha conta também dá para apagar a conta, sem pedir a ninguém. Sai na hora: perfil, posts,
+          denúncias de post que você fez, ideias enviadas, avisos, presenças em ação, ações que você criou
+          (quem tinha confirmado presença numa ação futura recebe um aviso), convites que você gerou, regiões
+          seguidas e tudo das conversas no servidor: aparelhos, contatos, bloqueios e mensagens ainda na fila.
+          Antes, o app tenta apagar as imagens dos seus posts e, depois, apaga neste aparelho a chave e o
+          histórico das conversas.
+        </Txt>
+        <Txt variant="body">
+          Fica, sem ligação com você: quem você convidou continua com a conta, e a permissão que você deu a
+          alguém continua valendo. O registro de atividade (veja acima) e o IP das conversas continuam por até
+          6 meses e depois são apagados. A exclusão também entra nesse registro, com apelido, bairro e o que
+          saiu, mas sem seu nome completo, telefone, e-mail e CEP. O que já estava no registro antes (o
+          cadastro e as mudanças de dados) segue até completar os 6 meses. Denúncia de conversa em que você aparece
+          segue a regra da denúncia.
+        </Txt>
+      </Card>
     </Screen>
   );
 }

@@ -16,7 +16,7 @@ import { SupportCard } from '@/features/support/SupportCard';
 import { env } from '@/lib/env';
 import { monitoringEnabled, sendTestError } from '@/lib/monitoring';
 import { notify } from '@/lib/notify';
-import { camarada, electionOver, formatCep, formatPhone, longDate } from '@/lib/format';
+import { camarada, electionOver, formatPhone, longDate } from '@/lib/format';
 import {
   Button,
   Card,
@@ -69,7 +69,6 @@ export default function Perfil() {
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [phone, setPhone] = useState(formatPhone(profile?.phone ?? ''));
-  const [cep, setCep] = useState(formatCep(profile?.cep ?? ''));
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<Awaited<ReturnType<typeof pendingInvitees>>>([]);
 
@@ -105,7 +104,6 @@ export default function Perfil() {
       await updateProfile({
         display_name: displayName.trim() || profile!.display_name,
         phone: phone.replace(/\D+/g, '') || null,
-        cep: cep.replace(/\D+/g, '') || null,
       });
       Alert.alert('Salvo', 'Seus dados foram atualizados.');
     } catch (err) {
@@ -133,7 +131,7 @@ export default function Perfil() {
           <Txt variant="small">
             Participar da base revela opinião política, que a LGPD trata como dado sensível. Precisamos do seu
             consentimento separado para tratar esse dado (só para o app funcionar: sua conta, seu bairro, as
-            ações). Se não quiser, peça a exclusão da conta em {RESPONSAVEL.email}.
+            ações). Se não quiser, apague a conta em Minha conta, aqui no Perfil, ou peça em {RESPONSAVEL.email}.
           </Txt>
           <Button
             title="Consinto"
@@ -193,14 +191,6 @@ export default function Perfil() {
           onChangeText={(v) => setPhone(formatPhone(v))}
           keyboardType="phone-pad"
         />
-        <Field
-          label="CEP"
-          value={cep}
-          onChangeText={(v) => setCep(formatCep(v))}
-          keyboardType="number-pad"
-          maxLength={9}
-          hint="Mudou de bairro? Atualizar o CEP troca o seu feed e o seu mapa."
-        />
         <Options
           label="Precisão da localização"
           value={String(profile.location_precision) as '1' | '2' | '3' | '4'}
@@ -209,6 +199,11 @@ export default function Perfil() {
         />
         <Button title="Salvar" loading={saving} onPress={save} />
       </Card>
+      <Button
+        title="Minha conta: e-mail, senha, nome, CEP, apagar"
+        kind="outline"
+        onPress={() => router.push('/conta')}
+      />
 
       {isBaseMember && flags[FLAG.convites] ? (
         <>

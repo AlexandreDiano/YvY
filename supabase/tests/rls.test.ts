@@ -988,6 +988,87 @@ async function main(): Promise<void> {
     }
   }
 
+  console.log('\nApagar a própria conta (0053)');
+  {
+    const goner = await makeActor('goner', 'militant', 'active', AREA_A);
+    const heir = await makeActor('heir', 'militant', 'active', AREA_A);
+    // quem liberou permissão para alguém (granted_by era NO ACTION) também apaga
+    await admin.from('invite_grants').insert({ user_id: heir.id, granted_by: goner.id });
+    await admin.from('role_managers').insert({ user_id: heir.id, granted_by: goner.id });
+    // ação futura do goner com o heir confirmado: some no cascade, heir é avisado
+    const act = await admin
+      .from('actions')
+      .insert({
+        title: 'Ação de quem vai sair',
+        type: 'panfletagem',
+        status: 'open',
+        scheduled_at: new Date(Date.now() + 86400000).toISOString(),
+        created_by: goner.id,
+        visibility: 'base',
+        ...AREA_A,
+      })
+      .select('id')
+      .single();
+    if (act.error) throw new Error(`ação do goner: ${act.error.message}`);
+    await admin.from('action_participants').insert({ action_id: (act.data as { id: string }).id, user_id: heir.id });
+    // gera registro de atividade antes de apagar
+    await goner.client.from('profiles').update({ display_name: 'GONER2' }).eq('id', goner.id);
+
+    {
+      const r = await anon.rpc('delete_my_account', { p_confirm: 'APAGAR' });
+      check('anônimo não chama delete_my_account', Boolean(r.error), r.error ? '' : 'passou');
+    }
+    {
+      const r = await goner.client.rpc('delete_my_account', { p_confirm: 'apagar não' });
+      check('confirmação errada é recusada', Boolean(r.error), r.error ? '' : 'apagou');
+    }
+    {
+      const r = await adm.client.rpc('delete_my_account', { p_confirm: 'APAGAR' });
+      check('admin não apaga a conta pelo app', Boolean(r.error), r.error ? '' : 'apagou');
+    }
+    {
+      const r = await goner.client.rpc('delete_my_account', { p_confirm: 'APAGAR' });
+      check('membro apaga a própria conta', !r.error, r.error?.message);
+    }
+    {
+      const p = await admin.from('profiles').select('id').eq('id', goner.id);
+      check('perfil saiu', (p.data ?? []).length === 0, JSON.stringify(p.data ?? p.error));
+      const u = await admin.auth.admin.getUserById(goner.id);
+      check('usuário do Auth saiu', !u.data.user, u.data.user ? 'ainda existe' : '');
+      const other = await admin.from('profiles').select('id').in('id', [heir.id, milA.id]);
+      check('só a própria conta sai (os outros continuam)', (other.data ?? []).length === 2, JSON.stringify(other.data));
+      const g = await admin.from('invite_grants').select('granted_by').eq('user_id', heir.id).maybeSingle();
+      check('permissão de convidar que ela deu continua, sem autor', g.data?.granted_by === null, JSON.stringify(g.data ?? g.error));
+      const rm = await admin.from('role_managers').select('granted_by').eq('user_id', heir.id).maybeSingle();
+      check('permissão de papéis que ela deu continua, sem autor', rm.data?.granted_by === null, JSON.stringify(rm.data ?? rm.error));
+      const a = await admin.from('actions').select('id').eq('id', (act.data as { id: string }).id);
+      check('ação que ela criou saiu', (a.data ?? []).length === 0);
+      const n = await admin.from('notifications').select('id').eq('user_id', heir.id).eq('kind', 'action_cancelled');
+      check('quem ia na ação é avisado', (n.data ?? []).length === 1, `recebeu ${(n.data ?? []).length}`);
+      const log = await admin.from('audit_log').select('action,entity_type,metadata').eq('user_id', goner.id);
+      const rows = (log.data ?? []) as { action: string; entity_type: string; metadata: Record<string, Record<string, unknown>> | null }[];
+      check('audit_log continua depois de apagar', rows.some((x) => x.action === 'update' && x.entity_type === 'profiles'));
+      check('audit_log registra a exclusão', rows.some((x) => x.action === 'delete_account'));
+      const gone = rows.find((x) => x.action === 'delete' && x.entity_type === 'profiles');
+      const old = gone?.metadata?.old ?? {};
+      check(
+        'cópia do perfil apagado não leva nome, telefone nem CEP',
+        Boolean(gone) && !('full_name' in old) && !('phone' in old) && !('cep' in old),
+        JSON.stringify(gone?.metadata ?? null),
+      );
+      await admin.from('audit_log').delete().eq('user_id', goner.id);
+    }
+    {
+      // a RPC só olha auth.uid(): não existe versão que receba de quem apagar
+      const r = await milB.client.rpc('delete_my_account', { p_confirm: 'APAGAR', p_user: milA.id } as never);
+      check('ninguém apaga a conta de outro', Boolean(r.error), r.error ? '' : 'passou');
+      const a = await admin.from('profiles').select('id').in('id', [milA.id, milB.id]);
+      check('as duas contas continuam', (a.data ?? []).length === 2);
+      const d = await milB.client.from('profiles').delete().eq('id', milA.id).select('id');
+      check('ninguém apaga perfil alheio direto', Boolean(d.error) || (d.data ?? []).length === 0);
+    }
+  }
+
   console.log(`\n${pass} ok, ${failures.length} falhas`);
   if (failures.length) {
     console.log('\nfalhas:');

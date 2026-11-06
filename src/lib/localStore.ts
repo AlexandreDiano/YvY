@@ -41,6 +41,12 @@ export async function patch<T extends { id: string }>(
   return next;
 }
 
+/** Apaga todas as coleções do modo local (usado ao apagar a conta). */
+export async function clearAll(): Promise<void> {
+  const keys = await AsyncStorage.getAllKeys();
+  await AsyncStorage.multiRemove(keys.filter((k) => k.startsWith(PREFIX)));
+}
+
 export function localId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }

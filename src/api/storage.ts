@@ -63,3 +63,34 @@ export async function withSignedImages<T extends { image_url: string | null }>(
     r.image_url && signed.has(r.image_url) ? { ...r, image_url: signed.get(r.image_url)! } : r,
   );
 }
+
+/**
+ * Apaga as imagens da própria pasta (`<uid>/`) antes de apagar a conta: o
+ * cascade do banco leva os posts, mas não mexe no Storage. Junta o que a
+ * listagem acha (inclusive imagem que subiu e o post não saiu) com o caminho
+ * guardado nos posts. Melhor esforço: falhar aqui não impede apagar a conta.
+ */
+export async function removeMyPostImages(userId: string): Promise<void> {
+  if (!supabase) return;
+  const paths = new Set<string>();
+  try {
+    const listed = await supabase.storage.from(BUCKET).list(userId, { limit: 1000 });
+    for (const f of listed.data ?? []) paths.add(`${userId}/${f.name}`);
+  } catch {
+    // sem listagem: fica com o caminho dos posts
+  }
+  try {
+    const posts = await supabase.from('posts').select('image_url').eq('author_id', userId);
+    for (const p of posts.data ?? []) {
+      if (p.image_url && !isLocal(p.image_url) && p.image_url.startsWith(`${userId}/`)) paths.add(p.image_url);
+    }
+  } catch {
+    // idem
+  }
+  if (!paths.size) return;
+  try {
+    await supabase.storage.from(BUCKET).remove([...paths]);
+  } catch {
+    // arquivo que sobrar fica órfão no bucket privado, sem post que aponte para ele
+  }
+}

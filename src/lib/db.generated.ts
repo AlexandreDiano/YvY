@@ -820,18 +820,18 @@ export type Database = {
       invite_grants: {
         Row: {
           granted_at: string;
-          granted_by: string;
+          granted_by: string | null;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
           granted_at?: string;
-          granted_by: string;
+          granted_by?: string | null;
           user_id: string;
         };
         Update: {
           granted_at?: string;
-          granted_by?: string;
+          granted_by?: string | null;
           user_id?: string;
         };
         Relationships: [
@@ -1547,18 +1547,18 @@ export type Database = {
       role_managers: {
         Row: {
           granted_at: string;
-          granted_by: string;
+          granted_by: string | null;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
           granted_at?: string;
-          granted_by: string;
+          granted_by?: string | null;
           user_id: string;
         };
         Update: {
           granted_at?: string;
-          granted_by?: string;
+          granted_by?: string | null;
           user_id?: string;
         };
         Relationships: [
@@ -2023,6 +2023,7 @@ export type Database = {
         Returns: undefined;
       };
       delete_claim_check: { Args: { p_id: string }; Returns: undefined };
+      delete_my_account: { Args: { p_confirm: string }; Returns: undefined };
       display_name_of: { Args: { p_id: string }; Returns: string };
       fail_claim_check: { Args: { p_error: string; p_id: string }; Returns: undefined };
       finish_claim_check: {

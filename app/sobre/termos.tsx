@@ -21,7 +21,9 @@ export default function Termos() {
         Propostas e checagem são abertas e não pedem cadastro. A conta do YvY só
         existe depois de um convite presencial por QRCode: você cria a sua, com
         seu e-mail e sua senha, e aceita estes termos no seu próprio cadastro.
-        Conta é pessoal e intransferível — e a senha também.
+        Conta é pessoal e intransferível — e a senha também. Você troca e-mail e
+        senha e apaga a conta quando quiser, em Perfil › Minha conta; o que sai e o
+        que fica está em Privacidade.
       </Txt>
 
       <Section title="Regras de convivência" />

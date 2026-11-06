@@ -11,9 +11,13 @@ import {
   type ReactNode,
 } from 'react';
 import { DEFAULT_FLAGS, loadFlags } from '@/api/flags';
+import { removeMyPostImages } from '@/api/storage';
+import { normalizeEmail } from '@/features/account/rules';
+import { deleteSecret } from '@/lib/chat/keys';
 import type { MembershipStatus, Profile, UserRole } from '@/lib/db.types';
 import { env, isBackendConfigured } from '@/lib/env';
 import { suggestDisplayName } from '@/lib/format';
+import { clearAll as clearLocalStore } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -80,6 +84,14 @@ type Ctx = {
   requestPasswordReset: (email: string, captchaToken?: string) => Promise<void>;
   resetPassword: (email: string, code: string, password: string) => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
+  /** E-mail de login (do Auth, não do perfil) e o novo, se a troca espera confirmação. */
+  account: { email: string | null; newEmail: string | null };
+  /** 'pending': falta confirmar pelo link; 'changed': já trocou (confirmação desligada). */
+  changeEmail: (email: string) => Promise<'pending' | 'changed'>;
+  /** Confere a senha atual (com captcha, como o login) e troca. */
+  changePassword: (current: string, next: string, captchaToken?: string) => Promise<void>;
+  /** Apaga a conta (RPC delete_my_account) e tudo dela neste aparelho. */
+  deleteAccount: (confirm: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -157,6 +169,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [flags, setFlags] = useState<Record<string, boolean>>({ ...DEFAULT_FLAGS });
   const [visitorView, setVisitorView] = useState(false);
+  const [account, setAccount] = useState<{ email: string | null; newEmail: string | null }>({
+    email: null,
+    newEmail: null,
+  });
 
   const loadLocal = useCallback(async () => {
     const raw = await AsyncStorage.getItem(LOCAL_KEY);
@@ -167,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const client = supabase!;
     const { data: sess } = await client.auth.getSession();
     const uid = sess.session?.user.id;
+    setAccount({ email: sess.session?.user.email ?? null, newEmail: sess.session?.user.new_email ?? null });
     if (!uid) {
       setProfile(null);
       return;
@@ -377,6 +394,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [mode, profile],
   );
 
+  const changeEmail = useCallback(
+    async (email: string): Promise<'pending' | 'changed'> => {
+      if (mode === 'local') throw new Error('Trocar e-mail exige backend configurado.');
+      const addr = normalizeEmail(email);
+      const { data, error } = await supabase!.auth.updateUser(
+        { email: addr },
+        // o link de confirmação cai no site, como o do cadastro
+        { emailRedirectTo: env.siteUrl ? `${env.siteUrl}/entrar` : undefined },
+      );
+      if (error) {
+        if (error.code === 'email_exists') throw new Error('Esse e-mail já é de outra conta.');
+        if (error.code === 'email_address_invalid') throw new Error('Esse e-mail não é aceito. Confira o endereço.');
+        if (error.status === 429) throw new Error('Muitos pedidos agora. Tente de novo em alguns minutos.');
+        throw error;
+      }
+      const now = data.user?.email ?? null;
+      setAccount({ email: now, newEmail: data.user?.new_email ?? null });
+      return now?.toLowerCase() === addr ? 'changed' : 'pending';
+    },
+    [mode],
+  );
+
+  const changePassword = useCallback(
+    async (current: string, next: string, captchaToken?: string) => {
+      if (mode === 'local') throw new Error('Trocar senha exige backend configurado.');
+      const { data: sess } = await supabase!.auth.getSession();
+      const email = sess.session?.user.email;
+      if (!email) throw new Error('Sessão vencida. Entre de novo.');
+      // reautentica: quem pegou o celular desbloqueado não troca a senha sem saber a atual
+      const { error } = await supabase!.auth.signInWithPassword({ email, password: current, options: { captchaToken } });
+      if (error) {
+        if (isCaptchaError(error)) throw captchaError(error);
+        if (error.code === 'invalid_credentials') throw new Error('A senha atual não confere.');
+        if (error.status === 429) throw new Error('Muitas tentativas agora. Tente de novo em alguns minutos.');
+        throw error;
+      }
+      const { error: e2 } = await supabase!.auth.updateUser({ password: next });
+      if (e2) {
+        if (e2.code === 'same_password') throw new Error('A senha nova precisa ser diferente da antiga.');
+        if (e2.code === 'weak_password') throw new Error('Senha fraca. Use uma mais longa, com letras e números.');
+        throw e2;
+      }
+    },
+    [mode],
+  );
+
+  const deleteAccount = useCallback(
+    async (confirm: string) => {
+      if (mode === 'local') {
+        // sem servidor: o perfil e as coleções locais são tudo que existe
+        await AsyncStorage.multiRemove([LOCAL_KEY, PENDING_KEY]);
+        await clearLocalStore();
+        setProfile(null);
+        return;
+      }
+      const client = supabase!;
+      const { data: sess } = await client.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid) throw new Error('Sessão vencida. Entre de novo.');
+      // o cascade do banco não chega ao Storage: imagens dos posts saem antes
+      await removeMyPostImages(uid);
+      const { error } = await client.rpc('delete_my_account', { p_confirm: confirm.trim().toUpperCase() });
+      if (error) throw error;
+      // o usuário não existe mais: sair só daqui, sem chamar o servidor
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      // chave e histórico das conversas deste aparelho
+      try {
+        await deleteSecret(uid);
+        const keys = await AsyncStorage.getAllKeys();
+        await AsyncStorage.multiRemove([PENDING_KEY, ...keys.filter((k) => k.startsWith(`chat:v1:${uid}:`))]);
+      } catch {
+        // o que sobrar é cifrado e sem conta para abrir
+      }
+      setProfile(null);
+      setAccount({ email: null, newEmail: null });
+      setVisitorView(false);
+    },
+    [mode],
+  );
+
   const signOut = useCallback(async () => {
     if (mode === 'local') {
       await AsyncStorage.removeItem(LOCAL_KEY);
@@ -414,10 +511,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       resetPassword,
       updateProfile,
+      account,
+      changeEmail,
+      changePassword,
+      deleteAccount,
       signOut,
       refresh,
     };
-  }, [ready, mode, profile, flags, visitorView, signUpWithInvite, signIn, resendConfirmation, requestPasswordReset, resetPassword, updateProfile, signOut, refresh]);
+  }, [
+    ready,
+    mode,
+    profile,
+    flags,
+    visitorView,
+    signUpWithInvite,
+    signIn,
+    resendConfirmation,
+    requestPasswordReset,
+    resetPassword,
+    updateProfile,
+    account,
+    changeEmail,
+    changePassword,
+    deleteAccount,
+    signOut,
+    refresh,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
