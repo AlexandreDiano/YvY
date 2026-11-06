@@ -1,4 +1,4 @@
-import { Redirect, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, RefreshControl } from 'react-native';
 import { deleteNotifications, listNotifications, markAllRead } from '@/api/notifications';
@@ -75,7 +75,10 @@ export default function Avisos() {
         </Row>
       ) : null}
       {items.length === 0 ? (
-        <EmptyState title="Nenhum aviso" detail="Quando a moderação decidir um post seu, aparece aqui." />
+        <EmptyState
+          title="Nenhum aviso"
+          detail="Quando sair uma ação no seu bairro ou a moderação decidir um post seu, aparece aqui."
+        />
       ) : (
         items.map((n) => (
           <Card key={n.id} stripe={n.kind === 'post_removed' ? color.accent : color.primary}>
@@ -90,7 +93,17 @@ export default function Avisos() {
                 {relativeTime(n.created_at)}
                 {n.read_at ? '' : ' · novo'}
               </Txt>
-              <Button title="Apagar" kind="ghost" small block={false} onPress={() => void remove(n.id)} />
+              <Row>
+                {n.kind === 'action_new' && n.ref_id ? (
+                  <Button
+                    title="Ver e confirmar"
+                    small
+                    block={false}
+                    onPress={() => router.push({ pathname: '/acoes/[id]', params: { id: n.ref_id! } })}
+                  />
+                ) : null}
+                <Button title="Apagar" kind="ghost" small block={false} onPress={() => void remove(n.id)} />
+              </Row>
             </Row>
           </Card>
         ))

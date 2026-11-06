@@ -575,6 +575,31 @@ async function main(): Promise<void> {
     milB.client.from('actions').select('id').eq('neighborhood', AREA_A.neighborhood),
     0,
   );
+  {
+    // ação nova avisa o bairro (0054): mesmo público da RLS, menos quem criou
+    const avisados = async (id: string) =>
+      ((await admin.from('notifications').select('id').eq('user_id', id).eq('kind', 'action_new')).data ?? []).length;
+    check('ação nova avisa membro do bairro', (await avisados(modA.id)) === 1);
+    check('quem criou a ação não é avisado', (await avisados(milA.id)) === 0);
+    check('membro pendente não é avisado', (await avisados(pending.id)) === 0);
+    check('outro bairro não é avisado', (await avisados(milB.id)) === 0);
+    await admin.from('profiles').update({ notify_actions: false }).eq('id', modA.id);
+    await admin.from('actions').insert({
+      title: 'Ato de teste A',
+      type: 'panfletagem',
+      status: 'open',
+      scheduled_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+      created_by: milA.id,
+      visibility: 'base',
+      ...AREA_A,
+    });
+    check('quem desligou "Ações do bairro" não é avisado', (await avisados(modA.id)) === 1);
+    check('admin do bairro recebe as duas', (await avisados(adm.id)) === 2);
+    await expectDenied(
+      'militante não cria aviso para os outros',
+      milA.client.from('notifications').insert({ user_id: milB.id, kind: 'action_new', title: 'x' }).select('id'),
+    );
+  }
   await expectDenied(
     'militante pendente não cria ação',
     pending.client.from('actions').insert({
