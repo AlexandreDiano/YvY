@@ -8,6 +8,9 @@ import { Appearance, Platform } from 'react-native';
  * então o tema tem que estar decidido antes, com leitura síncrona. AsyncStorage
  * não serve; um arquivinho com expo-file-system (textSync) serve. Trocar o
  * tema só vale quando reabre o app.
+ *
+ * No site, app/+html.tsx repete esta regra num script que roda antes do app
+ * (o HTML do export sai no tema claro). Mudou a regra aqui, muda lá.
  */
 export type ThemePref = 'system' | 'light' | 'dark';
 

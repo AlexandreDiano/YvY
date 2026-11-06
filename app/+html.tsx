@@ -10,8 +10,14 @@ import type { PropsWithChildren } from "react";
  * public/sw.js. O SW não é registrado em localhost, senão fica servindo
  * bundle velho enquanto a gente desenvolve.
  *
- * As cores aqui são fixas (areia/creme) porque o HTML sai no build, antes de
- * saber o tema de quem abre. O escuro entra quando o app carrega.
+ * Tema escuro (YVY-139): o HTML sai do build no tema claro, com as classes de
+ * CSS do react-native-web já nele. Na hidratação o React não troca atributo
+ * de elemento que já existe, então quem usa escuro ficava com a página
+ * misturada (o que veio do HTML claro, o que montou depois escuro). O
+ * THEME_SCRIPT abaixo roda antes de pintar: se o tema for escuro, pinta o
+ * fundo, esconde o HTML claro e manda o app montar do zero (createRoot) em vez
+ * de hidratar. O app mostra a árvore no primeiro efeito (app/_layout.tsx).
+ * A regra de escolha é a mesma de src/ui/theme.ts; mudou lá, muda aqui.
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -38,6 +44,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-title" content="YvY" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: BASE_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: REGISTER_SW }} />
@@ -50,7 +57,34 @@ export default function Root({ children }: PropsWithChildren) {
 
 const BASE_CSS = `
 body { background-color: #FAF8F5; }
-@media (prefers-color-scheme: dark) { body { background-color: #141513; } }
+html.yvy-dark { color-scheme: dark; }
+html.yvy-dark body { background-color: #141513; }
+html.yvy-wait #root { visibility: hidden; }
+`;
+
+// Mesma regra de src/ui/theme.ts: 'dark'/'light' em localStorage['yvy-theme.txt']
+// ou, sem escolha, o prefers-color-scheme. O export grava o tema claro, então
+// só o escuro precisa de ajuste. __EXPO_ROUTER_HYDRATE__ é o que o expo lê
+// para escolher entre hydrateRoot e createRoot; o próprio HTML do export o
+// liga num <script type="module"> que roda depois deste, por isso o setter
+// ignora a escrita.
+const THEME_SCRIPT = `
+(function () {
+  var p = null;
+  try { p = localStorage.getItem('yvy-theme.txt'); } catch (e) {}
+  var dark = p === 'dark' || (p !== 'light' && !!window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  if (p === 'dark' || p === 'light') {
+    var m = document.querySelectorAll('meta[name="theme-color"]');
+    for (var i = 0; i < m.length; i++) m[i].setAttribute('content', dark ? '#141513' : '#FAF8F5');
+  }
+  if (!dark) return;
+  document.documentElement.className += ' yvy-dark yvy-wait';
+  Object.defineProperty(globalThis, '__EXPO_ROUTER_HYDRATE__', {
+    configurable: true,
+    get: function () { return false; },
+    set: function () {}
+  });
+})();
 `;
 
 // O Chrome dispara o beforeinstallprompt cedo, às vezes antes do React montar.

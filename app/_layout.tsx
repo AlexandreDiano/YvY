@@ -6,8 +6,8 @@ import {
   useRouter,
 } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import type { ReactNode } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, type ReactNode } from "react";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import {
   SafeAreaInsetsContext,
   SafeAreaProvider,
@@ -40,6 +40,11 @@ const NAV_THEME = {
 };
 
 function RootLayout() {
+  // site no escuro: o app/+html.tsx esconde o HTML claro do export até a
+  // árvore montar de novo com as cores certas (YVY-139)
+  useEffect(() => {
+    if (Platform.OS === "web") document.documentElement.classList.remove("yvy-wait");
+  }, []);
   return (
     <ThemeProvider value={NAV_THEME}>
       <SafeAreaProvider>
