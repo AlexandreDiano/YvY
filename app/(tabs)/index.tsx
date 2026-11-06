@@ -179,6 +179,15 @@ export default function Home() {
                 Dê sua opinião nas consultas públicas do Senado e veja o que a Câmara e o Senado votaram.
               </Txt>
             </Card>
+            <Card onPress={() => router.push('/bancadas')}>
+              <Row>
+                <IconBallot size={20} color={color.primary} />
+                <Txt variant="heading">Partidos no Congresso</Txt>
+              </Row>
+              <Txt variant="small" muted>
+                Quantas cadeiras cada partido ganhou na Câmara e no Senado, em cada eleição desde 1994.
+              </Txt>
+            </Card>
             <Card onPress={() => router.push('/representantes')}>
               <Row>
                 <IconFlag size={20} color={color.primary} />

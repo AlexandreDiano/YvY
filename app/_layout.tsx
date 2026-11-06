@@ -86,6 +86,7 @@ function RootLayout() {
                 options={{ title: "Checar fake news" }}
               />
               <Stack.Screen name="congresso" options={{ title: "Congresso" }} />
+              <Stack.Screen name="bancadas" options={{ title: "Partidos no Congresso" }} />
               <Stack.Screen
                 name="representantes"
                 options={{ title: "Quem foi eleito" }}
