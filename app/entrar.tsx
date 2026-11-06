@@ -1,12 +1,14 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useRef, useState } from 'react';
 import type { TextInput } from 'react-native';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useCaptcha } from '@/features/auth/useCaptcha';
+import { safeNext } from '@/lib/format';
 import { Banner, Button, Field, Screen, Section, Txt } from '@/ui';
 
 export default function Entrar() {
   const router = useRouter();
+  const { next } = useLocalSearchParams<{ next?: string }>();
   const { signIn, resendConfirmation, mode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,7 @@ export default function Entrar() {
     setBusy(true);
     try {
       await signIn(email, password, captcha.token);
-      router.replace('/(tabs)');
+      router.replace((safeNext(next) ?? '/(tabs)') as Href);
     } catch (err) {
       setUnconfirmed((err as { code?: string }).code === 'email_not_confirmed');
       setError(err instanceof Error ? err.message : 'E-mail ou senha não conferem.');

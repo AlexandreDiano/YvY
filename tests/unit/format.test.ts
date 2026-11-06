@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { env } from '@/lib/env';
-import { camarada, daysToElection, electionOver, formatCep, formatPhone, suggestDisplayName } from '@/lib/format';
+import { camarada, daysToElection, electionOver, formatCep, formatPhone, safeNext, suggestDisplayName } from '@/lib/format';
 import { pixPayload } from '@/lib/pix';
 
 test('apelido sugerido nunca carrega o nome completo', () => {
@@ -52,4 +52,14 @@ test('Pix copia e cola: campos e CRC batem', () => {
   assert.ok(p.includes('5913COLETIVO ACAO'));
   assert.ok(p.includes('6008SAO JOSE'));
   assert.equal(p.slice(-4), crcTable(p.slice(0, -4)));
+});
+
+test('volta do login só para caminho do próprio app', () => {
+  assert.equal(safeNext('/avisos'), '/avisos');
+  assert.equal(safeNext('/plano/123?x=1'), '/plano/123?x=1');
+  assert.equal(safeNext('//evil.com'), null);
+  assert.equal(safeNext('/\\evil.com'), null);
+  assert.equal(safeNext('https://evil.com'), null);
+  assert.equal(safeNext(['/avisos']), null);
+  assert.equal(safeNext(undefined), null);
 });

@@ -113,3 +113,8 @@ export function formatPhone(v: string): string {
 function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
+
+/** Para onde voltar depois do login: só caminho do próprio app ("//site" e "/\site" levariam para fora). */
+export function safeNext(next: unknown): string | null {
+  return typeof next === 'string' && /^\/(?![/\\])/.test(next) ? next : null;
+}

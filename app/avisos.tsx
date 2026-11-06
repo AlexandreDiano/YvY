@@ -1,13 +1,15 @@
-import { useFocusEffect } from 'expo-router';
+import { Redirect, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, RefreshControl } from 'react-native';
 import { deleteNotifications, listNotifications, markAllRead } from '@/api/notifications';
+import { useAuth } from '@/features/auth/AuthProvider';
 import type { AppNotification } from '@/lib/db.types';
 import { relativeTime } from '@/lib/format';
 import { confirmAction } from '@/lib/notify';
 import { Button, Card, EmptyState, Loading, Row, Screen, Txt, color } from '@/ui';
 
 export default function Avisos() {
+  const { profile, ready } = useAuth();
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,6 +35,8 @@ export default function Avisos() {
     }
   }
 
+  // link do e-mail aberto num navegador sem login: entra e volta para cá
+  if (ready && !profile) return <Redirect href={{ pathname: '/entrar', params: { next: '/avisos' } }} />;
   if (!items) return <Loading />;
 
   return (
