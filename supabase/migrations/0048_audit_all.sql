@@ -76,6 +76,13 @@ begin
     return null;
   end if;
 
+  -- Conta sendo apagada (delete_my_account): a cópia do perfil no log não
+  -- leva o dado pessoal que a pessoa pediu para apagar.
+  if tg_table_name = 'profiles' and tg_op = 'DELETE'
+     and current_setting('yvy.deleting_account', true) = 'on' then
+    v_hide := v_hide || array['full_name', 'phone', 'email', 'cep', 'avatar_url'];
+  end if;
+
   if tg_op <> 'INSERT' then v_old := to_jsonb(old) - v_hide; end if;
   if tg_op <> 'DELETE' then v_new := to_jsonb(new) - v_hide; end if;
 
@@ -113,7 +120,10 @@ begin
 
   insert into audit_log (user_id, actor_name, action, entity_type, entity_id, metadata, ip_address, user_agent)
   values (v_uid,
-          (select display_name from profiles where id = v_uid),
+          -- na exclusão da conta o perfil já saiu quando o trigger roda:
+          -- o apelido vem do que delete_my_account deixou na transação
+          coalesce((select display_name from profiles where id = v_uid),
+                   nullif(current_setting('yvy.actor_name', true), '')),
           lower(tg_op),
           tg_table_name,
           v_id::uuid,

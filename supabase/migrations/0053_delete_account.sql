@@ -74,87 +74,12 @@ begin
   end loop;
 end $$;
 
--- ------------------------------------------------------------
--- audit_row: igual à 0048, mais o filtro da exclusão de conta
--- ------------------------------------------------------------
-create or replace function public.audit_row() returns trigger
-language plpgsql security definer set search_path = public as $$
-declare
-  v_uid uuid := auth.uid();
-  v_hide text[] := array['token', 'secret', 'net_bucket', 'created_ip'];
-  v_old jsonb;
-  v_new jsonb;
-  v_meta jsonb;
-  v_id text;
-  v_headers json;
-begin
-  if v_uid is null then
-    return null;
-  end if;
+-- audit_row: o filtro da exclusão de conta (yvy.deleting_account e
+-- yvy.actor_name, ligados pela RPC abaixo) fica na própria 0048, que ainda
+-- está em espera na produção. Se ficasse aqui, a 0048 aplicada depois
+-- sobrescreveria a função e a cópia do perfil apagado voltaria a levar nome,
+-- telefone e CEP. Sem a 0048, os set_config abaixo não fazem nada.
 
-  -- Conta sendo apagada (delete_my_account): a cópia do perfil no log não
-  -- leva o dado pessoal que a pessoa pediu para apagar.
-  if tg_table_name = 'profiles' and tg_op = 'DELETE'
-     and current_setting('yvy.deleting_account', true) = 'on' then
-    v_hide := v_hide || array['full_name', 'phone', 'email', 'cep', 'avatar_url'];
-  end if;
-
-  if tg_op <> 'INSERT' then v_old := to_jsonb(old) - v_hide; end if;
-  if tg_op <> 'DELETE' then v_new := to_jsonb(new) - v_hide; end if;
-
-  if tg_op = 'UPDATE' then
-    -- só o que mudou, antes e depois
-    select jsonb_object_agg(n.key, n.value), jsonb_object_agg(n.key, v_old -> n.key)
-      into v_new, v_old
-      from jsonb_each(v_new) n
-     where n.value is distinct from v_old -> n.key;
-    if v_new is null then
-      return null;
-    end if;
-    v_id := coalesce(to_jsonb(new) ->> 'id', to_jsonb(old) ->> 'id');
-  else
-    v_id := coalesce(v_new, v_old) ->> 'id';
-  end if;
-
-  v_meta := jsonb_strip_nulls(jsonb_build_object('old', v_old, 'new', v_new));
-  -- tabela sem id uuid (chave composta): a linha inteira já está em metadata
-  if v_id !~ '^[0-9a-f-]{36}$' then
-    v_id := null;
-  end if;
-
-  begin
-    v_headers := nullif(current_setting('request.headers', true), '')::json;
-  exception when others then
-    v_headers := null;
-  end;
-
-  -- sem cf-connecting-ip, guarda a cadeia x-forwarded-for crua: o primeiro
-  -- item pode ser forjado, mas o IP real que o Supabase acrescenta está nela
-  if public.request_inet() is null and v_headers ->> 'x-forwarded-for' is not null then
-    v_meta := v_meta || jsonb_build_object('xff', left(v_headers ->> 'x-forwarded-for', 200));
-  end if;
-
-  insert into audit_log (user_id, actor_name, action, entity_type, entity_id, metadata, ip_address, user_agent)
-  values (v_uid,
-          -- na exclusão da conta o perfil já saiu quando o trigger roda:
-          -- o apelido vem do que delete_my_account deixou na transação
-          coalesce((select display_name from profiles where id = v_uid),
-                   nullif(current_setting('yvy.actor_name', true), '')),
-          lower(tg_op),
-          tg_table_name,
-          v_id::uuid,
-          v_meta,
-          public.request_inet(),
-          left(v_headers ->> 'user-agent', 300));
-  return null;
-exception when others then
-  -- em período eleitoral o app não pode parar por causa do log; o aviso
-  -- aparece nos logs do Postgres no painel do Supabase
-  raise warning 'audit_row falhou em %: %', tg_table_name, sqlerrm;
-  return null;
-end;
-$$;
-revoke execute on function public.audit_row() from public, anon, authenticated;
 
 -- ------------------------------------------------------------
 -- RPC
@@ -193,11 +118,13 @@ begin
      and p.user_id <> v_uid
      and p.status <> 'cancelled';
 
-  insert into audit_log (user_id, actor_name, action, entity_type, entity_id, metadata, ip_address)
-  values (v_uid, v_me.display_name, 'delete_account', 'profile', v_uid,
-          jsonb_strip_nulls(jsonb_build_object('neighborhood', v_me.neighborhood, 'city', v_me.city,
-                                               'state', v_me.state, 'role', v_me.role)),
-          public.request_inet());
+  -- só colunas que a produção já tem (0003): actor_name e request_inet()
+  -- são da 0048, que está em espera
+  insert into audit_log (user_id, action, entity_type, entity_id, metadata)
+  values (v_uid, 'delete_account', 'profile', v_uid,
+          jsonb_strip_nulls(jsonb_build_object('actor_name', v_me.display_name,
+                                               'neighborhood', v_me.neighborhood, 'city', v_me.city,
+                                               'state', v_me.state, 'role', v_me.role)));
 
   perform set_config('yvy.deleting_account', 'on', true);
   perform set_config('yvy.actor_name', coalesce(v_me.display_name, ''), true);
