@@ -93,16 +93,31 @@ export async function listBills(
   return { bills: data?.bills ?? [], total: data?.total ?? 0, stale };
 }
 
-/** Medidas provisórias, o ato com força de lei que a Presidência edita sozinha. */
+/**
+ * Medidas provisórias, o ato com força de lei que a Presidência edita sozinha.
+ * Vêm todas do mandato (umas 250, ~10 KB por página de 100 com gzip), para a
+ * tela buscar e mostrar aos poucos. A API entrega no máximo 100 por página:
+ * a 1ª diz o total e as outras vão em paralelo.
+ */
 export async function listPresidentialMeasures(): Promise<{ bills: Bill[]; stale: boolean }> {
   const { data, stale } = await cached(
-    'bills:v2:presidencia',
+    'bills:v3:presidencia',
     async () => {
-      const { dados } = await getJson<{ dados: CamaraBill[] }>(
+      const url = (pagina: number) =>
         `${CAMARA}/proposicoes?siglaTipo=MPV&dataApresentacaoInicio=${MANDATE.executive}` +
-          `&ordem=DESC&ordenarPor=id&itens=10`,
+        `&ordem=DESC&ordenarPor=id&itens=100&pagina=${pagina}`;
+      const res = await fetch(url(1), { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`Fonte oficial respondeu ${res.status}.`);
+      const total = Number(res.headers.get('x-total-count') ?? 0);
+      const { dados } = (await res.json()) as { dados: CamaraBill[] };
+      // teto de 10 páginas (1.000 MPs) só para não ficar em laço se o total vier errado
+      const pages = Math.min(Math.ceil(total / 100), 10);
+      const rest = await Promise.all(
+        Array.from({ length: Math.max(0, pages - 1) }, (_, i) =>
+          getJson<{ dados: CamaraBill[] }>(url(i + 2)).then((r) => r.dados),
+        ),
       );
-      return dados.map(camaraBill);
+      return [...dados, ...rest.flat()].map(camaraBill);
     },
     6 * HOUR,
     DAY,

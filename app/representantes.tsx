@@ -20,8 +20,9 @@ import {
   type Presence,
 } from '@/api/officials';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { PAGE, filterBy, fold, page } from '@/features/officials/listSearch';
 import { brDate, electionOver } from '@/lib/format';
-import { Badge, Button, Card, Chip, Field, Loading, Row, Screen, Section, Txt, color, space } from '@/ui';
+import { Badge, Button, Card, Chip, EmptyState, Field, Loading, Row, Screen, Section, Txt, color, space } from '@/ui';
 
 /**
  * Quem foi eleito e o que está fazendo, do país até a cidade da pessoa.
@@ -107,6 +108,7 @@ function UfSections({ uf, city }: { uf: string; city: string | null }) {
   const [senators, setSenators] = useState<Official[] | null>(null);
   const [deputies, setDeputies] = useState<Official[] | null>(null);
   const [error, setError] = useState(false);
+  const [q, setQ] = useState('');
 
   useEffect(() => {
     listSenators(uf).then(setSenators, () => setError(true));
@@ -121,11 +123,28 @@ function UfSections({ uf, city }: { uf: string; city: string | null }) {
         </Txt>
       ) : null}
 
+      {senators || deputies ? (
+        <Field
+          label="Buscar parlamentar"
+          value={q}
+          onChangeText={setQ}
+          placeholder="Nome ou partido (ex.: Maria, PT)"
+        />
+      ) : null}
+
       <Section title={`Senadores · ${uf}`} />
-      {senators ? senators.map((o) => <OfficialCard key={o.id} official={o} />) : error ? null : <Loading />}
+      {senators ? (
+        <OfficialList key={`sen-${q}`} list={senators} q={q} empty="Nenhum senador" />
+      ) : error ? null : (
+        <Loading />
+      )}
 
       <Section title={`Deputados federais · ${uf}`} />
-      {deputies ? deputies.map((o) => <OfficialCard key={o.id} official={o} />) : error ? null : <Loading />}
+      {deputies ? (
+        <OfficialList key={`dep-${q}`} list={deputies} q={q} empty="Nenhum deputado federal" />
+      ) : error ? null : (
+        <Loading />
+      )}
 
       <Section title={`Governo e Assembleia · ${uf}`} />
       <Card>
@@ -150,7 +169,7 @@ function UfSections({ uf, city }: { uf: string; city: string | null }) {
 
 /**
  * Brasil todo dá 81 senadores e 513 deputados, comprido demais para rolar.
- * Então é busca por nome, partido ou UF, no máximo 30 por vez.
+ * Então é busca por nome, partido ou UF, e "Ver mais" de 10 em 10.
  */
 function NationalSections() {
   const [all, setAll] = useState<Official[] | null>(null);
@@ -173,10 +192,6 @@ function NationalSections() {
   }
   if (!all) return <Loading />;
 
-  const term = fold(q);
-  const hits = term
-    ? all.filter((o) => fold(`${o.name} ${o.party} ${o.uf}`).includes(term))
-    : all;
   return (
     <>
       <Section title="Senadores e deputados federais" />
@@ -186,14 +201,64 @@ function NationalSections() {
         onChangeText={setQ}
         placeholder="Nome, partido ou UF (ex.: PT, SP, Maria)"
       />
-      <Txt variant="small" muted>
-        {hits.length} {hits.length === 1 ? 'resultado' : 'resultados'}
-        {hits.length > 30 ? ' — mostrando 30, refine a busca' : ''}
-      </Txt>
-      {hits.slice(0, 30).map((o) => (
+      <OfficialList key={q} list={all} q={q} withUf empty="Nenhum parlamentar" count />
+    </>
+  );
+}
+
+/**
+ * Senadores ou deputados filtrados pela busca, 10 de início e mais 10 a cada
+ * "Ver mais". O pai remonta a lista (`key`) quando a busca muda, e ela volta
+ * aos 10 primeiros.
+ */
+function OfficialList({
+  list,
+  q,
+  empty,
+  withUf,
+  count,
+}: {
+  list: Official[];
+  q: string;
+  /** "Nenhum senador": completa com "encontrado para ...". */
+  empty: string;
+  /** Busca também por UF (lista do Brasil todo). */
+  withUf?: boolean;
+  /** Mostra quantos resultados a busca achou. */
+  count?: boolean;
+}) {
+  const [shown, setShown] = useState(PAGE);
+  const hits = filterBy(list, q, (o) => `${o.name} ${o.party}${withUf ? ` ${o.uf}` : ''}`);
+  const { visible, remaining, next } = page(hits, shown);
+
+  if (q.trim() && !hits.length) {
+    return <EmptyState title={`${empty} encontrado para "${q.trim()}"`} detail="Confira a grafia ou busque pelo partido." />;
+  }
+  return (
+    <>
+      {count ? (
+        <Txt variant="small" muted>
+          {hits.length} {hits.length === 1 ? 'resultado' : 'resultados'}
+        </Txt>
+      ) : null}
+      {visible.map((o) => (
         <OfficialCard key={`${o.house}-${o.id}`} official={o} />
       ))}
+      <MoreButton remaining={remaining} next={next} onPress={() => setShown((n) => n + PAGE)} />
     </>
+  );
+}
+
+/** "Ver mais 10 (faltam 43)". Some quando a lista acabou. */
+function MoreButton({ remaining, next, onPress }: { remaining: number; next: number; onPress: () => void }) {
+  if (remaining <= 0) return null;
+  return (
+    <Button
+      title={`Ver mais ${next}${remaining > next ? ` (faltam ${remaining})` : ''}`}
+      kind="outline"
+      small
+      onPress={onPress}
+    />
   );
 }
 
@@ -353,14 +418,6 @@ function ExecutiveCard({ e, status, official }: { e: Elected; status: string; of
       )}
     </Card>
   );
-}
-
-function fold(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
 }
 
 function CitySection({ city, uf }: { city: string; uf: string }) {
@@ -543,6 +600,8 @@ function BillList({ load }: { load: () => Promise<{ bills: Bill[]; total?: numbe
   const [bills, setBills] = useState<Bill[] | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState(false);
+  const [q, setQ] = useState('');
+  const [shown, setShown] = useState(PAGE);
 
   useEffect(() => {
     load().then(
@@ -571,6 +630,9 @@ function BillList({ load }: { load: () => Promise<{ bills: Bill[]; total?: numbe
       </Txt>
     );
   }
+  const hits = filterBy(bills, q, (b) => `${b.label} ${b.text}`);
+  const { visible, remaining, next } = page(hits, shown);
+  const term = q.trim();
   return (
     <View style={{ gap: space.sm }}>
       {total !== null ? (
@@ -579,7 +641,33 @@ function BillList({ load }: { load: () => Promise<{ bills: Bill[]; total?: numbe
           {total > bills.length ? ` — mostrando as ${bills.length} mais recentes` : ''}.
         </Txt>
       ) : null}
-      {bills.map((b) => (
+      {bills.length > SEARCH_FROM ? (
+        <Field
+          label="Buscar"
+          value={q}
+          onChangeText={(v) => {
+            setQ(v);
+            setShown(PAGE);
+          }}
+          placeholder="Número, ano ou texto da ementa"
+        />
+      ) : null}
+      {term && total !== null && total > bills.length ? (
+        <Txt variant="small" muted>
+          A busca vale para as {bills.length} carregadas aqui. As outras {total - bills.length} estão na página
+          oficial.
+        </Txt>
+      ) : null}
+      {term ? (
+        hits.length ? (
+          <Txt variant="small" muted>
+            {hits.length} {hits.length === 1 ? 'resultado' : 'resultados'}
+          </Txt>
+        ) : (
+          <EmptyState title={`Nada encontrado para "${term}"`} detail="Tente o número, o ano ou outra palavra da ementa." />
+        )
+      ) : null}
+      {visible.map((b) => (
         <Card key={b.id} onPress={() => void Linking.openURL(b.url)}>
           <Row style={{ justifyContent: 'space-between' }}>
             <Txt variant="heading">{b.label}</Txt>
@@ -598,6 +686,10 @@ function BillList({ load }: { load: () => Promise<{ bills: Bill[]; total?: numbe
           ) : null}
         </Card>
       ))}
+      <MoreButton remaining={remaining} next={next} onPress={() => setShown((n) => n + PAGE)} />
     </View>
   );
 }
+
+/** Lista com até 5 itens não ganha caixa de busca. */
+const SEARCH_FROM = 5;
