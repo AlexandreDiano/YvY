@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   canManageRoles,
   inviteesOf,
@@ -69,6 +70,7 @@ const BULK_ORDER: BulkAction[] = ['invite_on', 'invite_off', 'make_mod', 'remove
  */
 export default function Membros() {
   const { profile, isAdmin, isModerator } = useAuth();
+  const insets = useSafeAreaInsets();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [rolesPower, setRolesPower] = useState(false);
   const [q, setQ] = useState('');
@@ -219,13 +221,16 @@ export default function Membros() {
   }
 
   return (
-    <Screen>
+    <View style={s.page}>
+      <Screen>
       <Txt variant="small" muted>
         {rolesPower
           ? 'Moderador modera os posts do bairro do cadastro dele, vê ideias e problemas e gera convite à distância. '
           : 'Aqui aparecem os membros dos bairros que você modera. '}
-        Membro comum só convida se for liberado. Marque ou desmarque o que cada pessoa pode, ou use Selecionar para
-        mudar várias de uma vez. A pessoa recebe um aviso quando algo muda.
+        Membro comum só convida (gera QRCode de convite) se for liberado.{' '}
+        {isAdmin ? 'Quem pode mudar papéis torna membros moderadores e tira; só admin dá essa permissão. ' : ''}
+        Marque ou desmarque o que cada pessoa pode, ou use Selecionar para mudar várias de uma vez. A pessoa recebe
+        um aviso quando algo muda.
       </Txt>
       <Field
         label="Buscar por apelido, bairro ou cidade"
@@ -261,25 +266,6 @@ export default function Membros() {
               <Button title="Limpar" kind="ghost" small block={false} onPress={() => setSelected(new Set())} />
             ) : null}
           </Row>
-          {picked.length > 0 ? (
-            <Row style={{ flexWrap: 'wrap' }}>
-              {BULK_ORDER.map((action) => {
-                const n = bulkTargets(picked, action, rolesPower).length;
-                if (n === 0) return null;
-                return (
-                  <Button
-                    key={action}
-                    title={`${BULK_LABEL[action]} (${n})`}
-                    kind={action === 'invite_off' || action === 'remove_mod' ? 'ghost' : 'primary'}
-                    small
-                    block={false}
-                    loading={busy === 'bulk'}
-                    onPress={() => confirmBulk(action)}
-                  />
-                );
-              })}
-            </Row>
-          ) : null}
         </Card>
       ) : selectable.length > 0 ? (
         <Button title="Selecionar várias pessoas" kind="outline" small block={false} onPress={() => setSelected(new Set())} />
@@ -328,7 +314,6 @@ export default function Membros() {
                           disabled={busy !== null}
                           onChange={(v) => confirmInvite(m, v)}
                           label="Pode convidar"
-                          detail="Gera QRCode de convite presencial."
                         />
                       ) : (
                         <Txt variant="small" muted>
@@ -350,7 +335,6 @@ export default function Membros() {
                           disabled={busy !== null}
                           onChange={(v) => confirmManager(m, v)}
                           label="Pode mudar papéis"
-                          detail="Torna membros moderadores e tira. Só admin dá esta permissão."
                         />
                       ) : null}
                     </View>
@@ -388,6 +372,41 @@ export default function Membros() {
           );
         })
       )}
-    </Screen>
+      </Screen>
+      {selected && picked.length > 0 ? (
+        // fixa embaixo: quem desce marcando gente não precisa voltar ao topo para agir
+        <View style={[s.footer, { paddingBottom: insets.bottom + space.sm }]}>
+          {BULK_ORDER.map((action) => {
+            const n = bulkTargets(picked, action, rolesPower).length;
+            if (n === 0) return null;
+            return (
+              <Button
+                key={action}
+                title={`${BULK_LABEL[action]} (${n})`}
+                kind={action === 'invite_off' || action === 'remove_mod' ? 'outline' : 'primary'}
+                small
+                block={false}
+                loading={busy === 'bulk'}
+                onPress={() => confirmBulk(action)}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
   );
 }
+
+const s = StyleSheet.create({
+  page: { flex: 1, backgroundColor: color.bg },
+  footer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    borderTopWidth: 1,
+    borderTopColor: color.border,
+    backgroundColor: color.surface,
+  },
+});
