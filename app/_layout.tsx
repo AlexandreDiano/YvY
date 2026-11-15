@@ -124,6 +124,7 @@ function RootLayout() {
               <Stack.Screen name="conversas/adicionar" options={{ title: "Adicionar pessoa" }} />
               <Stack.Screen name="conversas/bloqueados" options={{ title: "Bloqueados" }} />
               <Stack.Screen name="denuncias" options={{ title: "Denúncias de conversa" }} />
+              <Stack.Screen name="votacoes-pauta" options={{ title: "Votações em pauta" }} />
               <Stack.Screen
                 name="convidar"
                 options={{ title: "Convidar camarada" }}

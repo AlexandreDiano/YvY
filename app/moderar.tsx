@@ -37,7 +37,7 @@ const QUICK_REASONS = [
  */
 export default function Moderar() {
   useNoScreenshots('moderar');
-  const { profile, isModerator } = useAuth();
+  const { profile, isModerator, isAdmin } = useAuth();
   const [posts, setPosts] = useState<PostListed[]>([]);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -94,6 +94,9 @@ export default function Moderar() {
   return (
     <Screen>
       <Button title="Denúncias de conversa" kind="outline" onPress={() => router.push('/denuncias')} />
+      {isAdmin ? (
+        <Button title="Votações em pauta: palavras-chave" kind="outline" onPress={() => router.push('/votacoes-pauta')} />
+      ) : null}
       <Txt variant="small" muted>
         Pendentes e denunciados. Post de bairro sai na hora e vem para cá com 3 denúncias; de região e
         Brasil, só com aprovação. Recusar avisa o autor com o motivo; em caso grave dá para suspender a conta.

@@ -157,6 +157,7 @@ function localProfile(input: SignUpInput, membership: MembershipStatus): Profile
     is_active: true,
     invited_by: null,
     notify_actions: true,
+    notify_votes: true,
     notify_feed: false,
     terms_accepted_at: input.acceptedTerms ? now : null,
     sensitive_consent_at: input.sensitiveConsent ? now : null,

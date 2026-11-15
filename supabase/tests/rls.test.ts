@@ -1083,6 +1083,67 @@ async function main(): Promise<void> {
     await admin.from('chat_contacts').delete().eq('user_a', a).eq('user_b', b);
   }
 
+  console.log('\nVotação em pauta vira aviso (0057)');
+  {
+    const optout = await makeActor('sem-votacao', 'militant', 'active', AREA_B);
+    const off = await optout.client.from('profiles').update({ notify_votes: false }).eq('id', optout.id).select('notify_votes');
+    check('membro desliga "Votações em pauta"', !off.error && off.data?.[0]?.notify_votes === false, off.error?.message);
+    const suspended = await makeActor('suspenso-votacao', 'militant', 'active', AREA_B);
+    await admin.from('profiles').update({ is_active: false }).eq('id', suspended.id);
+
+    const args = {
+      p_casa: 'senado',
+      p_prop_id: `rls-${RUN}`,
+      p_title: 'Em pauta no Senado: PEC 1/2026',
+      p_ementa: 'Altera o art. 7º para reduzir a duração máxima semanal do trabalho.',
+      p_url: 'https://www25.senado.leg.br/web/atividade/materias/-/materia/1',
+      p_vote_url: 'https://www12.senado.leg.br/ecidadania/visualizacaomateria?id=1',
+      p_session_at: new Date(Date.now() + 2 * 86400_000).toISOString(),
+      p_matched: ['duracao maxima semanal'],
+    };
+    const first = await admin.rpc('vote_alert_publish', args);
+    check('a pauta nova avisa', first.data === true, JSON.stringify(first.error ?? first.data));
+    const alert = (await admin.from('vote_alerts').select('id').eq('prop_id', args.p_prop_id).single()).data as { id: string };
+    const got = async (who: Actor) =>
+      ((await admin.from('notifications').select('id').eq('kind', 'vote_alert').eq('ref_id', alert.id).eq('user_id', who.id)).data ?? [])
+        .length;
+    check('membro ativo recebe o aviso', (await got(milA)) === 1 && (await got(adm)) === 1);
+    check('pendente não recebe', (await got(pending)) === 0);
+    check('quem desligou não recebe', (await got(optout)) === 0);
+    check('conta suspensa não recebe', (await got(suspended)) === 0);
+
+    const again = await admin.rpc('vote_alert_publish', { ...args, p_session_at: new Date(Date.now() + 5 * 86400_000).toISOString() });
+    check('a mesma proposição de novo na pauta não repete o aviso', again.data === false && (await got(milA)) === 1, JSON.stringify(again.data));
+
+    // voltou à pauta depois de 60 dias: avisa de novo
+    await admin.from('vote_alerts').update({ notified_at: new Date(Date.now() - 61 * 86400_000).toISOString() }).eq('id', alert.id);
+    const later = await admin.rpc('vote_alert_publish', args);
+    check('depois de 60 dias avisa de novo', later.data === true && (await got(milA)) === 2, JSON.stringify(later.data));
+
+    await expectRows('membro abre o link da consulta', milA.client.from('vote_alerts').select('url, vote_url').eq('id', alert.id), 1);
+    const body = (await admin.from('notifications').select('body').eq('ref_id', alert.id).eq('user_id', milA.id).limit(1).single())
+      .data as { body: string } | null;
+    check('o aviso chama para a consulta pública', /consulta pública está aberta/.test(body?.body ?? ''), body?.body);
+    await expectRows('pendente não lê a pauta', pending.client.from('vote_alerts').select('id'), 0);
+    await expectRows('visitante não lê a pauta', anon.from('vote_alerts').select('id'), 0);
+    const fake = await milA.client.rpc('vote_alert_publish', { ...args, p_prop_id: `fake-${RUN}` });
+    check('membro não cria aviso para a base', Boolean(fake.error), fake.error ? '' : 'criou');
+    await expectDenied(
+      'membro não grava pauta direto',
+      milA.client.from('vote_alerts').insert({ ...{ casa: 'camara', prop_id: `x-${RUN}`, title: 'x', ementa: 'x' }, url: 'https://www.camara.leg.br/', session_at: args.p_session_at }).select('id'),
+    );
+
+    await expectRows('moderador não vê as palavras-chave', modA.client.from('vote_alert_keywords').select('term'), 0);
+    await expectDenied('moderador não inclui palavra-chave', modA.client.from('vote_alert_keywords').insert({ term: `x${RUN}` }).select('term'));
+    const term = `teste-${RUN}`;
+    const ins = await adm.client.from('vote_alert_keywords').insert({ term }).select('term, created_by');
+    check('admin inclui palavra-chave', !ins.error && ins.data?.[0]?.created_by === adm.id, ins.error?.message);
+    const del = await adm.client.from('vote_alert_keywords').delete().eq('term', term).select('term');
+    check('admin tira palavra-chave', !del.error && del.data?.length === 1, del.error?.message);
+    await admin.from('notifications').delete().eq('kind', 'vote_alert').eq('ref_id', alert.id);
+    await admin.from('vote_alerts').delete().eq('id', alert.id);
+  }
+
   console.log('\nApagar a própria conta (0053)');
   {
     const goner = await makeActor('goner', 'militant', 'active', AREA_A);

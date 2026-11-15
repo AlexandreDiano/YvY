@@ -40,7 +40,9 @@ begin
      and c.relname not in ('audit_log', 'claim_checks', 'notifications',
                            'elected_2026', 'municipios',
                            -- chat (0050): cifrado que some, IP, código, denúncia
-                           'message_queue', 'chat_access_log', 'chat_add_codes', 'chat_reports')
+                           'message_queue', 'chat_access_log', 'chat_add_codes', 'chat_reports',
+                           -- pauta do Congresso gravada pela Edge Function (0057)
+                           'vote_alerts')
      and not exists (select 1 from pg_trigger t
                       where t.tgrelid = c.oid and t.tgname = 'zz_audit_row');
   if v is not null then

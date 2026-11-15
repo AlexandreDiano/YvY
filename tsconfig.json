@@ -5,7 +5,8 @@
     "noUncheckedIndexedAccess": true,
     "types": ["node", "react", "expo/types"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@fn/*": ["./supabase/functions/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],

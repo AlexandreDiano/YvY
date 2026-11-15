@@ -46,6 +46,7 @@ export type Profile = {
   is_active: boolean;
   invited_by: string | null;
   notify_actions: boolean;
+  notify_votes?: boolean;
   notify_feed: boolean;
   /** Avisos por e-mail (0047). Null: ainda não escolhido, o app preenche ao abrir. */
   notify_email?: boolean | null;

@@ -1427,6 +1427,7 @@ export type Database = {
           notify_actions: boolean;
           notify_email: boolean | null;
           notify_feed: boolean;
+          notify_votes: boolean;
           phone: string | null;
           role: Database['public']['Enums']['user_role'];
           sensitive_consent_at: string | null;
@@ -1453,6 +1454,7 @@ export type Database = {
           notify_actions?: boolean;
           notify_email?: boolean | null;
           notify_feed?: boolean;
+          notify_votes?: boolean;
           phone?: string | null;
           role?: Database['public']['Enums']['user_role'];
           sensitive_consent_at?: string | null;
@@ -1478,6 +1480,7 @@ export type Database = {
           notify_actions?: boolean;
           notify_email?: boolean | null;
           notify_feed?: boolean;
+          notify_votes?: boolean;
           phone?: string | null;
           role?: Database['public']['Enums']['user_role'];
           sensitive_consent_at?: string | null;
@@ -1642,6 +1645,80 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      vote_alert_keywords: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          term: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          term: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          term?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'vote_alert_keywords_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vote_alert_keywords_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      vote_alerts: {
+        Row: {
+          casa: string;
+          ementa: string;
+          id: string;
+          matched: string[];
+          notified_at: string;
+          prop_id: string;
+          session_at: string;
+          title: string;
+          url: string;
+          vote_url: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          casa: string;
+          ementa: string;
+          id?: string;
+          matched?: string[];
+          notified_at?: string;
+          prop_id: string;
+          session_at: string;
+          title: string;
+          url: string;
+          vote_url?: string | null;
+        };
+        Update: {
+          casa?: string;
+          ementa?: string;
+          id?: string;
+          matched?: string[];
+          notified_at?: string;
+          prop_id?: string;
+          session_at?: string;
+          title?: string;
+          url?: string;
+          vote_url?: string | null;
+        };
+        Relationships: [];
       };
     };
     Views: {
@@ -2318,6 +2395,19 @@ export type Database = {
       };
       set_role_manager: { Args: { p_enabled: boolean; p_user: string }; Returns: undefined };
       unpublish_fact_check: { Args: { p_id: string }; Returns: undefined };
+      vote_alert_publish: {
+        Args: {
+          p_casa: string;
+          p_ementa: string;
+          p_matched: string[];
+          p_prop_id: string;
+          p_session_at: string;
+          p_title: string;
+          p_url: string;
+          p_vote_url: string;
+        };
+        Returns: boolean;
+      };
     };
     Enums: {
       action_status: 'draft' | 'open' | 'confirmed' | 'completed' | 'cancelled';

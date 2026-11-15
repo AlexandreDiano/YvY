@@ -1,7 +1,8 @@
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, RefreshControl } from 'react-native';
+import { Alert, Linking, RefreshControl } from 'react-native';
 import { deleteNotifications, listNotifications, markAllRead } from '@/api/notifications';
+import { voteAlertLinks } from '@/api/voteAlerts';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { AppNotification } from '@/lib/db.types';
 import { relativeTime } from '@/lib/format';
@@ -25,6 +26,17 @@ export default function Avisos() {
       void load();
     }, [load]),
   );
+
+  async function openVote(id: string, which: 'vote' | 'ficha') {
+    try {
+      const links = await voteAlertLinks(id);
+      const url = which === 'vote' ? (links?.voteUrl ?? links?.url) : links?.url;
+      if (url) await Linking.openURL(url);
+      else Alert.alert('Link indisponível', 'Essa votação saiu da lista.');
+    } catch (err) {
+      Alert.alert('Erro', err instanceof Error ? err.message : 'Não deu para abrir o link.');
+    }
+  }
 
   async function remove(id?: string) {
     try {
@@ -77,7 +89,7 @@ export default function Avisos() {
       {items.length === 0 ? (
         <EmptyState
           title="Nenhum aviso"
-          detail="Quando sair uma ação no seu bairro ou a moderação decidir um post seu, aparece aqui."
+          detail="Quando sair uma ação no seu bairro, entrar em pauta uma votação importante ou a moderação decidir um post seu, aparece aqui."
         />
       ) : (
         items.map((n) => (
@@ -101,6 +113,12 @@ export default function Avisos() {
                     block={false}
                     onPress={() => router.push({ pathname: '/acoes/[id]', params: { id: n.ref_id! } })}
                   />
+                ) : null}
+                {n.kind === 'vote_alert' && n.ref_id ? (
+                  <>
+                    <Button title="Votar na consulta" small block={false} onPress={() => void openVote(n.ref_id!, 'vote')} />
+                    <Button title="Ficha" kind="ghost" small block={false} onPress={() => void openVote(n.ref_id!, 'ficha')} />
+                  </>
                 ) : null}
                 <Button title="Apagar" kind="ghost" small block={false} onPress={() => void remove(n.id)} />
               </Row>

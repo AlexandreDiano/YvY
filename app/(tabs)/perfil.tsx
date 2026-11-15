@@ -253,6 +253,13 @@ export default function Perfil() {
         />
         <Divider />
         <Toggle
+          value={profile.notify_votes !== false}
+          onChange={(v) => void updateProfile({ notify_votes: v })}
+          label="Votações em pauta"
+          detail="Projeto sobre trabalho, previdência, saúde, terra, direitos e afins entrou na pauta da Câmara ou do Senado: o aviso leva à consulta pública para você votar antes da sessão."
+        />
+        <Divider />
+        <Toggle
           value={profile.notify_feed}
           onChange={(v) => void updateProfile({ notify_feed: v })}
           label="Feed do bairro"
