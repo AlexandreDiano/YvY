@@ -1013,6 +1013,76 @@ async function main(): Promise<void> {
     }
   }
 
+  console.log('\nFeed sem espera, trava de denúncia e apelido de contato (0055)');
+  {
+    const ins = await milA.client
+      .from('posts')
+      .insert({ author_id: milA.id, content: 'post que sai na hora', status: 'pending', ...AREA_A })
+      .select('status')
+      .single();
+    check('post do bairro publica na hora', ins.data?.status === 'published', JSON.stringify(ins.data ?? ins.error));
+
+    const flagger = await makeActor('flagger', 'militant', 'active', AREA_A);
+    const targets = (
+      await admin
+        .from('posts')
+        .insert(Array.from({ length: 6 }, (_, i) => ({ author_id: adm.id, content: `alvo ${i}`, status: 'published', ...AREA_A })))
+        .select('id')
+    ).data as { id: string }[];
+    let okCount = 0;
+    for (const t of targets.slice(0, 5)) {
+      const r = await flagger.client.from('post_flags').insert({ post_id: t.id, flagger_id: flagger.id, reason: 'spam' });
+      if (!r.error) okCount++;
+    }
+    check('até 5 denúncias por hora passam', okCount === 5, `passaram ${okCount}`);
+    const sixth = await flagger.client.from('post_flags').insert({ post_id: targets[5]!.id, flagger_id: flagger.id, reason: 'spam' });
+    check('a 6ª denúncia na mesma hora é recusada', /muitas denúncias/.test(sixth.error?.message ?? ''), sixth.error?.message ?? 'passou');
+
+    // limite do dia: 14 denúncias de 2h atrás (fora da janela de 1h), a 15ª
+    // passa e avisa o admin, a 16ª é recusada
+    const daily = await makeActor('flagger-dia', 'militant', 'active', AREA_A);
+    const many = (
+      await admin
+        .from('posts')
+        .insert(Array.from({ length: 16 }, (_, i) => ({ author_id: adm.id, content: `dia ${i}`, status: 'published', ...AREA_A })))
+        .select('id')
+    ).data as { id: string }[];
+    const old = new Date(Date.now() - 2 * 3600_000).toISOString();
+    const seeded = await admin
+      .from('post_flags')
+      .insert(many.slice(0, 14).map((t) => ({ post_id: t.id, flagger_id: daily.id, reason: 'spam', created_at: old })));
+    check('14 denúncias antigas semeadas', !seeded.error, seeded.error?.message);
+    const fifteenth = await daily.client.from('post_flags').insert({ post_id: many[14]!.id, flagger_id: daily.id, reason: 'spam' });
+    check('a 15ª denúncia do dia passa', !fifteenth.error, fifteenth.error?.message);
+    await expectRows(
+      'admin é avisado de quem denuncia demais',
+      adm.client.from('notifications').select('id').eq('kind', 'report_burst').eq('ref_id', daily.id),
+      1,
+    );
+    const burstLog = await admin.from('audit_log').select('id').eq('action', 'report_burst').eq('user_id', daily.id);
+    check('rajada de denúncia vai ao audit_log', (burstLog.data ?? []).length === 1, JSON.stringify(burstLog.data ?? burstLog.error));
+    const sixteenth = await daily.client.from('post_flags').insert({ post_id: many[15]!.id, flagger_id: daily.id, reason: 'spam' });
+    check('a 16ª denúncia do dia é recusada', /muitas denúncias/.test(sixteenth.error?.message ?? ''), sixteenth.error?.message ?? 'passou');
+
+    const [a, b] = [milA.id, modA.id].sort();
+    await admin.from('chat_contacts').insert({ user_a: a, user_b: b, requested_by: milA.id, status: 'accepted' });
+    const set = await milA.client.rpc('set_contact_alias', { p_contact: modA.id, p_alias: 'Zé da praça' });
+    check('dá apelido a contato aceito', !set.error, set.error?.message);
+    await expectRows('vê o apelido que deu', milA.client.from('contact_aliases').select('alias').eq('contact_id', modA.id), 1);
+    await expectRows('o contato não vê o apelido que recebeu', modA.client.from('contact_aliases').select('alias'), 0);
+    // milB já é contato de milA (seção 0050); londrina não é de ninguém
+    const stranger = await milA.client.rpc('set_contact_alias', { p_contact: londrina.id, p_alias: 'Fulano' });
+    check('sem contato aceito, não dá apelido', Boolean(stranger.error), stranger.error ? '' : 'deu');
+    await expectDenied(
+      'não grava apelido direto na tabela',
+      milA.client.from('contact_aliases').insert({ owner_id: milA.id, contact_id: milB.id, alias: 'x' }).select('owner_id'),
+    );
+    const clear = await milA.client.rpc('set_contact_alias', { p_contact: modA.id, p_alias: '  ' });
+    check('texto vazio tira o apelido', !clear.error);
+    await expectRows('apelido tirado', milA.client.from('contact_aliases').select('alias'), 0);
+    await admin.from('chat_contacts').delete().eq('user_a', a).eq('user_b', b);
+  }
+
   console.log('\nApagar a própria conta (0053)');
   {
     const goner = await makeActor('goner', 'militant', 'active', AREA_A);

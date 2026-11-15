@@ -95,7 +95,7 @@ export default function Moderar() {
     <Screen>
       <Button title="Denúncias de conversa" kind="outline" onPress={() => router.push('/denuncias')} />
       <Txt variant="small" muted>
-        Pendentes e denunciados. Post de bairro sem resposta em 2h publica sozinho; de região e
+        Pendentes e denunciados. Post de bairro sai na hora e vem para cá com 3 denúncias; de região e
         Brasil, só com aprovação. Recusar avisa o autor com o motivo; em caso grave dá para suspender a conta.
       </Txt>
       {error ? (

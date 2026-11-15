@@ -14,6 +14,7 @@ import {
   sendPostToReview,
   type FeedScope,
 } from '@/api/feed';
+import { myAliases } from '@/api/aliases';
 import { followedRegions, myRegion, type MyRegion } from '@/api/geo';
 import { unreadCount } from '@/api/notifications';
 import { uploadPostImage, type PickedImage } from '@/api/storage';
@@ -66,6 +67,8 @@ export default function Base() {
   const shownRegion = (viewing !== null && followed.find((f) => f.id === viewing)) || region;
   const readingOther = scope === 'regiao_imediata' && viewing !== null && shownRegion !== region;
   const [posts, setPosts] = useState<PostListed[]>([]);
+  // apelidos que esta pessoa deu aos contatos dela (0055)
+  const [aliases, setAliases] = useState<Map<string, string>>(new Map());
   const [text, setText] = useState('');
   const [image, setImage] = useState<PickedImage | null>(null);
   const [page, setPage] = useState(0);
@@ -101,6 +104,7 @@ export default function Base() {
       setPage(0);
       void load(0);
       void unreadCount().then(setUnread);
+      void myAliases().then(setAliases);
       // a lista de regiões seguidas muda na tela /regioes
       void followedRegions().then((list) => {
         setFollowed(list);
@@ -147,11 +151,11 @@ export default function Base() {
       setImage(null);
       await load(0);
       Alert.alert(
-        'Post enviado',
+        scope === 'bairro' || mode === 'local' ? 'Post publicado' : 'Post enviado',
         mode === 'local'
           ? 'Publicado neste aparelho.'
           : scope === 'bairro'
-            ? 'Vai para a moderação do bairro. Se ninguém responder em 2h, publica sozinho.'
+            ? 'Já está no feed do bairro. Se 3 pessoas denunciarem, sai do ar até a moderação olhar.'
             : 'Vai para a moderação. Posts de região e Brasil só saem depois de aprovados.',
       );
     } catch (err) {
@@ -191,7 +195,7 @@ export default function Base() {
             try {
               await flagPost(post.id, profile.id, r.key);
               await load(0);
-              Alert.alert('Denúncia enviada', 'A moderação foi avisada.');
+              Alert.alert('Denúncia enviada', 'Com 3 denúncias o post sai do ar até a moderação olhar.');
             } catch (err) {
               Alert.alert('Erro', err instanceof Error ? err.message : 'Falha ao denunciar.');
             }
@@ -367,8 +371,14 @@ export default function Base() {
               {header ? <Section title={header} /> : null}
               <Card>
                 <Row style={{ justifyContent: 'space-between' }}>
-                  <Txt variant="label" tone="primary">
-                    {camarada(p.author_display_name)}
+                  <Txt variant="label" tone="primary" style={{ flex: 1 }} numberOfLines={1}>
+                    {aliases.get(p.author_id) ?? camarada(p.author_display_name)}
+                    {aliases.has(p.author_id) ? (
+                      <Txt variant="small" muted>
+                        {' · '}
+                        {camarada(p.author_display_name)}
+                      </Txt>
+                    ) : null}
                   </Txt>
                   <Txt variant="small" muted>
                     {relativeTime(p.created_at)}

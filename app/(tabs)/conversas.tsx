@@ -11,6 +11,7 @@ import {
   watchInbox,
   type Contact,
 } from '@/api/chat';
+import { myAliases } from '@/api/aliases';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { ChatGate } from '@/features/chat/ChatGate';
 import { KEY_STORAGE_NOTE } from '@/lib/chat/keys';
@@ -37,6 +38,7 @@ function Lista() {
   const me = profile!.id;
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [previews, setPreviews] = useState<Record<string, Preview>>({});
+  const [aliases, setAliases] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,6 +64,7 @@ function Lista() {
       }
       setContacts(list);
       setPreviews(out);
+      setAliases(await myAliases());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível carregar.');
       setContacts((c) => c ?? []);
@@ -150,7 +153,7 @@ function Lista() {
           <Card key={c.contactId} onPress={() => router.push({ pathname: '/conversas/[id]', params: { id: c.peerId } })}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Txt variant="label" style={{ flex: 1 }} numberOfLines={1}>
-                {camarada(c.name)}
+                {aliases.get(c.peerId) ?? camarada(c.name)}
               </Txt>
               {p ? (
                 <Txt variant="small" muted>

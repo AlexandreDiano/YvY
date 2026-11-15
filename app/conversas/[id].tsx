@@ -29,13 +29,14 @@ import {
   type Contact,
   type PeerKeys,
 } from '@/api/chat';
+import { myAliases, setContactAlias } from '@/api/aliases';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { ChatGate } from '@/features/chat/ChatGate';
 import type { StoredMessage } from '@/lib/chat/store';
 import { camarada, clockTime, dayBucket } from '@/lib/format';
 import { confirmAction } from '@/lib/notify';
 import { useNoScreenshots } from '@/lib/privacy';
-import { Banner, Button, Divider, EmptyState, Loading, Txt, color, radius, space, type } from '@/ui';
+import { Banner, Button, Divider, EmptyState, Field, Loading, Txt, color, radius, space, type } from '@/ui';
 
 const DESKTOP_WEB =
   Platform.OS === 'web' &&
@@ -67,6 +68,9 @@ function Tela() {
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const [showSafety, setShowSafety] = useState(false);
+  // apelido que esta pessoa deu ao contato (0055); só ela vê
+  const [alias, setAlias] = useState<string | null>(null);
+  const [aliasDraft, setAliasDraft] = useState('');
   const scroll = useRef<ScrollView>(null);
   const stop = useRef<(() => void) | null>(null);
 
@@ -78,6 +82,9 @@ function Tela() {
       await fetchInbox(me);
       setMessages(await readMessages(me, peer));
       setKeys(await peerKeys(me, peer));
+      const a = (await myAliases()).get(peer) ?? null;
+      setAlias(a);
+      setAliasDraft(a ?? '');
       await markRead(me, peer);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível carregar.');
@@ -161,7 +168,22 @@ function Tela() {
     return <EmptyState title="Conversa não encontrada" detail="A conversa só abre depois que o pedido é aceito." />;
   }
 
-  const title = camarada(contact.name);
+  const title = alias ?? camarada(contact.name);
+
+  async function saveAlias() {
+    setBusy(true);
+    setError(null);
+    try {
+      await setContactAlias(peer, aliasDraft);
+      const a = aliasDraft.trim() || null;
+      setAlias(a);
+      setAliasDraft(a ?? '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não deu para salvar o apelido.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
@@ -266,7 +288,36 @@ function Tela() {
           {/* toque dentro da folha não fecha */}
           <Pressable style={s.sheet} onPress={() => undefined}>
             <Txt variant="heading">{title}</Txt>
+            {alias ? (
+              <Txt variant="small" muted>
+                No app: {camarada(contact.name)}
+              </Txt>
+            ) : null}
 
+            <Field
+              label="Seu apelido para esta pessoa"
+              value={aliasDraft}
+              onChangeText={setAliasDraft}
+              maxLength={30}
+              placeholder={camarada(contact.name)}
+              onSubmitEditing={() => void saveAlias()}
+              returnKeyType="done"
+            />
+            <Txt variant="small" muted>
+              Outros membros não veem: é como ela aparece para você aqui e no feed. Fica no registro da equipe,
+              como tudo no app. Evite nome completo ou dado pessoal.
+            </Txt>
+            <Button
+              title={aliasDraft.trim() ? 'Salvar apelido' : alias ? 'Tirar apelido' : 'Salvar apelido'}
+              kind="outline"
+              small
+              block={false}
+              loading={busy}
+              disabled={(aliasDraft.trim() || null) === alias}
+              onPress={() => void saveAlias()}
+            />
+
+            <Divider />
             <Pressable onPress={() => setShowSafety((v) => !v)} style={s.item} accessibilityRole="button">
               <Txt variant="body">Código de segurança</Txt>
               <Txt variant="small" muted>

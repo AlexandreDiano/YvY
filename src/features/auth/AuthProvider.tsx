@@ -19,6 +19,7 @@ import { env, isBackendConfigured } from '@/lib/env';
 import { suggestDisplayName } from '@/lib/format';
 import { clearAll as clearLocalStore } from '@/lib/localStore';
 import { supabase } from '@/lib/supabase';
+import { forgetAliases } from '@/api/aliases';
 import { ptError } from '@/lib/errors';
 
 /**
@@ -226,7 +227,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
     if (mode !== 'backend' || !supabase) return;
-    const { data } = supabase.auth.onAuthStateChange(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      // sessão que expira, conta apagada ou outra pessoa entrando: os
+      // apelidos em memória eram da conta anterior
+      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') forgetAliases();
       void refresh();
     });
     return () => data.subscription.unsubscribe();
@@ -482,6 +486,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     await supabase!.auth.signOut();
+    forgetAliases();
     setProfile(null);
     setVisitorView(false);
   }, [mode]);

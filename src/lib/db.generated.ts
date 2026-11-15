@@ -553,6 +553,57 @@ export type Database = {
           },
         ];
       };
+      contact_aliases: {
+        Row: {
+          alias: string;
+          contact_id: string;
+          owner_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          alias: string;
+          contact_id: string;
+          owner_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          alias?: string;
+          contact_id?: string;
+          owner_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'contact_aliases_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contact_aliases_contact_id_fkey';
+            columns: ['contact_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contact_aliases_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'contact_aliases_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles_public';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       elected_2026: {
         Row: {
           cargo: string;
@@ -1884,7 +1935,6 @@ export type Database = {
     };
     Functions: {
       audit_attach: { Args: { p_table: string }; Returns: undefined };
-      auto_approve_posts: { Args: Record<PropertyKey, never>; Returns: number };
       auto_complete_actions: { Args: Record<PropertyKey, never>; Returns: number };
       can_grant_invites_for: { Args: { p_user: string }; Returns: boolean };
       can_invite: { Args: Record<PropertyKey, never>; Returns: boolean };
@@ -2248,6 +2298,7 @@ export type Database = {
       };
       send_post_to_review: { Args: { p_post: string; p_reason: string }; Returns: undefined };
       set_auto_source: { Args: { p_id: string; p_table: string; p_url: string }; Returns: undefined };
+      set_contact_alias: { Args: { p_alias: string; p_contact: string }; Returns: undefined };
       set_invite_permission: { Args: { p_enabled: boolean; p_user: string }; Returns: undefined };
       set_member_active: { Args: { p_active: boolean; p_reason?: string; p_user: string }; Returns: undefined };
       set_member_role: {
