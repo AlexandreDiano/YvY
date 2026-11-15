@@ -10,9 +10,12 @@ if [ -z "${DOCKER_HOST:-}" ] && ! command -v docker >/dev/null && [ -S "/run/use
 fi
 
 out=src/lib/db.generated.ts
+# Temporário fora do repo: o prettier 3 respeita o .gitignore e devolve sem
+# formatar um arquivo ignorado (um .gitignore local com *.tmp bastava).
+tmp=$(mktemp --suffix=.ts)
+trap 'rm -f "$tmp"' EXIT
 {
   echo '// GERADO por scripts/gen-db-types.sh a partir das migrations. Não editar à mão.'
   npx -y supabase@2.121.0 gen types typescript --local --schema public 2>/dev/null
-} > "$out.tmp"
-npx -y prettier@3.6.2 --parser typescript --single-quote --print-width 120 "$out.tmp" > "$out"
-rm "$out.tmp"
+} > "$tmp"
+npx -y prettier@3.6.2 --parser typescript --single-quote --print-width 120 "$tmp" > "$out"
